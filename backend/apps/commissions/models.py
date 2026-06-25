@@ -167,8 +167,8 @@ class Withdrawal(BaseModel):
         verbose_name = 'Retrait'
         ordering = ['-created_at']
         indexes = [
-            models.Index(fields=['status']),
-            models.Index(fields=['driver']),
+            models.Index(fields=['status'], name='withdrawals_status_idx'),
+            models.Index(fields=['driver'], name='withdrawals_driver_idx'),
         ]
 
     def save(self, *args, **kwargs):
