@@ -2,3 +2,6 @@
 
 # Monitoring
 sentry-sdk[django]>=1.40,<2.0
+
+# Railway / Heroku
+dj-database-url>=2.0
