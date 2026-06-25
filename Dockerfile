@@ -22,10 +22,9 @@ COPY backend/ .
 
 # Variables d'environnement par défaut pour le build
 ENV DJANGO_SETTINGS_MODULE=config.settings.railway
-ENV SECRET_KEY=build-only-secret-key
 
-# Collecter les fichiers statiques
-RUN python manage.py collectstatic --noinput 2>/dev/null || true
+# Collecter les fichiers statiques (SECRET_KEY temporaire pour le build)
+RUN SECRET_KEY=build-temp-key python manage.py collectstatic --noinput 2>/dev/null || true
 
 EXPOSE 8000
 
