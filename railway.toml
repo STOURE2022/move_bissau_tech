@@ -3,6 +3,6 @@ builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "python manage.py migrate --noinput && daphne -b 0.0.0.0 -p ${PORT:-8000} config.asgi:application"
+startCommand = "python manage.py migrate --noinput; echo 'PORT='$PORT; echo 'Starting daphne...'; daphne -b 0.0.0.0 -p ${PORT:-8000} --verbosity 2 config.asgi:application 2>&1 || echo 'DAPHNE CRASHED WITH CODE '$?"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
