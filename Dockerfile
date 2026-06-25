@@ -1,4 +1,5 @@
 # Dockerfile pour Railway — backend Django MoveBissau
+# Build v2 - force rebuild
 FROM python:3.12-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -14,8 +15,10 @@ RUN pip install --no-cache-dir -r requirements/prod.txt
 COPY backend/ .
 
 ENV DJANGO_SETTINGS_MODULE=config.settings.railway
-ENV PORT=8000
 
 RUN SECRET_KEY=build-temp-key python manage.py collectstatic --noinput 2>/dev/null || true
+
+# Vérifier que start.py existe
+RUN cat start.py | head -3
 
 CMD ["python", "start.py"]
