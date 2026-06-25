@@ -1,0 +1,4 @@
+-r base.txt
+
+# Monitoring
+sentry-sdk[django]>=1.40,<2.0

@@ -1,0 +1,119 @@
+# CI/CD MoveBissau — Tests + Build + Deploy
+name: CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # === Tests Backend ===
+  test-backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_DB: movebissau_test
+          POSTGRES_USER: movebissau
+          POSTGRES_PASSWORD: testpass
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installer Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Installer les dépendances GDAL
+        run: sudo apt-get update && sudo apt-get install -y gdal-bin libgdal-dev libgeos-dev
+
+      - name: Installer les dépendances Python
+        run: |
+          cd backend
+          pip install -r requirements/dev.txt
+
+      - name: Lancer les tests
+        env:
+          DB_HOST: localhost
+          DB_NAME: movebissau_test
+          DB_USER: movebissau
+          DB_PASSWORD: testpass
+          REDIS_HOST: localhost
+          SECRET_KEY: test-secret-key
+          ENCRYPTION_KEY: test-encryption-key-32chars
+        run: |
+          cd backend
+          pytest --tb=short -q
+
+  # === Build Admin Dashboard ===
+  build-admin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installer Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Build admin dashboard
+        run: |
+          cd admin
+          npm install
+          npm run build
+
+      - name: Archiver le build
+        uses: actions/upload-artifact@v4
+        with:
+          name: admin-dist
+          path: admin/dist
+
+  # === Déploiement (uniquement sur main) ===
+  deploy:
+    needs: [test-backend, build-admin]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Télécharger le build admin
+        uses: actions/download-artifact@v4
+        with:
+          name: admin-dist
+          path: admin/dist
+
+      - name: Déployer sur le serveur
+        env:
+          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+        run: |
+          # Configurer SSH
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H $SERVER_HOST >> ~/.ssh/known_hosts
+
+          # Synchroniser le code
+          rsync -avz --delete \
+            -e "ssh -i ~/.ssh/deploy_key" \
+            --exclude='.git' \
+            --exclude='__pycache__' \
+            --exclude='.env' \
+            . $SERVER_USER@$SERVER_HOST:/opt/movebissau/
+
+          # Redémarrer les services
+          ssh -i ~/.ssh/deploy_key $SERVER_USER@$SERVER_HOST \
+            "cd /opt/movebissau && docker compose pull && docker compose up -d --build && docker compose exec api python manage.py migrate --noinput"

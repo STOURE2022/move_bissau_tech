@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* === MoveBissau — Design system mobile-first === */
+
+/* Smooth scrolling natif */
+html {
+  scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Container mobile max 480px centré */
+#root {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  background: white;
+  position: relative;
+  overflow-x: hidden;
+  box-shadow: 0 0 40px rgba(0,0,0,0.08);
+}
+
+/* Scrollbar invisible */
+::-webkit-scrollbar { width: 0; }
+
+/* Animations */
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes pulse-green {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(27,138,78,0.4); }
+  50%      { box-shadow: 0 0 0 12px rgba(27,138,78,0); }
+}
+@keyframes ripple {
+  to { transform: scale(2.5); opacity: 0; }
+}
+
+.animate-slide-up  { animation: slideUp 0.4s ease-out; }
+.animate-fade-in   { animation: fadeIn 0.3s ease-out; }
+.animate-pulse-green { animation: pulse-green 2s infinite; }
+
+/* Bottom sheet snap */
+.bottom-sheet {
+  border-radius: 1.5rem 1.5rem 0 0;
+  box-shadow: 0 -4px 30px rgba(0,0,0,0.1);
+}
+
+/* Leaflet overrides */
+.leaflet-container {
+  font-family: inherit;
+}
+.leaflet-control-zoom {
+  border: none !important;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1) !important;
+}
+.leaflet-control-zoom a {
+  border-radius: 12px !important;
+  width: 36px !important;
+  height: 36px !important;
+  line-height: 36px !important;
+}

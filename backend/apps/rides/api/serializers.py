@@ -1,0 +1,159 @@
+"""Serializers pour les courses."""
+from rest_framework import serializers
+
+from apps.rides.models import Ride, RideOffer, RideRequest
+
+
+class PriceEstimateSerializer(serializers.Serializer):
+    """Entrée pour l'estimation de prix."""
+    pickup_lat = serializers.FloatField(min_value=-90, max_value=90)
+    pickup_lng = serializers.FloatField(min_value=-180, max_value=180)
+    dropoff_lat = serializers.FloatField(min_value=-90, max_value=90)
+    dropoff_lng = serializers.FloatField(min_value=-180, max_value=180)
+    vehicle_type = serializers.ChoiceField(choices=['moto', 'car'])
+
+
+class RideRequestCreateSerializer(serializers.Serializer):
+    """Création d'une demande de course."""
+    pickup_lat = serializers.FloatField(min_value=-90, max_value=90)
+    pickup_lng = serializers.FloatField(min_value=-180, max_value=180)
+    pickup_address = serializers.CharField(max_length=500, required=False, default='')
+    dropoff_lat = serializers.FloatField(min_value=-90, max_value=90)
+    dropoff_lng = serializers.FloatField(min_value=-180, max_value=180)
+    dropoff_address = serializers.CharField(max_length=500, required=False, default='')
+    proposed_price = serializers.IntegerField(min_value=1)
+    vehicle_type = serializers.ChoiceField(choices=['moto', 'car'])
+
+
+class RideOfferCreateSerializer(serializers.Serializer):
+    """Chauffeur fait une offre."""
+    ride_request_id = serializers.UUIDField()
+    offered_price = serializers.IntegerField(min_value=1)
+
+
+class AcceptOfferSerializer(serializers.Serializer):
+    """Passager accepte une offre."""
+    offer_id = serializers.UUIDField()
+
+
+class RideStatusUpdateSerializer(serializers.Serializer):
+    """Changement de statut de course."""
+    status = serializers.ChoiceField(choices=[
+        'driver_en_route', 'driver_arrived',
+        'passenger_onboard', 'completed',
+    ])
+
+
+class CancelRideSerializer(serializers.Serializer):
+    """Annulation de course."""
+    reason = serializers.CharField(max_length=500, required=False, default='')
+
+
+class RideOfferResponseSerializer(serializers.ModelSerializer):
+    """Offre reçue par le passager."""
+    driver_name = serializers.SerializerMethodField()
+    driver_vehicle_type = serializers.SerializerMethodField()
+    driver_vehicle_info = serializers.SerializerMethodField()
+
+    class Meta:
+        model = RideOffer
+        fields = [
+            'id', 'offered_price', 'is_counter_offer',
+            'driver_distance_m', 'estimated_arrival_s', 'driver_rating',
+            'driver_name', 'driver_vehicle_type', 'driver_vehicle_info',
+            'status', 'expires_at', 'created_at',
+        ]
+
+    def get_driver_name(self, obj):
+        return f"{obj.driver.user.first_name} {obj.driver.user.last_name[0]}."
+
+    def get_driver_vehicle_type(self, obj):
+        return obj.driver.vehicle_type
+
+    def get_driver_vehicle_info(self, obj):
+        vehicle = obj.driver.vehicles.filter(is_active=True).first()
+        if vehicle:
+            return f"{vehicle.brand} {vehicle.model} - {vehicle.color}"
+        return ""
+
+
+class RideRequestSerializer(serializers.ModelSerializer):
+    """Détails d'une demande de course."""
+    offers = RideOfferResponseSerializer(many=True, read_only=True)
+    offers_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = RideRequest
+        fields = [
+            'id', 'pickup_address', 'dropoff_address',
+            'estimated_distance_m', 'suggested_price', 'proposed_price',
+            'vehicle_type', 'status', 'notified_count',
+            'offers_count', 'offers',
+            'expires_at', 'created_at',
+        ]
+
+    def get_offers_count(self, obj):
+        return obj.offers.filter(status='pending').count()
+
+
+class RideSerializer(serializers.ModelSerializer):
+    """Détails d'une course."""
+    driver_name = serializers.SerializerMethodField()
+    driver_phone_masked = serializers.SerializerMethodField()
+    driver_rating = serializers.DecimalField(
+        source='driver.average_rating', max_digits=3, decimal_places=2, read_only=True
+    )
+    driver_vehicle = serializers.SerializerMethodField()
+    passenger_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Ride
+        fields = [
+            'id', 'pickup_address', 'dropoff_address',
+            'agreed_price', 'actual_distance_m',
+            'commission_amount', 'commission_rate',
+            'vehicle_type', 'status',
+            'driver_name', 'driver_phone_masked', 'driver_rating', 'driver_vehicle',
+            'passenger_name',
+            'driver_assigned_at', 'driver_en_route_at', 'driver_arrived_at',
+            'passenger_onboard_at', 'completed_at', 'paid_at',
+            'cancelled_at', 'cancelled_by', 'cancellation_fee',
+            'share_token',
+            'created_at',
+        ]
+
+    def get_driver_name(self, obj):
+        return f"{obj.driver.user.first_name} {obj.driver.user.last_name[0]}."
+
+    def get_driver_phone_masked(self, obj):
+        """Masque le numéro sauf pendant la course active."""
+        active_statuses = ['driver_assigned', 'driver_en_route', 'driver_arrived', 'passenger_onboard']
+        if obj.status in active_statuses:
+            return obj.driver.user.phone
+        return '***masqué***'
+
+    def get_driver_vehicle(self, obj):
+        vehicle = obj.driver.vehicles.filter(is_active=True).first()
+        if vehicle:
+            return {
+                'type': vehicle.vehicle_type,
+                'brand': vehicle.brand,
+                'model': vehicle.model,
+                'color': vehicle.color,
+                'plate': vehicle.plate_number,
+            }
+        return None
+
+    def get_passenger_name(self, obj):
+        return f"{obj.passenger.first_name} {obj.passenger.last_name[0]}."
+
+
+class RideHistorySerializer(serializers.ModelSerializer):
+    """Version simplifiée pour l'historique."""
+    class Meta:
+        model = Ride
+        fields = [
+            'id', 'pickup_address', 'dropoff_address',
+            'agreed_price', 'vehicle_type', 'status',
+            'completed_at', 'created_at',
+        ]

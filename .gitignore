@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+.eggs/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Node
+node_modules/
+dist/
+.cache/
+
+# Environment variables (SECRETS)
+.env
+.env.local
+.env.production
+backend/.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker volumes
+pgdata/
+redisdata/
+miniodata/
+
+# Build artifacts
+*.log
+*.pid
+
+# Media uploads (dev)
+backend/media/avatars/
+backend/media/documents/
+
+# SSL certs
+nginx/ssl/*.pem
+
+# Flutter
+mobile/.dart_tool/
+mobile/.packages
+mobile/build/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+
+# Claude
+.claude/
