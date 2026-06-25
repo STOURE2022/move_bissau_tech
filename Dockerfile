@@ -18,7 +18,4 @@ ENV PORT=8000
 
 RUN SECRET_KEY=build-temp-key python manage.py collectstatic --noinput 2>/dev/null || true
 
-# Start script: migrate then serve on dynamic $PORT
-RUN printf '#!/bin/bash\nset -e\necho "PORT=$PORT DB=$(if [ -n "$DATABASE_URL" ]; then echo OK; else echo MISSING; fi)"\npython manage.py migrate --noinput || true\nexec daphne -b 0.0.0.0 -p $PORT config.asgi:application\n' > /app/start.sh && chmod +x /app/start.sh
-
-CMD ["bash", "/app/start.sh"]
+CMD ["python", "start.py"]
