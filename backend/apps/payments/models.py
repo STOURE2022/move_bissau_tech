@@ -181,8 +181,8 @@ class Refund(BaseModel):
         verbose_name = 'Remboursement'
         ordering = ['-created_at']
         indexes = [
-            models.Index(fields=['status']),
-            models.Index(fields=['reason']),
+            models.Index(fields=['status'], name='refunds_status_idx'),
+            models.Index(fields=['reason'], name='refunds_reason_idx'),
         ]
 
     def save(self, *args, **kwargs):
