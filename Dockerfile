@@ -1,31 +1,24 @@
-# Dockerfile racine pour Railway — build le backend Django
+# Dockerfile pour Railway — backend Django MoveBissau
 FROM python:3.12-slim
 
-# Dépendances système pour PostGIS et GDAL
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gdal-bin \
-    libgdal-dev \
-    libgeos-dev \
-    libproj-dev \
-    gcc \
+    gdal-bin libgdal-dev libgeos-dev libproj-dev gcc \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Installer les dépendances Python
 COPY backend/requirements/base.txt requirements/base.txt
 COPY backend/requirements/prod.txt requirements/prod.txt
 RUN pip install --no-cache-dir -r requirements/prod.txt
 
-# Copier le code backend
 COPY backend/ .
 
-# Variables d'environnement par défaut pour le build
 ENV DJANGO_SETTINGS_MODULE=config.settings.railway
+ENV PORT=8000
 
-# Collecter les fichiers statiques (SECRET_KEY temporaire pour le build)
 RUN SECRET_KEY=build-temp-key python manage.py collectstatic --noinput 2>/dev/null || true
 
-EXPOSE 8000
+# Start script: migrate then serve on dynamic $PORT
+RUN printf '#!/bin/bash\nset -e\necho "PORT=$PORT DB=$(if [ -n "$DATABASE_URL" ]; then echo OK; else echo MISSING; fi)"\npython manage.py migrate --noinput || true\nexec daphne -b 0.0.0.0 -p $PORT config.asgi:application\n' > /app/start.sh && chmod +x /app/start.sh
 
-CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "config.asgi:application"]
+CMD ["bash", "/app/start.sh"]
