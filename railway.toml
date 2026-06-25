@@ -3,6 +3,6 @@ builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "python manage.py migrate --noinput && python manage.py collectstatic --noinput && daphne -b 0.0.0.0 -p $PORT config.asgi:application"
+startCommand = "echo '=== DEBUG ===' && echo SETTINGS=$DJANGO_SETTINGS_MODULE && echo DB_URL_SET=$(if [ -n \"$DATABASE_URL\" ]; then echo YES; else echo NO; fi) && echo PGHOST=$PGHOST && python manage.py migrate --noinput && daphne -b 0.0.0.0 -p $PORT config.asgi:application"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10

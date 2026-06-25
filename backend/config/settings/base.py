@@ -88,19 +88,31 @@ WSGI_APPLICATION = 'config.wsgi.application'
 ASGI_APPLICATION = 'config.asgi.application'
 
 # === Base de données (PostgreSQL + PostGIS) ===
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': config('DB_NAME', default='movebissau'),
-        'USER': config('DB_USER', default='movebissau'),
-        'PASSWORD': config('DB_PASSWORD', default='movebissau'),
-        'HOST': config('DB_HOST', default='localhost'),
-        'PORT': config('DB_PORT', default='5432'),
-        'OPTIONS': {
-            'connect_timeout': 10,
-        },
+# Support DATABASE_URL (Railway, Heroku) ou variables individuelles
+_DATABASE_URL = os.environ.get('DATABASE_URL', os.environ.get('DATABASE_PRIVATE_URL', ''))
+if _DATABASE_URL:
+    import dj_database_url
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=_DATABASE_URL,
+            conn_max_age=600,
+            engine='django.contrib.gis.db.backends.postgis',
+        )
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.contrib.gis.db.backends.postgis',
+            'NAME': os.environ.get('PGDATABASE', config('DB_NAME', default='movebissau')),
+            'USER': os.environ.get('PGUSER', config('DB_USER', default='movebissau')),
+            'PASSWORD': os.environ.get('PGPASSWORD', config('DB_PASSWORD', default='movebissau')),
+            'HOST': os.environ.get('PGHOST', config('DB_HOST', default='localhost')),
+            'PORT': os.environ.get('PGPORT', config('DB_PORT', default='5432')),
+            'OPTIONS': {
+                'connect_timeout': 10,
+            },
+        }
+    }
 
 # === Modèle utilisateur personnalisé ===
 AUTH_USER_MODEL = 'accounts.User'
