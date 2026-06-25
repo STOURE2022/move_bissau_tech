@@ -11,11 +11,13 @@ COPY backend/requirements/base.txt requirements/base.txt
 COPY backend/requirements/prod.txt requirements/prod.txt
 RUN pip install --no-cache-dir -r requirements/prod.txt
 
+# Cache buster — change this to force rebuild
+ARG CACHEBUST=7
 COPY backend/ .
 
 ENV DJANGO_SETTINGS_MODULE=config.settings.railway
 
 RUN SECRET_KEY=build-temp-key python manage.py collectstatic --noinput 2>/dev/null || true
 
-# Shell form CMD — $PORT is expanded by /bin/sh at runtime
-CMD echo "PORT=$PORT" && python manage.py migrate --noinput && echo "Starting daphne on port $PORT" && daphne -b 0.0.0.0 -p $PORT --verbosity 2 config.asgi:application
+# Shell form — /bin/sh expands $PORT at runtime
+CMD echo "PORT=$PORT" && python manage.py migrate --noinput && echo "Starting daphne..." && daphne -b 0.0.0.0 -p $PORT config.asgi:application
