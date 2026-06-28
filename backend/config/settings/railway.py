@@ -91,6 +91,13 @@ TEMPLATES[0]['DIRS'] = [FRONTEND_DIST_DIR, ADMIN_DIST_DIR, BASE_DIR / 'templates
 # WhiteNoise sert les fichiers du frontend à la racine
 WHITENOISE_ROOT = str(FRONTEND_DIST_DIR) if FRONTEND_DIST_DIR.exists() else None
 
+# === Media files ===
+# Utiliser un volume persistant Railway si disponible, sinon /app/media
+MEDIA_ROOT = os.environ.get('RAILWAY_VOLUME_MOUNT_PATH', BASE_DIR / 'media')
+if isinstance(MEDIA_ROOT, str) and not MEDIA_ROOT.endswith('/media'):
+    MEDIA_ROOT = os.path.join(MEDIA_ROOT, 'media')
+MEDIA_URL = '/media/'
+
 # === Sentry ===
 SENTRY_DSN = os.environ.get('SENTRY_DSN', '')
 if SENTRY_DSN:

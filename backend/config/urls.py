@@ -65,15 +65,14 @@ urlpatterns = [
     path('api/admin/', include('apps.admin_dashboard.api.urls')),
 ]
 
-# Servir les fichiers media en dev (photos, documents)
-if settings.DEBUG:
-    from django.conf.urls.static import static
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Servir les fichiers media (photos, documents)
+from django.conf.urls.static import static
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 # Catch-all : toutes les routes non-API servent le frontend passager React (SPA)
 # Doit être en DERNIER pour ne pas bloquer les routes API/admin
 urlpatterns += [
-    re_path(r'^(?!api/|django-admin/|admin/|healthz|static/).*$',
+    re_path(r'^(?!api/|django-admin/|admin/|healthz|static/|media/).*$',
             TemplateView.as_view(template_name='index.html'),
             name='frontend'),
 ]
