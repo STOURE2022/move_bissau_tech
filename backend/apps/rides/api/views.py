@@ -341,7 +341,10 @@ class RideOfferCreateView(APIView):
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
-        driver = request.user.driver_profile
+        try:
+            driver = request.user.driver_profile
+        except Exception:
+            return Response({'error': 'Profil chauffeur introuvable.'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             ride_request = RideRequest.objects.get(
@@ -361,55 +364,63 @@ class RideOfferCreateView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Valider le prix de l'offre
-        validation = validate_offer_price(
-            data['offered_price'],
-            ride_request.proposed_price,
-            ride_request.suggested_price,
-            ride_request.vehicle_type,
-        )
-        if not validation['valid']:
+        try:
+            # Valider le prix de l'offre
+            validation = validate_offer_price(
+                data['offered_price'],
+                ride_request.proposed_price,
+                ride_request.suggested_price,
+                ride_request.vehicle_type,
+            )
+            if not validation['valid']:
+                return Response(
+                    {'error': validation['error']},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Calculer distance et ETA
+            distance_m = 0
+            eta_s = 0
+            if driver.current_location:
+                from apps.rides.services.pricing_service import calculate_distance_geodesic
+                distance_m = calculate_distance_geodesic(
+                    driver.current_location, ride_request.pickup_location
+                )
+                speed_ms = 20 * 1000 / 3600
+                eta_s = int(distance_m / speed_ms)
+
+            offer_ttl = get_config_int('ride_offer_ttl_s', 120)
+            is_counter = data['offered_price'] != ride_request.proposed_price
+
+            offer = RideOffer.objects.create(
+                ride_request=ride_request,
+                driver=driver,
+                offered_price=data['offered_price'],
+                is_counter_offer=is_counter,
+                driver_distance_m=distance_m,
+                estimated_arrival_s=eta_s,
+                driver_rating=driver.average_rating,
+                expires_at=timezone.now() + timezone.timedelta(seconds=offer_ttl),
+            )
+
+            # Mettre à jour le statut de la demande si c'est la première offre
+            if ride_request.status == 'pending':
+                ride_request.status = 'offers_received'
+                ride_request.save(update_fields=['status', 'updated_at'])
+
+        except Exception as e:
+            logger.error(f"Erreur création offre: {e}", exc_info=True)
             return Response(
-                {'error': validation['error']},
-                status=status.HTTP_400_BAD_REQUEST
+                {'error': f'Erreur serveur: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-
-        # Calculer distance et ETA
-        distance_m = 0
-        eta_s = 0
-        if driver.current_location:
-            from apps.rides.services.pricing_service import calculate_distance_geodesic
-            distance_m = calculate_distance_geodesic(
-                driver.current_location, ride_request.pickup_location
-            )
-            speed_ms = 20 * 1000 / 3600
-            eta_s = int(distance_m / speed_ms)
-
-        offer_ttl = get_config_int('ride_offer_ttl_s', 120)
-        is_counter = data['offered_price'] != ride_request.proposed_price
-
-        offer = RideOffer.objects.create(
-            ride_request=ride_request,
-            driver=driver,
-            offered_price=data['offered_price'],
-            is_counter_offer=is_counter,
-            driver_distance_m=distance_m,
-            estimated_arrival_s=eta_s,
-            driver_rating=driver.average_rating,
-            expires_at=timezone.now() + timezone.timedelta(seconds=offer_ttl),
-        )
-
-        # Mettre à jour le statut de la demande si c'est la première offre
-        if ride_request.status == 'pending':
-            ride_request.status = 'offers_received'
-            ride_request.save(update_fields=['status', 'updated_at'])
 
         # Notifier le passager (non bloquant)
         try:
             from apps.rides.tasks import notify_passenger_of_offer
             notify_passenger_of_offer.delay(str(ride_request.id), str(offer.id))
-        except Exception as e:
-            logger.warning(f"Notification offre échouée (non bloquant): {e}")
+        except Exception:
+            pass
 
         return Response(
             RideOfferResponseSerializer(offer).data,
