@@ -106,6 +106,7 @@ class RideSerializer(serializers.ModelSerializer):
     )
     driver_vehicle = serializers.SerializerMethodField()
     passenger_name = serializers.SerializerMethodField()
+    passenger_phone = serializers.SerializerMethodField()
     pickup_lat = serializers.SerializerMethodField()
     pickup_lng = serializers.SerializerMethodField()
     dropoff_lat = serializers.SerializerMethodField()
@@ -123,7 +124,7 @@ class RideSerializer(serializers.ModelSerializer):
             'vehicle_type', 'status',
             'driver_name', 'driver_phone_masked', 'driver_rating', 'driver_vehicle',
             'driver_lat', 'driver_lng',
-            'passenger_name',
+            'passenger_name', 'passenger_phone',
             'driver_assigned_at', 'driver_en_route_at', 'driver_arrived_at',
             'passenger_onboard_at', 'completed_at', 'paid_at',
             'cancelled_at', 'cancelled_by', 'cancellation_fee',
@@ -175,6 +176,13 @@ class RideSerializer(serializers.ModelSerializer):
 
     def get_passenger_name(self, obj):
         return f"{obj.passenger.first_name} {obj.passenger.last_name[0]}."
+
+    def get_passenger_phone(self, obj):
+        """Téléphone du passager visible uniquement pendant la course active."""
+        active_statuses = ['driver_assigned', 'driver_en_route', 'driver_arrived', 'passenger_onboard']
+        if obj.status in active_statuses:
+            return obj.passenger.phone
+        return None
 
 
 class RideHistorySerializer(serializers.ModelSerializer):

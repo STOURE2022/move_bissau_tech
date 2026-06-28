@@ -4,7 +4,7 @@ import { MapContainer, TileLayer, Marker } from 'react-leaflet';
 import { motion } from 'framer-motion';
 import {
   Phone, Navigation, MapPin, AlertTriangle, X,
-  ArrowLeft, ArrowRight, CheckCircle, User, Banknote, Home
+  ArrowLeft, ArrowRight, CheckCircle, User, Banknote, Home, MessageCircle
 } from 'lucide-react';
 import api from '../../api/client';
 import Button from '../../components/ui/Button';
@@ -227,7 +227,7 @@ export default function DriverRidePage() {
         </motion.div>
 
         {/* Info passager et trajet */}
-        <div className="flex items-center gap-3 mb-4">
+        <div className="flex items-center gap-3 mb-3">
           <div className="w-11 h-11 bg-brand-50 rounded-2xl flex items-center justify-center">
             <User size={20} className="text-brand-500" />
           </div>
@@ -240,6 +240,39 @@ export default function DriverRidePage() {
             </div>
           </div>
         </div>
+
+        {/* Boutons de contact passager */}
+        {ride.passenger_phone && (
+          <div className="flex gap-2 mb-4">
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={() => window.open(`tel:${ride.passenger_phone}`)}
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-green-50 rounded-xl hover:bg-green-100 transition"
+            >
+              <Phone size={16} className="text-green-600" />
+              <span className="text-xs font-semibold text-green-700">Appeler</span>
+            </motion.button>
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={() => {
+                const phone = ride.passenger_phone.replace('+', '');
+                window.open(`https://wa.me/${phone}?text=Bonjour, je suis votre chauffeur MoveBissau. J'arrive bientôt !`);
+              }}
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-emerald-50 rounded-xl hover:bg-emerald-100 transition"
+            >
+              <MessageCircle size={16} className="text-emerald-600" />
+              <span className="text-xs font-semibold text-emerald-700">WhatsApp</span>
+            </motion.button>
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={() => window.open(`sms:${ride.passenger_phone}?body=Bonjour, je suis votre chauffeur MoveBissau.`)}
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-blue-50 rounded-xl hover:bg-blue-100 transition"
+            >
+              <MessageCircle size={16} className="text-blue-600" />
+              <span className="text-xs font-semibold text-blue-700">SMS</span>
+            </motion.button>
+          </div>
+        )}
 
         {/* Bouton d'action principal */}
         {nextStep ? (
