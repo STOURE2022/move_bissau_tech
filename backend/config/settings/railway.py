@@ -92,4 +92,4 @@ import logging
 _logger = logging.getLogger(__name__)
 _db = DATABASES['default']
 _logger.info(f"DB config: engine={_db.get('ENGINE')} host={_db.get('HOST', 'via URL')} name={_db.get('NAME', 'via URL')}")
-_logger.info(f"Redis: {REDIS_URL[:30]}...")
+_logger.info(f"Redis: {REDIS_URL[:30] if REDIS_URL else 'NOT SET'}...")

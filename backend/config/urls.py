@@ -1,11 +1,20 @@
 """URLs racine pour MoveBissau."""
 from django.conf import settings
 from django.contrib import admin
+from django.http import JsonResponse
 from django.urls import include, path
 
 from apps.admin_dashboard.api.views import PublicCountryConfigView
 
+
+def health_check(request):
+    return JsonResponse({'status': 'ok'})
+
+
 urlpatterns = [
+    # Health check (léger, pas d'auth, pas de DB)
+    path('healthz', health_check, name='health-check'),
+
     # Admin Django (pour debug, le vrai admin est le dashboard React)
     path('django-admin/', admin.site.urls),
 

@@ -19,5 +19,5 @@ ENV DJANGO_SETTINGS_MODULE=config.settings.railway
 
 RUN SECRET_KEY=build-temp-key python manage.py collectstatic --noinput 2>/dev/null || true
 
-# Shell form — /bin/sh expands $PORT at runtime
-CMD echo "PORT=$PORT" && python manage.py migrate --noinput && echo "Starting daphne..." && daphne -b 0.0.0.0 -p $PORT config.asgi:application
+# Le startCommand de railway.toml remplace ce CMD en production
+CMD python manage.py migrate --noinput 2>&1 && echo "Starting daphne on port $PORT..." && daphne -b 0.0.0.0 -p ${PORT:-8000} config.asgi:application 2>&1
