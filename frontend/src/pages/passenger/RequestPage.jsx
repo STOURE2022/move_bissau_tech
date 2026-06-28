@@ -7,6 +7,7 @@ import api from '../../api/client';
 import Button from '../../components/ui/Button';
 import { useToast } from '../../components/ui/Toast';
 import { useCountryConfig } from '../../hooks/useCountryConfig';
+import { useGeolocation } from '../../hooks/useGeolocation';
 import L from 'leaflet';
 
 const pickupIcon = L.divIcon({
@@ -89,13 +90,22 @@ export default function RequestPage() {
   const location = useLocation();
   const toast = useToast();
   const country = useCountryConfig();
-  const { vehicleType: initialType = 'moto', userPos, presetDropoff, presetDropoffAddress } = location.state || {};
+  const { vehicleType: initialType = 'moto', userPos: stateUserPos, presetDropoff, presetDropoffAddress } = location.state || {};
+  const geo = useGeolocation({ watch: true, defaultLat: country.default_lat, defaultLng: country.default_lng });
 
   // Demande en cours (bloquante)
   const [activeRequest, setActiveRequest] = useState(null);
   const [cancellingRequest, setCancellingRequest] = useState(false);
 
-  const [pickup, setPickup] = useState(userPos || [country.default_lat, country.default_lng]);
+  const [pickup, setPickup] = useState(stateUserPos || geo.position);
+  const [pickupFromGeo, setPickupFromGeo] = useState(true);
+
+  // Suivre la position GPS pour le pickup si pas modifié manuellement
+  useEffect(() => {
+    if (pickupFromGeo && geo.isTracking) {
+      setPickup(geo.position);
+    }
+  }, [geo.position, pickupFromGeo, geo.isTracking]);
   const [pickupAddress, setPickupAddress] = useState('Ma position');
   const [dropoff, setDropoff] = useState(presetDropoff || null);
   const [dropoffAddress, setDropoffAddress] = useState(presetDropoffAddress || '');
@@ -170,7 +180,7 @@ export default function RequestPage() {
   const selectResult = (result) => {
     const pos = [parseFloat(result.lat), parseFloat(result.lon)];
     const addr = result.display_name.split(',').slice(0, 3).join(',');
-    if (searchMode === 'pickup') { setPickup(pos); setPickupAddress(addr); }
+    if (searchMode === 'pickup') { setPickup(pos); setPickupAddress(addr); setPickupFromGeo(false); }
     else { setDropoff(pos); setDropoffAddress(addr); }
     setSearchMode(null); setSearchQuery(''); setSearchResults([]);
   };

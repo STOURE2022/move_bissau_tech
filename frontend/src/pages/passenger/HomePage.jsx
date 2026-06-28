@@ -9,6 +9,7 @@ import {
 import api from '../../api/client';
 import { useAuth } from '../../hooks/useAuth';
 import { useCountryConfig } from '../../hooks/useCountryConfig';
+import { useGeolocation } from '../../hooks/useGeolocation';
 import BottomSheet from '../../components/ui/BottomSheet';
 import L from 'leaflet';
 
@@ -73,7 +74,8 @@ export function addRecentDestination(dest) {
 
 export default function HomePage() {
   const country = useCountryConfig();
-  const [userPos, setUserPos] = useState([country.default_lat, country.default_lng]);
+  const geo = useGeolocation({ watch: true, defaultLat: country.default_lat, defaultLng: country.default_lng });
+  const userPos = geo.position;
   const [menuOpen, setMenuOpen] = useState(false);
   const [vehicleType, setVehicleType] = useState('moto');
   const navigate = useNavigate();
@@ -95,11 +97,6 @@ export default function HomePage() {
   const [nearbyDrivers, setNearbyDrivers] = useState([]);
 
   useEffect(() => {
-    navigator.geolocation?.getCurrentPosition(
-      (p) => setUserPos([p.coords.latitude, p.coords.longitude]),
-      () => {},
-      { enableHighAccuracy: true }
-    );
     checkActiveTrips();
   }, []);
 
@@ -187,14 +184,16 @@ export default function HomePage() {
         <div className="flex-1" />
         <motion.button
           whileTap={{ scale: 0.9 }}
-          onClick={() => {
-            navigator.geolocation?.getCurrentPosition(
-              (p) => setUserPos([p.coords.latitude, p.coords.longitude])
-            );
-          }}
-          className="w-11 h-11 bg-white rounded-2xl shadow-card flex items-center justify-center"
+          onClick={geo.locate}
+          className={`w-11 h-11 rounded-2xl shadow-card flex items-center justify-center transition-colors ${
+            geo.isTracking ? 'bg-white' : 'bg-red-50'
+          }`}
         >
-          <Navigation size={18} className="text-brand-500" />
+          {geo.loading ? (
+            <Loader2 size={18} className="text-brand-500 animate-spin" />
+          ) : (
+            <Navigation size={18} className={geo.isTracking ? 'text-brand-500' : 'text-red-400'} />
+          )}
         </motion.button>
       </div>
 
@@ -207,6 +206,22 @@ export default function HomePage() {
             {user?.first_name || 'Passager'} 👋
           </h2>
         </div>
+
+        {/* Erreur GPS */}
+        {geo.error && (
+          <motion.button
+            initial={{ opacity: 0, y: -5 }}
+            animate={{ opacity: 1, y: 0 }}
+            onClick={geo.locate}
+            className="w-full bg-red-50 border border-red-200 rounded-2xl px-4 py-3 flex items-center gap-3 mb-3 text-left"
+          >
+            <Navigation size={18} className="text-red-400" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-red-700">{geo.error}</p>
+              <p className="text-xs text-red-500">Touchez pour réessayer</p>
+            </div>
+          </motion.button>
+        )}
 
         {/* Demande en cours */}
         {activeRequest && (
