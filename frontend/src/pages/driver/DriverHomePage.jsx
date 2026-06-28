@@ -37,7 +37,32 @@ export default function DriverHomePage() {
 
   const stats = useDriverStats(isOnline);
 
-  useEffect(() => { loadProfile(); loadCredit(); }, []);
+  useEffect(() => {
+    loadProfile();
+    loadCredit();
+    checkActiveRide();
+  }, []);
+
+  // Polling pour détecter une course active (toutes les 5s)
+  const activeRideRef = useRef(null);
+  useEffect(() => {
+    if (isOnline) {
+      activeRideRef.current = setInterval(checkActiveRide, 5000);
+    } else {
+      clearInterval(activeRideRef.current);
+    }
+    return () => clearInterval(activeRideRef.current);
+  }, [isOnline]);
+
+  const checkActiveRide = async () => {
+    try {
+      const data = await api.get('/rides/history?status=active');
+      if (data?.results?.length > 0) {
+        // Le chauffeur a une course active → rediriger
+        navigate(`/driver/ride/${data.results[0].id}`);
+      }
+    } catch {}
+  };
 
   // Nettoyage WebSocket au démontage
   useEffect(() => {
