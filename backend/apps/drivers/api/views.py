@@ -95,28 +95,21 @@ class DriverAvatarUploadView(APIView):
     parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request):
+        import os
         file = request.FILES.get('avatar')
         if not file:
             return Response({'error': 'Aucun fichier fourni.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # En dev, sauvegarder localement. En prod, MinIO/S3.
         ext = file.name.split('.')[-1] if '.' in file.name else 'jpg'
         filename = f"avatars/{uuid.uuid4().hex}.{ext}"
 
-        if settings.DEBUG:
-            import os
-            upload_dir = os.path.join(settings.MEDIA_ROOT, 'avatars')
-            os.makedirs(upload_dir, exist_ok=True)
-            filepath = os.path.join(settings.MEDIA_ROOT, filename)
-            with open(filepath, 'wb') as f:
-                for chunk in file.chunks():
-                    f.write(chunk)
-            url = f"/media/{filename}"
-        else:
-            # En prod, utiliser le storage S3/MinIO
-            from django.core.files.storage import default_storage
-            path = default_storage.save(filename, file)
-            url = default_storage.url(path)
+        upload_dir = os.path.join(settings.MEDIA_ROOT, 'avatars')
+        os.makedirs(upload_dir, exist_ok=True)
+        filepath = os.path.join(settings.MEDIA_ROOT, filename)
+        with open(filepath, 'wb') as f:
+            for chunk in file.chunks():
+                f.write(chunk)
+        url = f"/media/{filename}"
 
         request.user.avatar_url = url
         request.user.save(update_fields=['avatar_url'])
@@ -145,23 +138,17 @@ class DriverDocumentUploadView(APIView):
         driver = request.user.driver_profile
 
         if file:
-            # Upload du fichier
+            import os
             ext = file.name.split('.')[-1] if '.' in file.name else 'jpg'
             filename = f"documents/{driver.id}/{doc_type}_{uuid.uuid4().hex[:8]}.{ext}"
 
-            if settings.DEBUG:
-                import os
-                upload_dir = os.path.join(settings.MEDIA_ROOT, 'documents', str(driver.id))
-                os.makedirs(upload_dir, exist_ok=True)
-                filepath = os.path.join(settings.MEDIA_ROOT, filename)
-                with open(filepath, 'wb') as f:
-                    for chunk in file.chunks():
-                        f.write(chunk)
-                file_url = f"/media/{filename}"
-            else:
-                from django.core.files.storage import default_storage
-                path = default_storage.save(filename, file)
-                file_url = default_storage.url(path)
+            upload_dir = os.path.join(settings.MEDIA_ROOT, 'documents', str(driver.id))
+            os.makedirs(upload_dir, exist_ok=True)
+            filepath = os.path.join(settings.MEDIA_ROOT, filename)
+            with open(filepath, 'wb') as f:
+                for chunk in file.chunks():
+                    f.write(chunk)
+            file_url = f"/media/{filename}"
         else:
             file_url = request.data.get('file_url', '')
 
