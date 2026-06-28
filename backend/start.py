@@ -1,11 +1,21 @@
 """Script de démarrage pour Railway."""
 import os
+import signal
 import subprocess
 import sys
 import traceback
 
 # Force unbuffered output pour voir les logs en temps réel
 os.environ['PYTHONUNBUFFERED'] = '1'
+
+
+def handle_signal(signum, frame):
+    print(f"Received signal {signum} ({signal.Signals(signum).name})", flush=True)
+    sys.exit(0)
+
+
+signal.signal(signal.SIGTERM, handle_signal)
+signal.signal(signal.SIGINT, handle_signal)
 
 port = os.environ.get('PORT', '8000')
 db_url = 'OK' if os.environ.get('DATABASE_URL') else 'MISSING'
@@ -25,25 +35,29 @@ result = subprocess.run(
 )
 print(f"Migrations exit code: {result.returncode}", flush=True)
 
-# Tester l'import de l'application ASGI avant de lancer daphne
+# Tester l'import de l'application ASGI avant de lancer le serveur
 print("Testing ASGI application import...", flush=True)
 try:
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.railway')
     import django
     django.setup()
-    from config.asgi import application
+    from config.asgi import application  # noqa: F401
     print("ASGI application imported successfully!", flush=True)
 except Exception as e:
     print(f"FATAL: Failed to import ASGI application: {e}", flush=True)
     traceback.print_exc()
     sys.exit(1)
 
-# Daphne
-print(f"Starting daphne on 0.0.0.0:{port}...", flush=True)
-os.execvp('daphne', [
-    'daphne',
-    '-b', '0.0.0.0',
-    '-p', port,
-    '--verbosity', '2',
+# Gunicorn + Uvicorn workers (plus stable que daphne en production)
+print(f"Starting gunicorn with uvicorn workers on 0.0.0.0:{port}...", flush=True)
+os.execvp('gunicorn', [
+    'gunicorn',
     'config.asgi:application',
+    '-k', 'uvicorn.workers.UvicornWorker',
+    '-b', f'0.0.0.0:{port}',
+    '-w', '2',
+    '--timeout', '120',
+    '--access-logfile', '-',
+    '--error-logfile', '-',
+    '--log-level', 'info',
 ])
