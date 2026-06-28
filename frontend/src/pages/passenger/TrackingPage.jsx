@@ -11,11 +11,14 @@ import StatusPill from '../../components/ui/StatusPill';
 import L from 'leaflet';
 
 function makeDriverIcon(vehicleType) {
-  const emoji = vehicleType === 'car' ? '🚗' : '🏍️';
+  const isCar = vehicleType === 'car';
+  const svg = isCar
+    ? `<svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg>`
+    : `<svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M19.44 9.03L15.41 5H11v2h3.59l2 2H5c-2.8 0-5 2.2-5 5s2.2 5 5 5c2.46 0 4.45-1.69 4.9-4h1.65l2.77-2.77c-.21.54-.32 1.14-.32 1.77 0 2.8 2.2 5 5 5s5-2.2 5-5c0-2.65-1.97-4.77-4.56-4.97zM5 15c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm14 0c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>`;
   return L.divIcon({
     className: '',
-    html: `<div style="width:36px;height:36px;background:#1B8A4E;border:3px solid white;border-radius:50%;box-shadow:0 3px 10px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center"><span style="font-size:16px">${emoji}</span></div>`,
-    iconSize: [36, 36], iconAnchor: [18, 18],
+    html: `<div style="width:42px;height:42px;background:#1B8A4E;border:3px solid white;border-radius:50%;box-shadow:0 3px 12px rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center">${svg}</div>`,
+    iconSize: [42, 42], iconAnchor: [21, 21],
   });
 }
 
@@ -77,6 +80,10 @@ export default function TrackingPage() {
     try {
       const data = await api.get(`/rides/${rideId}`);
       setRide(data);
+      // Mettre à jour la position du chauffeur si disponible
+      if (data.driver_lat && data.driver_lng) {
+        setDriverPos([data.driver_lat, data.driver_lng]);
+      }
       if (data.status === 'paid') navigate(`/rate/${rideId}`);
     } catch {}
   };
@@ -150,7 +157,7 @@ export default function TrackingPage() {
   const pickupCoords = ride.pickup_lat ? [ride.pickup_lat, ride.pickup_lng] : null;
   const dropoffCoords = ride.dropoff_lat ? [ride.dropoff_lat, ride.dropoff_lng] : null;
   const mapCenter = pickupCoords || [11.8636, -15.5977];
-  const bounds = [pickupCoords, dropoffCoords].filter(Boolean);
+  const bounds = [pickupCoords, dropoffCoords, driverPos].filter(Boolean);
   const driverIcon = makeDriverIcon(ride.vehicle_type);
 
   return (

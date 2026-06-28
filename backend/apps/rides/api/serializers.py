@@ -105,15 +105,23 @@ class RideSerializer(serializers.ModelSerializer):
     )
     driver_vehicle = serializers.SerializerMethodField()
     passenger_name = serializers.SerializerMethodField()
+    pickup_lat = serializers.SerializerMethodField()
+    pickup_lng = serializers.SerializerMethodField()
+    dropoff_lat = serializers.SerializerMethodField()
+    dropoff_lng = serializers.SerializerMethodField()
+    driver_lat = serializers.SerializerMethodField()
+    driver_lng = serializers.SerializerMethodField()
 
     class Meta:
         model = Ride
         fields = [
             'id', 'pickup_address', 'dropoff_address',
+            'pickup_lat', 'pickup_lng', 'dropoff_lat', 'dropoff_lng',
             'agreed_price', 'actual_distance_m',
             'commission_amount', 'commission_rate',
             'vehicle_type', 'status',
             'driver_name', 'driver_phone_masked', 'driver_rating', 'driver_vehicle',
+            'driver_lat', 'driver_lng',
             'passenger_name',
             'driver_assigned_at', 'driver_en_route_at', 'driver_arrived_at',
             'passenger_onboard_at', 'completed_at', 'paid_at',
@@ -121,6 +129,26 @@ class RideSerializer(serializers.ModelSerializer):
             'share_token',
             'created_at',
         ]
+
+    def get_pickup_lat(self, obj):
+        return obj.pickup_location.y if obj.pickup_location else None
+
+    def get_pickup_lng(self, obj):
+        return obj.pickup_location.x if obj.pickup_location else None
+
+    def get_dropoff_lat(self, obj):
+        return obj.dropoff_location.y if obj.dropoff_location else None
+
+    def get_dropoff_lng(self, obj):
+        return obj.dropoff_location.x if obj.dropoff_location else None
+
+    def get_driver_lat(self, obj):
+        loc = obj.driver.current_location
+        return loc.y if loc else None
+
+    def get_driver_lng(self, obj):
+        loc = obj.driver.current_location
+        return loc.x if loc else None
 
     def get_driver_name(self, obj):
         return f"{obj.driver.user.first_name} {obj.driver.user.last_name[0]}."

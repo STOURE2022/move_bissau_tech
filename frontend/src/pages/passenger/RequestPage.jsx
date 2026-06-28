@@ -21,10 +21,25 @@ const dropoffIcon = L.divIcon({
   iconSize: [24, 24], iconAnchor: [12, 24],
 });
 
-async function searchAddress(query, countryCode = 'gw') {
+async function searchAddress(query, countryCode = 'gw', centerLat = null, centerLng = null) {
   if (query.length < 3) return [];
+  // Construire les params avec viewbox pour biaisage géographique
+  const params = new URLSearchParams({
+    format: 'json',
+    q: query,
+    limit: '10',
+    countrycodes: countryCode,
+    'accept-language': 'fr',
+    addressdetails: '1',
+  });
+  // Viewbox : zone de ~50km autour du centre du pays pour prioriser les résultats locaux
+  if (centerLat && centerLng) {
+    const delta = 0.5; // ~50km
+    params.set('viewbox', `${centerLng - delta},${centerLat + delta},${centerLng + delta},${centerLat - delta}`);
+    params.set('bounded', '0'); // Préférer la zone mais autoriser hors zone
+  }
   const res = await fetch(
-    `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=8&countrycodes=${countryCode}&accept-language=fr`,
+    `https://nominatim.openstreetmap.org/search?${params}`,
     { headers: { 'User-Agent': 'MoveBissau/1.0' } }
   );
   return res.json();
@@ -106,7 +121,7 @@ export default function RequestPage() {
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
       setSearching(true);
-      const results = await searchAddress(searchQuery, country.country_code);
+      const results = await searchAddress(searchQuery, country.country_code, country.default_lat, country.default_lng);
       setSearchResults(results);
       setSearching(false);
     }, 400);
@@ -258,6 +273,11 @@ export default function RequestPage() {
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-gray-800 text-sm">{result.display_name.split(',')[0]}</p>
                 <p className="text-xs text-gray-400 truncate mt-0.5">{result.display_name.split(',').slice(1, 4).join(',')}</p>
+                {result.type && (
+                  <span className="inline-block mt-1 px-2 py-0.5 bg-gray-100 rounded-full text-[10px] text-gray-500 capitalize">
+                    {result.type.replace(/_/g, ' ')}
+                  </span>
+                )}
               </div>
             </motion.button>
           ))}
