@@ -43,25 +43,26 @@ export default function DriverHomePage() {
     checkActiveRide();
   }, []);
 
-  // Polling pour détecter une course active (toutes les 5s)
+  // Polling pour détecter une course active (toujours actif, pas seulement quand en ligne)
   const activeRideRef = useRef(null);
   useEffect(() => {
-    if (isOnline) {
-      activeRideRef.current = setInterval(checkActiveRide, 5000);
-    } else {
-      clearInterval(activeRideRef.current);
-    }
+    activeRideRef.current = setInterval(checkActiveRide, 3000);
     return () => clearInterval(activeRideRef.current);
-  }, [isOnline]);
+  }, []);
 
   const checkActiveRide = async () => {
     try {
       const data = await api.get('/rides/history?status=active');
       if (data?.results?.length > 0) {
-        // Le chauffeur a une course active → rediriger
-        navigate(`/driver/ride/${data.results[0].id}`);
+        const ride = data.results[0];
+        // Vérifier que c'est bien une course où on est le chauffeur
+        // (pas une course en tant que passager pour les admins)
+        console.log('[Driver] Active ride detected:', ride.id, ride.status);
+        navigate(`/driver/ride/${ride.id}`);
       }
-    } catch {}
+    } catch (e) {
+      console.log('[Driver] checkActiveRide error:', e.message);
+    }
   };
 
   // Nettoyage WebSocket au démontage
@@ -278,6 +279,8 @@ export default function DriverHomePage() {
       });
       setSentOffers(prev => new Set([...prev, requestId]));
       setShowCounter(prev => ({ ...prev, [requestId]: false }));
+      // Vérifier immédiatement si l'offre a été acceptée (polling rapide)
+      setTimeout(checkActiveRide, 2000);
     } catch (e) {
       alert(e.message);
     }

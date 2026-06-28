@@ -602,13 +602,24 @@ class RideHistoryView(APIView):
 
     def get(self, request):
         user = request.user
+        rides = Ride.objects.none()
 
-        if user.role in ('passenger', 'admin'):
+        if user.role == 'driver':
+            try:
+                rides = Ride.objects.filter(driver=user.driver_profile)
+            except Exception:
+                pass
+        elif user.role == 'passenger':
             rides = Ride.objects.filter(passenger=user)
-        elif user.role == 'driver':
-            rides = Ride.objects.filter(driver=user.driver_profile)
-        else:
-            rides = Ride.objects.none()
+        elif user.role == 'admin':
+            # Admin peut voir ses courses en tant que passager ET chauffeur
+            from django.db.models import Q
+            q = Q(passenger=user)
+            try:
+                q |= Q(driver=user.driver_profile)
+            except Exception:
+                pass
+            rides = Ride.objects.filter(q)
 
         # Filtrer par statut actif si demandé
         status_filter = request.query_params.get('status')
