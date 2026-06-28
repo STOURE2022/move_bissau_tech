@@ -65,9 +65,19 @@ urlpatterns = [
     path('api/admin/', include('apps.admin_dashboard.api.urls')),
 ]
 
-# Servir les fichiers media (photos, documents)
-from django.conf.urls.static import static
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Servir les fichiers media (photos, documents) — fonctionne même avec DEBUG=False
+def serve_media(request, path=''):
+    """Sert les fichiers média depuis MEDIA_ROOT (avatars, documents, etc.)."""
+    file_path = os.path.join(str(settings.MEDIA_ROOT), path)
+    if os.path.isfile(file_path):
+        content_type, _ = mimetypes.guess_type(file_path)
+        return FileResponse(open(file_path, 'rb'), content_type=content_type or 'application/octet-stream')
+    from django.http import Http404
+    raise Http404
+
+urlpatterns += [
+    re_path(r'^media/(?P<path>.+)$', serve_media, name='serve-media'),
+]
 
 # Catch-all : toutes les routes non-API servent le frontend passager React (SPA)
 # Doit être en DERNIER pour ne pas bloquer les routes API/admin
