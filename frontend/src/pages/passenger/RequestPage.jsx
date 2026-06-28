@@ -90,7 +90,7 @@ export default function RequestPage() {
   const location = useLocation();
   const toast = useToast();
   const country = useCountryConfig();
-  const { vehicleType: initialType = 'moto', userPos: stateUserPos, presetDropoff, presetDropoffAddress } = location.state || {};
+  const { vehicleType: initialType = 'moto', userPos: stateUserPos, presetDropoff, presetDropoffAddress, preferredDriver } = location.state || {};
   const geo = useGeolocation({ watch: true, defaultLat: country.default_lat, defaultLng: country.default_lng });
 
   // Demande en cours (bloquante)
@@ -231,14 +231,16 @@ export default function RequestPage() {
     if (!dropoff || !price) return;
     setLoading(true); setError('');
     try {
-      const data = await api.post('/rides/requests', {
+      const requestData = {
         pickup_lat: pickup[0], pickup_lng: pickup[1],
         pickup_address: pickupAddress,
         dropoff_lat: dropoff[0], dropoff_lng: dropoff[1],
         dropoff_address: dropoffAddress,
         proposed_price: price,
         vehicle_type: vehicleType,
-      });
+      };
+      if (preferredDriver?.id) requestData.preferred_driver_id = preferredDriver.id;
+      const data = await api.post('/rides/requests', requestData);
       navigator.vibrate?.(20);
       navigate(`/offers/${data.id}`);
     } catch (e) {
@@ -558,8 +560,16 @@ export default function RequestPage() {
                 </div>
               </div>
             ) : (
+              {preferredDriver && (
+                <div className="flex items-center gap-2 bg-brand-50 border border-brand-200 rounded-xl px-3 py-2 mb-2">
+                  <span className="text-sm">🎯</span>
+                  <p className="text-xs text-brand-700 font-medium">
+                    Demande envoyée à <span className="font-bold">{preferredDriver.name}</span>
+                  </p>
+                </div>
+              )}
               <Button onClick={sendRequest} loading={loading} icon={Send}>
-                Envoyer la demande — {price} F
+                {preferredDriver ? `Demander à ${preferredDriver.name} — ${price} F` : `Envoyer la demande — ${price} F`}
               </Button>
             )}
           </motion.div>

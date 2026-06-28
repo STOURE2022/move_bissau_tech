@@ -4,7 +4,8 @@ import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, Menu, MapPin, Navigation, History, User, LogOut,
-  Home, Briefcase, Clock, ChevronRight, Edit3, X, Check, Loader2
+  Home, Briefcase, Clock, ChevronRight, Edit3, X, Check, Loader2,
+  Send, Star
 } from 'lucide-react';
 import api from '../../api/client';
 import { useAuth } from '../../hooks/useAuth';
@@ -95,6 +96,7 @@ export default function HomePage() {
 
   // Chauffeurs proches
   const [nearbyDrivers, setNearbyDrivers] = useState([]);
+  const [selectedDriver, setSelectedDriver] = useState(null);
 
   useEffect(() => {
     checkActiveTrips();
@@ -167,6 +169,7 @@ export default function HomePage() {
             key={d.id}
             position={[d.lat, d.lng]}
             icon={nearbyIcons[d.vehicle_type] || nearbyIcons.moto}
+            eventHandlers={{ click: () => setSelectedDriver(d) }}
           />
         ))}
         <LocateUser pos={userPos} />
@@ -196,6 +199,106 @@ export default function HomePage() {
           )}
         </motion.button>
       </div>
+
+      {/* Carte profil chauffeur sélectionné */}
+      <AnimatePresence>
+        {selectedDriver && (
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            transition={{ type: 'spring', damping: 25 }}
+            className="absolute bottom-0 left-0 right-0 z-30 px-4 pb-6"
+          >
+            <div className="bg-white rounded-3xl shadow-elevated overflow-hidden border border-gray-100">
+              {/* Header avec close */}
+              <div className="flex items-center justify-between px-5 pt-4 pb-2">
+                <h3 className="font-bold text-gray-800">Chauffeur disponible</h3>
+                <button
+                  onClick={() => setSelectedDriver(null)}
+                  className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition"
+                >
+                  <X size={16} className="text-gray-500" />
+                </button>
+              </div>
+
+              <div className="px-5 pb-4">
+                {/* Profil */}
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-14 h-14 rounded-2xl bg-brand-50 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    {selectedDriver.avatar_url ? (
+                      <img src={selectedDriver.avatar_url} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-2xl">{selectedDriver.vehicle_type === 'moto' ? '🏍️' : '🚗'}</span>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-bold text-gray-800 text-lg">{selectedDriver.first_name}</p>
+                    <div className="flex items-center gap-3 mt-0.5">
+                      <span className="flex items-center gap-1 text-sm text-amber-500">
+                        <Star size={14} className="fill-amber-400" />
+                        {selectedDriver.rating > 0 ? selectedDriver.rating.toFixed(1) : 'Nouveau'}
+                      </span>
+                      <span className="text-xs text-gray-400">·</span>
+                      <span className="text-xs text-gray-500">{selectedDriver.total_rides} courses</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Stats rapides */}
+                <div className="flex gap-2 mb-4">
+                  <div className="flex-1 bg-gray-50 rounded-xl px-3 py-2.5 text-center">
+                    <p className="text-xs text-gray-400">Distance</p>
+                    <p className="font-bold text-gray-800 text-sm">
+                      {selectedDriver.distance_m < 1000
+                        ? `${selectedDriver.distance_m} m`
+                        : `${(selectedDriver.distance_m / 1000).toFixed(1)} km`
+                      }
+                    </p>
+                  </div>
+                  <div className="flex-1 bg-gray-50 rounded-xl px-3 py-2.5 text-center">
+                    <p className="text-xs text-gray-400">Véhicule</p>
+                    <p className="font-bold text-gray-800 text-sm">
+                      {selectedDriver.vehicle_type === 'moto' ? 'Moto' : 'Voiture'}
+                    </p>
+                  </div>
+                  {selectedDriver.vehicle && (
+                    <div className="flex-1 bg-gray-50 rounded-xl px-3 py-2.5 text-center">
+                      <p className="text-xs text-gray-400">Modèle</p>
+                      <p className="font-bold text-gray-800 text-sm truncate">
+                        {selectedDriver.vehicle.brand || selectedDriver.vehicle.model || '—'}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* CTA */}
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => {
+                    setSelectedDriver(null);
+                    navigate('/request', {
+                      state: {
+                        vehicleType: selectedDriver.vehicle_type,
+                        userPos,
+                        preferredDriver: {
+                          id: selectedDriver.id,
+                          name: selectedDriver.first_name,
+                        },
+                      },
+                    });
+                  }}
+                  className="w-full bg-gradient-to-r from-brand-500 to-emerald-500 text-white font-bold py-4 rounded-2xl shadow-md
+                             flex items-center justify-center gap-2 hover:shadow-lg transition-shadow"
+                >
+                  <Send size={18} />
+                  Demander ce chauffeur
+                </motion.button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Bottom sheet */}
       <BottomSheet>

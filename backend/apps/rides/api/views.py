@@ -194,13 +194,23 @@ class RideRequestCreateView(APIView):
         )
 
         # Rechercher et notifier les chauffeurs (non bloquant)
+        preferred_driver_id = data.get('preferred_driver_id')
         try:
-            eligible = find_eligible_drivers(
-                pickup_location=pickup,
-                vehicle_type=data['vehicle_type'],
-                radius_m=search_radius,
-                max_drivers=max_drivers,
-            )
+            if preferred_driver_id:
+                # Chauffeur spécifique choisi par le passager
+                from apps.drivers.models import Driver as DriverModel
+                try:
+                    preferred = DriverModel.objects.get(id=preferred_driver_id, is_online=True)
+                    eligible = [{'driver': preferred}]
+                except DriverModel.DoesNotExist:
+                    eligible = []
+            else:
+                eligible = find_eligible_drivers(
+                    pickup_location=pickup,
+                    vehicle_type=data['vehicle_type'],
+                    radius_m=search_radius,
+                    max_drivers=max_drivers,
+                )
 
             ride_request.notified_count = len(eligible)
             ride_request.save(update_fields=['notified_count'])
@@ -218,6 +228,7 @@ class RideRequestCreateView(APIView):
             logger.info(
                 f"Demande #{str(ride_request.id)[:8]} créée : "
                 f"{data['proposed_price']} XOF, {len(eligible)} chauffeurs notifiés"
+                f"{' (chauffeur préféré)' if preferred_driver_id else ''}"
             )
         except Exception as e:
             logger.warning(f"Recherche chauffeurs échouée (non bloquant): {e}")

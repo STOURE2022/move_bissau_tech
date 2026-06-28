@@ -362,12 +362,28 @@ class NearbyDriversView(APIView):
 
         results = []
         for d in drivers:
+            # Véhicule actif
+            vehicle = d.vehicles.filter(is_active=True).first()
+            vehicle_info = None
+            if vehicle:
+                vehicle_info = {
+                    'brand': vehicle.brand,
+                    'model': vehicle.model,
+                    'color': vehicle.color,
+                    'plate': vehicle.plate_number,
+                }
+
             results.append({
                 'id': str(d.id),
+                'first_name': d.user.first_name,
                 'lat': d.current_location.y,
                 'lng': d.current_location.x,
                 'vehicle_type': d.vehicle_type,
                 'rating': float(d.average_rating),
+                'total_rides': d.total_rides,
+                'distance_m': int(d.dist.m) if d.dist else 0,
+                'vehicle': vehicle_info,
+                'avatar_url': d.user.avatar_url or '',
             })
 
         return Response(results)
