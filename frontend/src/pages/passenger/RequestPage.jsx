@@ -560,17 +560,19 @@ export default function RequestPage() {
                 </div>
               </div>
             ) : (
-              {preferredDriver && (
-                <div className="flex items-center gap-2 bg-brand-50 border border-brand-200 rounded-xl px-3 py-2 mb-2">
-                  <span className="text-sm">🎯</span>
-                  <p className="text-xs text-brand-700 font-medium">
-                    Demande envoyée à <span className="font-bold">{preferredDriver.name}</span>
-                  </p>
-                </div>
-              )}
-              <Button onClick={sendRequest} loading={loading} icon={Send}>
-                {preferredDriver ? `Demander à ${preferredDriver.name} — ${price} F` : `Envoyer la demande — ${price} F`}
-              </Button>
+              <>
+                {preferredDriver && (
+                  <div className="flex items-center gap-2 bg-brand-50 border border-brand-200 rounded-xl px-3 py-2 mb-2">
+                    <span className="text-sm">🎯</span>
+                    <p className="text-xs text-brand-700 font-medium">
+                      Demande envoyée à <span className="font-bold">{preferredDriver.name}</span>
+                    </p>
+                  </div>
+                )}
+                <Button onClick={sendRequest} loading={loading} icon={Send}>
+                  {preferredDriver ? `Demander à ${preferredDriver.name} — ${price} F` : `Envoyer la demande — ${price} F`}
+                </Button>
+              </>
             )}
           </motion.div>
         )}
