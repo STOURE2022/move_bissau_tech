@@ -4,8 +4,9 @@ import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, Menu, MapPin, Navigation, History, User, LogOut,
-  Home, Briefcase, Clock, ChevronRight, Edit3, X, Check
+  Home, Briefcase, Clock, ChevronRight, Edit3, X, Check, Loader2
 } from 'lucide-react';
+import api from '../../api/client';
 import { useAuth } from '../../hooks/useAuth';
 import { useCountryConfig } from '../../hooks/useCountryConfig';
 import BottomSheet from '../../components/ui/BottomSheet';
@@ -68,13 +69,31 @@ export default function HomePage() {
   // Récents
   const recents = getRecentDestinations();
 
+  // Demande ou course en cours
+  const [activeRequest, setActiveRequest] = useState(null);
+  const [activeRide, setActiveRide] = useState(null);
+
   useEffect(() => {
     navigator.geolocation?.getCurrentPosition(
       (p) => setUserPos([p.coords.latitude, p.coords.longitude]),
       () => {},
       { enableHighAccuracy: true }
     );
+    checkActiveTrips();
   }, []);
+
+  const checkActiveTrips = async () => {
+    // Vérifier demande en cours
+    try {
+      const req = await api.get('/rides/requests/active');
+      if (req && req.id) { setActiveRequest(req); return; }
+    } catch {}
+    // Vérifier course en cours
+    try {
+      const rides = await api.get('/rides/history?status=active');
+      if (rides?.results?.length > 0) { setActiveRide(rides.results[0]); }
+    } catch {}
+  };
 
   const savePlace = (key) => {
     if (!editValue.trim()) return;
@@ -144,6 +163,50 @@ export default function HomePage() {
             {user?.first_name || 'Passager'} 👋
           </h2>
         </div>
+
+        {/* Demande en cours */}
+        {activeRequest && (
+          <motion.button
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => navigate(`/offers/${activeRequest.id}`)}
+            className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-2xl px-4 py-4 flex items-center gap-3 mb-4 shadow-md"
+          >
+            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+              <Loader2 size={20} className="text-white animate-spin" />
+            </div>
+            <div className="flex-1 text-left">
+              <p className="font-bold text-sm">Demande en cours</p>
+              <p className="text-white/80 text-xs truncate">
+                {activeRequest.dropoff_address || 'En attente de chauffeurs'} · {activeRequest.proposed_price} F
+              </p>
+            </div>
+            <ChevronRight size={20} className="text-white/70" />
+          </motion.button>
+        )}
+
+        {/* Course en cours */}
+        {activeRide && !activeRequest && (
+          <motion.button
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => navigate(`/tracking/${activeRide.id}`)}
+            className="w-full bg-gradient-to-r from-brand-500 to-emerald-500 text-white rounded-2xl px-4 py-4 flex items-center gap-3 mb-4 shadow-md"
+          >
+            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center text-xl">
+              {activeRide.vehicle_type === 'moto' ? '🏍️' : '🚗'}
+            </div>
+            <div className="flex-1 text-left">
+              <p className="font-bold text-sm">Course en cours</p>
+              <p className="text-white/80 text-xs truncate">
+                {activeRide.dropoff_address} · {activeRide.agreed_price} F
+              </p>
+            </div>
+            <ChevronRight size={20} className="text-white/70" />
+          </motion.button>
+        )}
 
         {/* Barre de recherche */}
         <motion.button

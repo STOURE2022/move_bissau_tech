@@ -526,15 +526,24 @@ class RideHistoryView(APIView):
     """GET /api/rides/history — Historique des courses."""
     permission_classes = [IsAuthenticated]
 
+    ACTIVE_STATUSES = ['driver_assigned', 'driver_en_route', 'driver_arrived', 'passenger_onboard', 'completed']
+
     def get(self, request):
         user = request.user
 
-        if user.role == 'passenger':
+        if user.role in ('passenger', 'admin'):
             rides = Ride.objects.filter(passenger=user)
         elif user.role == 'driver':
             rides = Ride.objects.filter(driver=user.driver_profile)
         else:
             rides = Ride.objects.none()
 
+        # Filtrer par statut actif si demandé
+        status_filter = request.query_params.get('status')
+        if status_filter == 'active':
+            rides = rides.filter(status__in=self.ACTIVE_STATUSES)
+
         rides = rides.order_by('-created_at')[:50]
-        return Response(RideHistorySerializer(rides, many=True).data)
+
+        serializer = RideSerializer if status_filter == 'active' else RideHistorySerializer
+        return Response({'results': serializer(rides, many=True).data})
