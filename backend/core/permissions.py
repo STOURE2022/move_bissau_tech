@@ -2,10 +2,17 @@
 from rest_framework.permissions import BasePermission
 
 
+def _is_admin(user):
+    """L'admin a accès à toutes les fonctionnalités."""
+    return user and user.is_authenticated and user.role == 'admin'
+
+
 class IsPassenger(BasePermission):
-    """Autorise uniquement les passagers."""
+    """Autorise les passagers (et les admins)."""
 
     def has_permission(self, request, view):
+        if _is_admin(request.user):
+            return True
         return (
             request.user
             and request.user.is_authenticated
@@ -14,9 +21,11 @@ class IsPassenger(BasePermission):
 
 
 class IsDriver(BasePermission):
-    """Autorise uniquement les chauffeurs."""
+    """Autorise les chauffeurs (et les admins)."""
 
     def has_permission(self, request, view):
+        if _is_admin(request.user):
+            return True
         return (
             request.user
             and request.user.is_authenticated
@@ -28,17 +37,15 @@ class IsAdmin(BasePermission):
     """Autorise uniquement les administrateurs."""
 
     def has_permission(self, request, view):
-        return (
-            request.user
-            and request.user.is_authenticated
-            and request.user.role == 'admin'
-        )
+        return _is_admin(request.user)
 
 
 class IsPassengerOrDriver(BasePermission):
-    """Autorise passagers et chauffeurs."""
+    """Autorise passagers, chauffeurs (et admins)."""
 
     def has_permission(self, request, view):
+        if _is_admin(request.user):
+            return True
         return (
             request.user
             and request.user.is_authenticated
