@@ -1,7 +1,9 @@
 """URLs racine pour MoveBissau."""
+import os
+
 from django.conf import settings
 from django.contrib import admin
-from django.http import JsonResponse
+from django.http import FileResponse, JsonResponse
 from django.urls import include, path, re_path
 from django.views.generic import TemplateView
 
@@ -12,12 +14,25 @@ def health_check(request):
     return JsonResponse({'status': 'ok'})
 
 
+def serve_admin_spa(request, path=''):
+    """Sert le dashboard admin React (SPA) depuis admin_dist/."""
+    admin_dist = os.path.join(settings.BASE_DIR, 'admin_dist')
+    index_path = os.path.join(admin_dist, 'index.html')
+    if os.path.exists(index_path):
+        return FileResponse(open(index_path, 'rb'), content_type='text/html')
+    return JsonResponse({'error': 'Admin dashboard not built'}, status=404)
+
+
 urlpatterns = [
     # Health check (léger, pas d'auth, pas de DB)
     path('healthz', health_check, name='health-check'),
 
-    # Admin Django (pour debug, le vrai admin est le dashboard React)
+    # Django Admin (fallback)
     path('django-admin/', admin.site.urls),
+
+    # Dashboard admin React (SPA)
+    path('admin/', serve_admin_spa, name='admin-dashboard'),
+    re_path(r'^admin/(?P<path>.+)$', serve_admin_spa),
 
     # Config publique (pas d'auth)
     path('api/config/country', PublicCountryConfigView.as_view(), name='public-country-config'),
@@ -40,10 +55,10 @@ if settings.DEBUG:
     from django.conf.urls.static import static
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
-# Catch-all : toutes les routes non-API servent le frontend React (SPA)
-# Doit être en DERNIER pour ne pas bloquer les routes API
+# Catch-all : toutes les routes non-API servent le frontend passager React (SPA)
+# Doit être en DERNIER pour ne pas bloquer les routes API/admin
 urlpatterns += [
-    re_path(r'^(?!api/|django-admin/|healthz|static/).*$',
+    re_path(r'^(?!api/|django-admin/|admin/|healthz|static/).*$',
             TemplateView.as_view(template_name='index.html'),
             name='frontend'),
 ]

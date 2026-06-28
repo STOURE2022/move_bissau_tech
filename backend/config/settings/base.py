@@ -3,6 +3,7 @@ Settings de base pour MoveBissau.
 Paramètres communs à tous les environnements.
 """
 import os
+import sys
 from datetime import timedelta
 from pathlib import Path
 
@@ -10,6 +11,15 @@ from decouple import Csv, config
 
 # === Chemins ===
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
+# === GDAL/GEOS pour Windows (DLLs dans le package osgeo) ===
+if sys.platform == 'win32':
+    _osgeo_dir = os.path.join(sys.prefix, 'Lib', 'site-packages', 'osgeo')
+    if os.path.isdir(_osgeo_dir):
+        os.add_dll_directory(_osgeo_dir)
+        GDAL_LIBRARY_PATH = os.path.join(_osgeo_dir, 'gdal.dll')
+        GEOS_LIBRARY_PATH = os.path.join(_osgeo_dir, 'geos_c.dll')
+        os.environ.setdefault('PROJ_LIB', os.path.join(_osgeo_dir, 'data', 'proj'))
 
 # === Sécurité ===
 SECRET_KEY = config('SECRET_KEY', default='changez-moi-en-production')

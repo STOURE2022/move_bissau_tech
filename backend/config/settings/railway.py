@@ -73,14 +73,22 @@ CORS_ALLOW_ALL_ORIGINS = True  # À restreindre plus tard avec les vrais domaine
 # === Static files ===
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 
-# Inclure les assets du frontend React (JS, CSS, images)
+# Builds frontend
 FRONTEND_DIST_DIR = BASE_DIR / 'frontend_dist'
-STATICFILES_DIRS = [FRONTEND_DIST_DIR / 'assets'] if (BASE_DIR / 'frontend_dist' / 'assets').exists() else []
+ADMIN_DIST_DIR = BASE_DIR / 'admin_dist'
 
-# Template pour servir index.html du frontend
-TEMPLATES[0]['DIRS'] = [FRONTEND_DIST_DIR, BASE_DIR / 'templates']
+# Assets (JS/CSS) des deux frontends
+_static_dirs = []
+if (FRONTEND_DIST_DIR / 'assets').exists():
+    _static_dirs.append(FRONTEND_DIST_DIR / 'assets')
+if ADMIN_DIST_DIR.exists():
+    _static_dirs.append(('admin', str(ADMIN_DIST_DIR)))
+STATICFILES_DIRS = _static_dirs
 
-# WhiteNoise sert aussi les fichiers du frontend (hors assets/)
+# Templates pour servir index.html (frontend + admin)
+TEMPLATES[0]['DIRS'] = [FRONTEND_DIST_DIR, ADMIN_DIST_DIR, BASE_DIR / 'templates']
+
+# WhiteNoise sert les fichiers du frontend à la racine
 WHITENOISE_ROOT = str(FRONTEND_DIST_DIR) if FRONTEND_DIST_DIR.exists() else None
 
 # === Sentry ===
