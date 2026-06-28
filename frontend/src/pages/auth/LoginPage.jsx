@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Phone, Lock, Eye, EyeOff, ChevronRight, ArrowLeft, AlertCircle } from 'lucide-react';
+import { Phone, Lock, Eye, EyeOff, ChevronRight, ArrowLeft, AlertCircle, Shield } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useCountryConfig } from '../../hooks/useCountryConfig';
 import Button from '../../components/ui/Button';
