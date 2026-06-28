@@ -16,8 +16,8 @@ ARG CACHEBUST=7
 COPY backend/ .
 
 ENV DJANGO_SETTINGS_MODULE=config.settings.railway
+ENV PYTHONUNBUFFERED=1
 
 RUN SECRET_KEY=build-temp-key python manage.py collectstatic --noinput 2>/dev/null || true
 
-# Le startCommand de railway.toml remplace ce CMD en production
-CMD python manage.py migrate --noinput 2>&1 && echo "Starting daphne on port $PORT..." && daphne -b 0.0.0.0 -p ${PORT:-8000} config.asgi:application 2>&1
+CMD ["python", "start.py"]
