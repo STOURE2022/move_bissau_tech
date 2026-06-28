@@ -143,14 +143,20 @@ class IncidentUpdateSerializer(serializers.Serializer):
 
 class PaymentProviderAdminSerializer(serializers.ModelSerializer):
     """Vue admin d'un provider de paiement (avec config)."""
+    has_api_keys = serializers.SerializerMethodField()
+
     class Meta:
         model = PaymentProvider
         fields = [
             'id', 'name', 'display_name', 'provider_type', 'is_active',
             'api_base_url', 'merchant_id', 'callback_url',
             'config', 'min_amount', 'max_amount',
+            'has_api_keys',
             'created_at', 'updated_at',
         ]
+
+    def get_has_api_keys(self, obj):
+        return bool(obj.api_key_enc)
 
 
 class PaymentProviderUpdateSerializer(serializers.Serializer):

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Save, Eye, EyeOff } from 'lucide-react'
+import { Save, Eye, EyeOff, Zap, TestTube, ToggleLeft, ToggleRight } from 'lucide-react'
 import api from '../api/client'
 import StatusBadge from '../components/ui/StatusBadge'
 
@@ -48,9 +48,89 @@ export default function ProvidersPage() {
     </div>
   }
 
+  // Déterminer le mode actuel : réel si au moins un provider actif avec clés API
+  const isRealMode = paymentProviders.some(p => p.is_active && p.has_api_keys)
+  const isDemoMode = !isRealMode
+
+  const togglePaymentMode = async () => {
+    try {
+      // Basculer tous les providers de paiement
+      for (const p of paymentProviders) {
+        if (isRealMode) {
+          // Passer en mode démo → désactiver tous les providers
+          await api.patch(`/admin/payment-providers/${p.id}`, { is_active: false })
+        } else {
+          // Passer en mode réel → activer les providers qui ont des clés API
+          if (p.has_api_keys) {
+            await api.patch(`/admin/payment-providers/${p.id}`, { is_active: true })
+          }
+        }
+      }
+      loadProviders()
+    } catch (e) { alert(e.message) }
+  }
+
   return (
     <div className="space-y-8">
       <h2 className="text-2xl font-bold">Providers</h2>
+
+      {/* === Bannière Mode Paiement === */}
+      <div className={`rounded-2xl border-2 p-5 flex items-center justify-between ${
+        isDemoMode
+          ? 'bg-amber-50 border-amber-200'
+          : 'bg-emerald-50 border-emerald-200'
+      }`}>
+        <div className="flex items-center gap-4">
+          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+            isDemoMode ? 'bg-amber-100' : 'bg-emerald-100'
+          }`}>
+            {isDemoMode
+              ? <TestTube size={24} className="text-amber-600" />
+              : <Zap size={24} className="text-emerald-600" />
+            }
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className={`font-bold text-lg ${isDemoMode ? 'text-amber-800' : 'text-emerald-800'}`}>
+                Mode {isDemoMode ? 'Démo' : 'Réel'}
+              </h3>
+              <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                isDemoMode
+                  ? 'bg-amber-200 text-amber-800'
+                  : 'bg-emerald-200 text-emerald-800'
+              }`}>
+                {isDemoMode ? 'SIMULATION' : 'PRODUCTION'}
+              </span>
+            </div>
+            <p className={`text-sm mt-0.5 ${isDemoMode ? 'text-amber-600' : 'text-emerald-600'}`}>
+              {isDemoMode
+                ? 'Les paiements mobile money sont simulés comme réussis automatiquement.'
+                : 'Les paiements passent par les vrais providers (Orange Money, Moov Money).'
+              }
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={togglePaymentMode}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all shadow-sm ${
+            isDemoMode
+              ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+              : 'bg-amber-600 text-white hover:bg-amber-700'
+          }`}
+        >
+          {isDemoMode ? (
+            <>
+              <ToggleRight size={18} />
+              Activer mode réel
+            </>
+          ) : (
+            <>
+              <ToggleLeft size={18} />
+              Passer en démo
+            </>
+          )}
+        </button>
+      </div>
 
       {/* === Paiement === */}
       <section>
