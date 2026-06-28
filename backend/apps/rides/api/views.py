@@ -404,9 +404,12 @@ class RideOfferCreateView(APIView):
             ride_request.status = 'offers_received'
             ride_request.save(update_fields=['status', 'updated_at'])
 
-        # Notifier le passager via WebSocket
-        from apps.rides.tasks import notify_passenger_of_offer
-        notify_passenger_of_offer.delay(str(ride_request.id), str(offer.id))
+        # Notifier le passager (non bloquant)
+        try:
+            from apps.rides.tasks import notify_passenger_of_offer
+            notify_passenger_of_offer.delay(str(ride_request.id), str(offer.id))
+        except Exception as e:
+            logger.warning(f"Notification offre échouée (non bloquant): {e}")
 
         return Response(
             RideOfferResponseSerializer(offer).data,
@@ -474,9 +477,12 @@ class RideStatusUpdateView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Notifier le passager via WebSocket
-        from apps.rides.tasks import notify_ride_status_change
-        notify_ride_status_change.delay(str(ride.id))
+        # Notifier le passager (non bloquant)
+        try:
+            from apps.rides.tasks import notify_ride_status_change
+            notify_ride_status_change.delay(str(ride.id))
+        except Exception as e:
+            logger.warning(f"Notification statut échouée (non bloquant): {e}")
 
         return Response(RideSerializer(ride).data)
 
