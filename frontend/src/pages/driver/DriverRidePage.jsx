@@ -87,6 +87,9 @@ export default function DriverRidePage() {
       if (data.status === 'cancelled') {
         navigate('/driver');
       }
+      if (data.status === 'paid') {
+        navigate(`/rate/${rideId}`);
+      }
     } catch {
       navigate('/driver');
     }
@@ -108,11 +111,12 @@ export default function DriverRidePage() {
     setConfirmingPayment(true);
     try {
       await api.post('/payments/confirm-cash', { ride_id: rideId });
-      loadRide();
+      // Redirection immédiate vers la notation puis accueil
+      navigate(`/rate/${rideId}`);
     } catch (e) {
       alert(e.message);
+      setConfirmingPayment(false);
     }
-    setConfirmingPayment(false);
   };
 
   const cancelRide = async () => {

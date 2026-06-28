@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Star, ArrowLeft } from 'lucide-react';
+import { Star, Home, CheckCircle } from 'lucide-react';
 import api from '../../api/client';
 import { useAuth } from '../../hooks/useAuth';
 import Button from '../../components/ui/Button';
@@ -14,17 +14,26 @@ export default function RatePage() {
   const [comment, setComment] = useState('');
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+  const [ride, setRide] = useState(null);
+
+  const homePath = isDriver ? '/driver' : '/';
+
+  useEffect(() => {
+    api.get(`/rides/${rideId}`).then(setRide).catch(() => {});
+  }, [rideId]);
 
   const submit = async () => {
     setLoading(true);
     try {
       await api.post('/ratings/', { ride_id: rideId, score, comment });
       setDone(true);
-      setTimeout(() => navigate(isDriver ? '/driver' : '/'), 2000);
     } catch {
-      navigate(isDriver ? '/driver' : '/');
+      // Même si la notation échoue (déjà noté, etc.), on continue
+      setDone(true);
     }
   };
+
+  const goHome = () => navigate(homePath);
 
   if (done) {
     return (
@@ -33,30 +42,54 @@ export default function RatePage() {
           <div className="text-6xl">⭐</div>
         </motion.div>
         <h2 className="text-2xl font-bold mt-6">Merci !</h2>
-        <p className="text-gray-500 mt-2">Votre avis aide la communauté</p>
+        <p className="text-gray-500 mt-2 text-center">
+          {isDriver ? 'Votre avis a été enregistré' : 'Votre avis aide la communauté MoveBissau'}
+        </p>
+        <motion.button
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          whileTap={{ scale: 0.97 }}
+          onClick={goHome}
+          className="mt-8 bg-brand-500 text-white font-bold px-8 py-4 rounded-2xl flex items-center gap-2 shadow-md hover:bg-brand-600 transition"
+        >
+          <Home size={18} />
+          {isDriver ? 'Chercher un passager' : 'Nouveau trajet'}
+        </motion.button>
       </div>
     );
   }
 
   return (
     <div className="min-h-[100dvh] bg-white flex flex-col">
-      <div className="px-5 pt-4">
-        <button onClick={() => navigate(isDriver ? '/driver' : '/')} className="p-2 -ml-2 rounded-xl hover:bg-gray-100">
-          <ArrowLeft size={22} className="text-gray-700" />
-        </button>
-      </div>
       <div className="flex-1 flex flex-col items-center justify-center px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-sm text-center"
         >
+          {/* Résumé course */}
+          {ride && (
+            <div className="bg-green-50 border border-green-200 rounded-2xl px-4 py-3 mb-6 flex items-center gap-3">
+              <CheckCircle size={20} className="text-green-600 flex-shrink-0" />
+              <div className="text-left flex-1">
+                <p className="text-sm font-semibold text-green-800">Course terminée</p>
+                <p className="text-xs text-green-600">{ride.pickup_address} → {ride.dropoff_address}</p>
+              </div>
+              <p className="font-bold text-green-700">{ride.agreed_price} F</p>
+            </div>
+          )}
+
           <div className="text-5xl mb-4">🎉</div>
-          <h2 className="text-2xl font-bold text-gray-800">Comment c'était ?</h2>
-          <p className="text-gray-500 mt-1 mb-8">Notez votre expérience</p>
+          <h2 className="text-2xl font-bold text-gray-800">
+            {isDriver ? 'Notez le passager' : 'Notez votre chauffeur'}
+          </h2>
+          <p className="text-gray-500 mt-1 mb-8">
+            {isDriver ? 'Comment était le passager ?' : 'Comment était votre trajet ?'}
+          </p>
 
           {/* Étoiles */}
-          <div className="flex justify-center gap-2 mb-8">
+          <div className="flex justify-center gap-2 mb-4">
             {[1, 2, 3, 4, 5].map(i => (
               <motion.button
                 key={i}
@@ -75,7 +108,7 @@ export default function RatePage() {
             ))}
           </div>
 
-          <p className="text-sm text-gray-500 mb-2">
+          <p className="text-sm text-gray-500 mb-6">
             {score === 5 ? 'Excellent !' : score >= 4 ? 'Très bien' : score >= 3 ? 'Correct' : score >= 2 ? 'Peut mieux faire' : 'Décevant'}
           </p>
 
@@ -95,10 +128,10 @@ export default function RatePage() {
           </Button>
 
           <button
-            onClick={() => navigate(isDriver ? '/driver' : '/')}
-            className="mt-3 text-gray-400 text-sm hover:text-gray-600"
+            onClick={goHome}
+            className="mt-3 text-gray-400 text-sm hover:text-gray-600 py-2"
           >
-            Passer
+            {isDriver ? 'Passer et chercher un passager' : 'Passer'}
           </button>
         </motion.div>
       </div>
