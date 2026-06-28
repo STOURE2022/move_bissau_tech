@@ -11,7 +11,22 @@ def health_check(request):
     return JsonResponse({'status': 'ok'})
 
 
+def api_root(request):
+    return JsonResponse({
+        'service': 'MoveBissau API',
+        'status': 'running',
+        'endpoints': {
+            'health': '/healthz',
+            'auth': '/api/auth/',
+            'config': '/api/config/country',
+        }
+    })
+
+
 urlpatterns = [
+    # Racine de l'API
+    path('', api_root, name='api-root'),
+
     # Health check (léger, pas d'auth, pas de DB)
     path('healthz', health_check, name='health-check'),
 

@@ -70,6 +70,10 @@ CSRF_COOKIE_SECURE = True
 ALLOWED_HOSTS = ['*']  # Railway gère le routing
 CORS_ALLOW_ALL_ORIGINS = True  # À restreindre plus tard avec les vrais domaines
 
+# === Static files ===
+# Utiliser un storage simple au lieu de CompressedManifest qui crash si le manifest est absent
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+
 # === Sentry ===
 SENTRY_DSN = os.environ.get('SENTRY_DSN', '')
 if SENTRY_DSN:

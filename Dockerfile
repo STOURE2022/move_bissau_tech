@@ -18,6 +18,6 @@ COPY backend/ .
 ENV DJANGO_SETTINGS_MODULE=config.settings.railway
 ENV PYTHONUNBUFFERED=1
 
-RUN SECRET_KEY=build-temp-key python manage.py collectstatic --noinput 2>/dev/null || true
+RUN SECRET_KEY=build-temp-key python manage.py collectstatic --noinput || echo "WARNING: collectstatic failed"
 
 CMD ["python", "start.py"]
