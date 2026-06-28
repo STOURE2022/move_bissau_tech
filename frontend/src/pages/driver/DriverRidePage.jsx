@@ -4,7 +4,7 @@ import { MapContainer, TileLayer, Marker } from 'react-leaflet';
 import { motion } from 'framer-motion';
 import {
   Phone, Navigation, MapPin, AlertTriangle, X,
-  ArrowLeft, ArrowRight, CheckCircle, User, Banknote
+  ArrowLeft, ArrowRight, CheckCircle, User, Banknote, Home
 } from 'lucide-react';
 import api from '../../api/client';
 import Button from '../../components/ui/Button';
@@ -36,7 +36,35 @@ const STATUS_INFO = {
   driver_arrived: { emoji: '📍', text: 'Arrivé', sub: 'En attente du passager' },
   passenger_onboard: { emoji: '🛣️', text: 'En course', sub: 'En route vers la destination' },
   completed: { emoji: '🎉', text: 'Course terminée', sub: 'En attente du paiement' },
+  paid: { emoji: '✅', text: 'Course payée', sub: 'Commission déduite de votre crédit' },
+  cancelled: { emoji: '❌', text: 'Course annulée', sub: '' },
 };
+
+// Statuts où le bouton Annuler est visible
+const CANCELLABLE_STATUSES = ['driver_assigned', 'driver_en_route', 'driver_arrived'];
+
+// Statuts où le bouton Naviguer est visible
+const NAVIGABLE_STATUSES = ['driver_assigned', 'driver_en_route', 'driver_arrived', 'passenger_onboard'];
+
+/**
+ * Ouvre l'app de navigation (Waze, Google Maps, ou plan par défaut)
+ */
+function openNavigation(lat, lng) {
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const isAndroid = /Android/.test(navigator.userAgent);
+
+  // Essayer Waze d'abord (deep link)
+  const wazeUrl = `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
+  // Google Maps comme fallback
+  const gmapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
+
+  // Sur mobile, tenter Waze. Si pas installé, ouvre le navigateur sur waze.com qui redirige
+  if (isAndroid || isIOS) {
+    window.open(wazeUrl, '_blank');
+  } else {
+    window.open(gmapsUrl, '_blank');
+  }
+}
 
 export default function DriverRidePage() {
   const { rideId } = useParams();
@@ -56,11 +84,9 @@ export default function DriverRidePage() {
     try {
       const data = await api.get(`/rides/${rideId}`);
       setRide(data);
-      // Si payé, retourner à l'accueil
       if (data.status === 'cancelled') {
         navigate('/driver');
       }
-      // Si payé, on laisse le chauffeur voir la confirmation puis il revient manuellement
     } catch {
       navigate('/driver');
     }
@@ -101,6 +127,15 @@ export default function DriverRidePage() {
     }
   };
 
+  // Destination pour la navigation (pickup ou dropoff selon le statut)
+  const getNavDestination = () => {
+    if (!ride) return null;
+    if (ride.status === 'passenger_onboard') {
+      return ride.dropoff_lat ? { lat: ride.dropoff_lat, lng: ride.dropoff_lng, label: ride.dropoff_address } : null;
+    }
+    return ride.pickup_lat ? { lat: ride.pickup_lat, lng: ride.pickup_lng, label: ride.pickup_address } : null;
+  };
+
   if (!ride) {
     return (
       <div className="h-[100dvh] flex items-center justify-center bg-white">
@@ -111,6 +146,9 @@ export default function DriverRidePage() {
 
   const statusInfo = STATUS_INFO[ride.status] || { emoji: '⏳', text: ride.status, sub: '' };
   const nextStep = STATUS_STEPS.find(s => s.from === ride.status);
+  const navDest = getNavDestination();
+  const showCancel = CANCELLABLE_STATUSES.includes(ride.status);
+  const showNav = NAVIGABLE_STATUSES.includes(ride.status) && navDest;
 
   // Déterminer le centre de la carte
   const mapCenter = ride.status === 'passenger_onboard'
@@ -127,6 +165,23 @@ export default function DriverRidePage() {
         >
           <ArrowLeft size={18} />
         </button>
+
+        {/* Bouton Naviguer (Waze/Google Maps) */}
+        {showNav && (
+          <motion.button
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => openNavigation(navDest.lat, navDest.lng)}
+            className="absolute top-4 right-4 z-10 bg-blue-500 text-white rounded-2xl shadow-card flex items-center gap-2 px-4 py-2.5 hover:bg-blue-600 transition"
+          >
+            <Navigation size={16} />
+            <span className="text-sm font-semibold">
+              {ride.status === 'passenger_onboard' ? 'Naviguer destination' : 'Naviguer pickup'}
+            </span>
+          </motion.button>
+        )}
+
         <MapContainer
           center={mapCenter}
           zoom={15}
@@ -180,34 +235,39 @@ export default function DriverRidePage() {
               <p className="text-xs text-gray-400 line-clamp-1">{ride.dropoff_address}</p>
             </div>
           </div>
-          {ride.driver_phone_masked && ride.driver_phone_masked !== '***masqué***' && (
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              onClick={() => window.open(`tel:${ride.passenger_phone || ''}`)}
-              className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center"
-            >
-              <Phone size={18} className="text-green-600" />
-            </motion.button>
-          )}
         </div>
 
         {/* Bouton d'action principal */}
         {nextStep ? (
-          <motion.button
-            whileTap={{ scale: 0.97 }}
-            onClick={() => updateStatus(nextStep.to)}
-            disabled={updating}
-            className={`w-full py-4 rounded-2xl text-white font-bold text-base flex items-center justify-center gap-3 transition-colors ${nextStep.color}`}
-          >
-            {updating ? (
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <>
-                <span className="text-xl">{nextStep.emoji}</span>
-                {nextStep.label}
-              </>
+          <div className="space-y-2">
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={() => updateStatus(nextStep.to)}
+              disabled={updating}
+              className={`w-full py-4 rounded-2xl text-white font-bold text-base flex items-center justify-center gap-3 transition-colors ${nextStep.color}`}
+            >
+              {updating ? (
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <>
+                  <span className="text-xl">{nextStep.emoji}</span>
+                  {nextStep.label}
+                </>
+              )}
+            </motion.button>
+
+            {/* Bouton navigation sous l'action principale */}
+            {showNav && (
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                onClick={() => openNavigation(navDest.lat, navDest.lng)}
+                className="w-full py-3 rounded-2xl bg-blue-50 text-blue-600 font-semibold text-sm flex items-center justify-center gap-2 hover:bg-blue-100 transition"
+              >
+                <Navigation size={16} />
+                Ouvrir dans Waze / Google Maps
+              </motion.button>
             )}
-          </motion.button>
+          </div>
         ) : ride.status === 'completed' ? (
           <motion.button
             whileTap={{ scale: 0.97 }}
@@ -225,14 +285,24 @@ export default function DriverRidePage() {
             )}
           </motion.button>
         ) : ride.status === 'paid' ? (
-          <div className="flex items-center justify-center gap-2 py-4 bg-green-50 rounded-2xl">
-            <CheckCircle size={22} className="text-green-600" />
-            <span className="font-bold text-green-700">Course payée — commission déduite</span>
+          <div className="space-y-3">
+            <div className="flex items-center justify-center gap-2 py-4 bg-green-50 rounded-2xl">
+              <CheckCircle size={22} className="text-green-600" />
+              <span className="font-bold text-green-700">Course payée — commission déduite</span>
+            </div>
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={() => navigate('/driver')}
+              className="w-full py-3 rounded-2xl bg-gray-100 text-gray-700 font-semibold text-sm flex items-center justify-center gap-2 hover:bg-gray-200 transition"
+            >
+              <Home size={16} />
+              Retour à l'accueil
+            </motion.button>
           </div>
         ) : null}
 
-        {/* Annuler */}
-        {ride.status !== 'completed' && ride.status !== 'passenger_onboard' && (
+        {/* Annuler — uniquement pendant les étapes annulables */}
+        {showCancel && (
           <button
             onClick={cancelRide}
             disabled={cancelling}
