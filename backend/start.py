@@ -48,13 +48,16 @@ except Exception as e:
     traceback.print_exc()
     sys.exit(1)
 
-# Uvicorn direct (1 seul process = moins de mémoire)
-print(f"Starting uvicorn on 0.0.0.0:{port}...", flush=True)
-import uvicorn
-uvicorn.run(
-    'config.asgi:application',
-    host='0.0.0.0',
-    port=int(port),
-    log_level='info',
-    access_log=True,
-)
+# Gunicorn WSGI (le plus simple et stable possible)
+print(f"Starting gunicorn (WSGI) on 0.0.0.0:{port}...", flush=True)
+os.execvp('gunicorn', [
+    'gunicorn',
+    'config.wsgi:application',
+    '-b', f'0.0.0.0:{port}',
+    '-w', '1',
+    '--timeout', '120',
+    '--access-logfile', '-',
+    '--error-logfile', '-',
+    '--log-level', 'info',
+    '--preload',
+])
