@@ -46,15 +46,17 @@ class InitiatePaymentView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        # Vérifier si le provider est configuré et actif
+        # Vérifier si le provider est configuré avec de vraies clés API
         from apps.payments.models import PaymentProvider as PP
-        provider_exists = PP.objects.filter(
-            name=data['payment_method'], is_active=True
-        ).exists()
+        try:
+            provider = PP.objects.get(name=data['payment_method'], is_active=True)
+            provider_ready = bool(provider.api_key_enc)
+        except PP.DoesNotExist:
+            provider_ready = False
 
-        if not provider_exists:
-            # Provider non configuré → simuler un paiement réussi
-            logger.info(f"Paiement simulé (provider {data['payment_method']} non configuré)")
+        if not provider_ready:
+            # Provider non configuré ou sans clés API → simuler un paiement réussi
+            logger.info(f"Paiement simulé (provider {data['payment_method']} non prêt)")
             payment = confirm_cash_payment(ride)
             return Response(PaymentSerializer(payment).data, status=status.HTTP_201_CREATED)
 
