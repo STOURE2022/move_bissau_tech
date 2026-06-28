@@ -545,5 +545,6 @@ class RideHistoryView(APIView):
 
         rides = rides.order_by('-created_at')[:50]
 
-        serializer = RideSerializer if status_filter == 'active' else RideHistorySerializer
-        return Response({'results': serializer(rides, many=True).data})
+        if status_filter == 'active':
+            return Response({'results': RideSerializer(rides, many=True).data})
+        return Response(RideHistorySerializer(rides, many=True).data)
