@@ -138,28 +138,34 @@ class RideRequestCreateView(APIView):
             expires_at=timezone.now() + timezone.timedelta(seconds=ttl),
         )
 
-        # Rechercher et notifier les chauffeurs
-        eligible = find_eligible_drivers(
-            pickup_location=pickup,
-            vehicle_type=data['vehicle_type'],
-            radius_m=search_radius,
-            max_drivers=max_drivers,
-        )
+        # Rechercher et notifier les chauffeurs (non bloquant)
+        try:
+            eligible = find_eligible_drivers(
+                pickup_location=pickup,
+                vehicle_type=data['vehicle_type'],
+                radius_m=search_radius,
+                max_drivers=max_drivers,
+            )
 
-        ride_request.notified_count = len(eligible)
-        ride_request.save(update_fields=['notified_count'])
+            ride_request.notified_count = len(eligible)
+            ride_request.save(update_fields=['notified_count'])
 
-        # Notifier les chauffeurs via WebSocket (tâche Celery)
-        from apps.rides.tasks import notify_drivers_of_request
-        notify_drivers_of_request.delay(
-            str(ride_request.id),
-            [str(d['driver'].id) for d in eligible]
-        )
+            if eligible:
+                from apps.rides.tasks import notify_drivers_of_request
+                try:
+                    notify_drivers_of_request.delay(
+                        str(ride_request.id),
+                        [str(d['driver'].id) for d in eligible]
+                    )
+                except Exception as e:
+                    logger.warning(f"Notification Celery échouée (non bloquant): {e}")
 
-        logger.info(
-            f"Demande #{str(ride_request.id)[:8]} créée : "
-            f"{data['proposed_price']} XOF, {len(eligible)} chauffeurs notifiés"
-        )
+            logger.info(
+                f"Demande #{str(ride_request.id)[:8]} créée : "
+                f"{data['proposed_price']} XOF, {len(eligible)} chauffeurs notifiés"
+            )
+        except Exception as e:
+            logger.warning(f"Recherche chauffeurs échouée (non bloquant): {e}")
 
         return Response(
             RideRequestSerializer(ride_request).data,
