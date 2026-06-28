@@ -35,6 +35,14 @@ result = subprocess.run(
 )
 print(f"Migrations exit code: {result.returncode}", flush=True)
 
+# Créer le superuser admin si ADMIN_PASSWORD est défini
+if os.environ.get('ADMIN_PASSWORD'):
+    print("Creating/updating admin user...", flush=True)
+    subprocess.run(
+        [sys.executable, 'manage.py', 'create_admin'],
+        capture_output=False,
+    )
+
 # Tester l'import de l'application ASGI avant de lancer le serveur
 print("Testing ASGI application import...", flush=True)
 try:
