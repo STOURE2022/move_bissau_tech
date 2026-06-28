@@ -38,15 +38,22 @@ class CreditTopupView(APIView):
 
         driver = request.user.driver_profile
 
-        from django.conf import settings
-        if settings.DEBUG:
-            # En mode dev, créditer directement sans appeler de provider
+        # Vérifier si le provider est prêt (actif + clés API)
+        from apps.payments.models import PaymentProvider as PP
+        try:
+            prov = PP.objects.get(name=data['payment_method'], is_active=True)
+            provider_ready = bool(prov.api_key_enc)
+        except PP.DoesNotExist:
+            provider_ready = False
+
+        if not provider_ready:
+            # Mode simulation : créditer directement
             import uuid
             tx = topup_credit(
                 driver,
                 data['amount'],
                 provider_name=data['payment_method'],
-                provider_tx_id=f"DEV-{uuid.uuid4().hex[:8]}",
+                provider_tx_id=f"SIM-{uuid.uuid4().hex[:8]}",
             )
             credit = get_or_create_credit(driver)
             return Response({
@@ -54,7 +61,7 @@ class CreditTopupView(APIView):
                 'transaction': CreditTransactionSerializer(tx).data,
             })
 
-        # En production, initier le paiement mobile money
+        # Mode réel : initier le paiement mobile money
         try:
             provider = get_provider_instance(data['payment_method'])
         except PaymentError as e:
