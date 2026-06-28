@@ -48,16 +48,13 @@ except Exception as e:
     traceback.print_exc()
     sys.exit(1)
 
-# Gunicorn + Uvicorn workers (plus stable que daphne en production)
-print(f"Starting gunicorn with uvicorn workers on 0.0.0.0:{port}...", flush=True)
-os.execvp('gunicorn', [
-    'gunicorn',
+# Uvicorn direct (1 seul process = moins de mémoire)
+print(f"Starting uvicorn on 0.0.0.0:{port}...", flush=True)
+import uvicorn
+uvicorn.run(
     'config.asgi:application',
-    '-k', 'uvicorn.workers.UvicornWorker',
-    '-b', f'0.0.0.0:{port}',
-    '-w', '2',
-    '--timeout', '120',
-    '--access-logfile', '-',
-    '--error-logfile', '-',
-    '--log-level', 'info',
-])
+    host='0.0.0.0',
+    port=int(port),
+    log_level='info',
+    access_log=True,
+)
