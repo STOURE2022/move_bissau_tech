@@ -46,9 +46,15 @@ class InitiatePaymentView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        from django.conf import settings as django_settings
-        if django_settings.DEBUG:
-            # En mode dev, simuler un paiement réussi immédiatement
+        # Vérifier si le provider est configuré et actif
+        from apps.payments.models import PaymentProvider as PP
+        provider_exists = PP.objects.filter(
+            name=data['payment_method'], is_active=True
+        ).exists()
+
+        if not provider_exists:
+            # Provider non configuré → simuler un paiement réussi
+            logger.info(f"Paiement simulé (provider {data['payment_method']} non configuré)")
             payment = confirm_cash_payment(ride)
             return Response(PaymentSerializer(payment).data, status=status.HTTP_201_CREATED)
 
