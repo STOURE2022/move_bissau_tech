@@ -91,6 +91,10 @@ export default function RequestPage() {
   const country = useCountryConfig();
   const { vehicleType: initialType = 'moto', userPos, presetDropoff, presetDropoffAddress } = location.state || {};
 
+  // Demande en cours (bloquante)
+  const [activeRequest, setActiveRequest] = useState(null);
+  const [cancellingRequest, setCancellingRequest] = useState(false);
+
   const [pickup, setPickup] = useState(userPos || [country.default_lat, country.default_lng]);
   const [pickupAddress, setPickupAddress] = useState('Ma position');
   const [dropoff, setDropoff] = useState(presetDropoff || null);
@@ -103,6 +107,33 @@ export default function RequestPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [routeCoords, setRouteCoords] = useState(null);
+
+  // Vérifier s'il y a une demande en cours au chargement
+  useEffect(() => {
+    checkActiveRequest();
+  }, []);
+
+  const checkActiveRequest = async () => {
+    try {
+      const requests = await api.get('/rides/requests/active');
+      if (requests && requests.id) {
+        setActiveRequest(requests);
+      }
+    } catch { /* pas de demande active */ }
+  };
+
+  const cancelActiveRequest = async () => {
+    if (!activeRequest) return;
+    setCancellingRequest(true);
+    try {
+      await api.post(`/rides/requests/${activeRequest.id}/cancel`);
+      setActiveRequest(null);
+      toast.show('Demande annulée', 'success');
+    } catch (e) {
+      toast.show(e.message || 'Erreur', 'error');
+    }
+    setCancellingRequest(false);
+  };
 
   // Recherche
   const [searchMode, setSearchMode] = useState(presetDropoffAddress ? null : null);
@@ -492,9 +523,35 @@ export default function RequestPage() {
 
             {error && <p className="text-red-500 text-sm text-center mb-2">{error}</p>}
 
-            <Button onClick={sendRequest} loading={loading} icon={Send}>
-              Envoyer la demande — {price} F
-            </Button>
+            {activeRequest ? (
+              <div className="space-y-2">
+                <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-center">
+                  <p className="text-sm text-amber-800 font-medium">Vous avez une demande en cours</p>
+                  <p className="text-xs text-amber-600 mt-0.5">
+                    {activeRequest.pickup_address} → {activeRequest.dropoff_address} · {activeRequest.proposed_price} F
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => navigate(`/offers/${activeRequest.id}`)}
+                    className="flex-1 bg-brand-500 text-white py-3 rounded-xl font-semibold text-sm hover:bg-brand-600 transition"
+                  >
+                    Voir les offres
+                  </button>
+                  <button
+                    onClick={cancelActiveRequest}
+                    disabled={cancellingRequest}
+                    className="px-4 py-3 bg-red-50 text-red-600 rounded-xl font-semibold text-sm hover:bg-red-100 transition disabled:opacity-50"
+                  >
+                    {cancellingRequest ? '...' : 'Annuler'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <Button onClick={sendRequest} loading={loading} icon={Send}>
+                Envoyer la demande — {price} F
+              </Button>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

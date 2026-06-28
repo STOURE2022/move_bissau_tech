@@ -58,6 +58,20 @@ class PriceEstimateView(APIView):
         return Response(estimate)
 
 
+class ActiveRideRequestView(APIView):
+    """GET /api/rides/requests/active — Demande de course en cours du passager."""
+    permission_classes = [IsAuthenticated, IsPassenger]
+
+    def get(self, request):
+        active = RideRequest.objects.filter(
+            passenger=request.user,
+            status__in=['pending', 'offers_received']
+        ).order_by('-created_at').first()
+        if not active:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        return Response(RideRequestSerializer(active).data)
+
+
 class RideRequestCreateView(APIView):
     """POST /api/rides/requests — Créer une demande de course."""
     permission_classes = [IsAuthenticated, IsPassenger]

@@ -8,6 +8,7 @@ urlpatterns = [
     path('estimate', views.PriceEstimateView.as_view(), name='price-estimate'),
 
     # Demandes
+    path('requests/active', views.ActiveRideRequestView.as_view(), name='active-ride-request'),
     path('requests', views.RideRequestCreateView.as_view(), name='ride-request-create'),
     path('requests/<uuid:request_id>', views.RideRequestDetailView.as_view(), name='ride-request-detail'),
     path('requests/<uuid:request_id>/cancel', views.RideRequestCancelView.as_view(), name='ride-request-cancel'),
