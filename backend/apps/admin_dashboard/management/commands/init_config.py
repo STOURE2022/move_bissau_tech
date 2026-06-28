@@ -13,6 +13,17 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         configs = [
+            # === Pays ===
+            ('country_code', 'gw', "Code pays ISO (gw=Guinée-Bissau, fr=France, sn=Sénégal)", 'country'),
+            ('country_name', 'Guinée-Bissau', "Nom du pays affiché dans l'app", 'country'),
+            ('country_flag', '🇬🇼', "Emoji drapeau du pays", 'country'),
+            ('phone_prefix', '+245', "Préfixe téléphonique (+245=GB, +33=FR, +221=SN)", 'country'),
+            ('default_lat', 11.8636, "Latitude par défaut de la carte", 'country'),
+            ('default_lng', -15.5977, "Longitude par défaut de la carte", 'country'),
+            ('default_zoom', 15, "Niveau de zoom par défaut de la carte", 'country'),
+            ('currency', 'XOF', "Code devise (XOF, EUR, etc.)", 'country'),
+            ('currency_symbol', 'F CFA', "Symbole devise affiché", 'country'),
+
             # === Annulation ===
             ('cancellation_fee', 500, "Frais d'annulation fixe (XOF)", 'cancellation'),
             ('cancellation_debt_expiry_days', 30, "Jours avant expiration dette annulation", 'cancellation'),
