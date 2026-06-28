@@ -1,4 +1,5 @@
 """URLs racine pour MoveBissau."""
+import mimetypes
 import os
 
 from django.conf import settings
@@ -15,11 +16,25 @@ def health_check(request):
 
 
 def serve_admin_spa(request, path=''):
-    """Sert le dashboard admin React (SPA) depuis admin_dist/."""
+    """Sert le dashboard admin React (SPA) depuis admin_dist/.
+
+    - Si le path correspond à un fichier réel (JS, CSS, images), le sert directement
+    - Sinon, sert index.html pour le routing client-side React
+    """
     admin_dist = os.path.join(settings.BASE_DIR, 'admin_dist')
+
+    # Essayer de servir un fichier réel (assets, images, etc.)
+    if path:
+        file_path = os.path.join(admin_dist, path)
+        if os.path.isfile(file_path):
+            content_type, _ = mimetypes.guess_type(file_path)
+            return FileResponse(open(file_path, 'rb'), content_type=content_type or 'application/octet-stream')
+
+    # Sinon, servir index.html (SPA routing)
     index_path = os.path.join(admin_dist, 'index.html')
-    if os.path.exists(index_path):
+    if os.path.isfile(index_path):
         return FileResponse(open(index_path, 'rb'), content_type='text/html')
+
     return JsonResponse({'error': 'Admin dashboard not built'}, status=404)
 
 
@@ -30,7 +45,7 @@ urlpatterns = [
     # Django Admin (fallback)
     path('django-admin/', admin.site.urls),
 
-    # Dashboard admin React (SPA)
+    # Dashboard admin React (SPA) — sert fichiers + fallback index.html
     path('admin/', serve_admin_spa, name='admin-dashboard'),
     re_path(r'^admin/(?P<path>.+)$', serve_admin_spa),
 
