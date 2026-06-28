@@ -72,6 +72,61 @@ class ActiveRideRequestView(APIView):
         return Response(RideRequestSerializer(active).data)
 
 
+class NearbyRideRequestsView(APIView):
+    """GET /api/rides/requests/nearby — Demandes de course à proximité du chauffeur.
+
+    Polling toutes les 5s par le chauffeur pour voir les nouvelles demandes.
+    Remplace le WebSocket quand celui-ci n'est pas disponible.
+    """
+    permission_classes = [IsAuthenticated, IsDriver]
+
+    def get(self, request):
+        from django.contrib.gis.measure import D
+
+        driver = request.user.driver_profile
+        if not driver.is_online or not driver.current_location:
+            return Response([])
+
+        radius_m = get_config_int('default_search_radius_m', 5000)
+
+        # Demandes en cours, du bon type de véhicule, dans le rayon
+        requests = RideRequest.objects.filter(
+            status__in=['pending', 'offers_received'],
+            vehicle_type=driver.vehicle_type,
+            pickup_location__distance_lte=(driver.current_location, D(m=radius_m)),
+            expires_at__gt=timezone.now(),
+        ).exclude(
+            # Exclure les demandes où ce chauffeur a déjà fait une offre
+            offers__driver=driver,
+        ).order_by('-created_at')[:10]
+
+        results = []
+        for r in requests:
+            distance_m = r.pickup_location.distance(driver.current_location) * 100000  # approx
+            try:
+                from django.contrib.gis.db.models.functions import Distance as DistFunc
+                distance_m = Driver.objects.filter(id=driver.id).annotate(
+                    d=DistFunc('current_location', r.pickup_location)
+                ).first().d.m
+            except Exception:
+                pass
+
+            results.append({
+                'id': str(r.id),
+                'pickup_address': r.pickup_address,
+                'dropoff_address': r.dropoff_address,
+                'proposed_price': r.proposed_price,
+                'suggested_price': r.suggested_price,
+                'vehicle_type': r.vehicle_type,
+                'estimated_distance_m': r.estimated_distance_m,
+                'passenger_name': f"{r.passenger.first_name} {r.passenger.last_name[0]}.",
+                'expires_at': r.expires_at.isoformat(),
+                'distance_to_pickup_m': int(distance_m),
+            })
+
+        return Response(results)
+
+
 class RideRequestCreateView(APIView):
     """POST /api/rides/requests — Créer une demande de course."""
     permission_classes = [IsAuthenticated, IsPassenger]

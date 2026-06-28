@@ -15,6 +15,9 @@ urlpatterns = [
     path('requests/<uuid:request_id>/offers', views.RideRequestOffersView.as_view(), name='ride-request-offers'),
     path('requests/<uuid:request_id>/accept-offer', views.AcceptOfferView.as_view(), name='accept-offer'),
 
+    # Demandes disponibles pour les chauffeurs (polling)
+    path('requests/nearby', views.NearbyRideRequestsView.as_view(), name='nearby-ride-requests'),
+
     # Offres chauffeur
     path('offers', views.RideOfferCreateView.as_view(), name='ride-offer-create'),
     path('offers/<uuid:offer_id>', views.RideOfferWithdrawView.as_view(), name='ride-offer-withdraw'),

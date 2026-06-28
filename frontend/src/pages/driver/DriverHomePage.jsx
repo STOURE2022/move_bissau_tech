@@ -47,16 +47,38 @@ export default function DriverHomePage() {
   }, []);
 
   // Gestion WebSocket selon état en ligne
+  // Polling REST des demandes (fallback quand WebSocket non dispo)
+  const pollRef = useRef(null);
+
   useEffect(() => {
     if (isOnline) {
       connectRequestsWs();
       connectLocationWs();
+      // Polling REST toutes les 5s en parallèle (fallback)
+      pollNearbyRequests();
+      pollRef.current = setInterval(pollNearbyRequests, 5000);
     } else {
       closeWebSockets();
+      clearInterval(pollRef.current);
       setRideRequests([]);
       setSentOffers(new Set());
     }
+    return () => clearInterval(pollRef.current);
   }, [isOnline]);
+
+  const pollNearbyRequests = async () => {
+    try {
+      const data = await api.get('/rides/requests/nearby');
+      if (Array.isArray(data) && data.length > 0) {
+        setRideRequests(prev => {
+          const existingIds = new Set(prev.map(r => r.id));
+          const newRequests = data.filter(r => !existingIds.has(r.id) && !sentOffers.has(r.id));
+          if (newRequests.length === 0) return prev;
+          return [...newRequests, ...prev];
+        });
+      }
+    } catch {}
+  };
 
   // Countdown pour expiration des demandes
   useEffect(() => {
@@ -78,6 +100,39 @@ export default function DriverHomePage() {
 
   const loadCredit = async () => {
     try { setCredit(await api.get('/commissions/balance')); } catch {}
+  };
+
+  // Envoi GPS via REST (fallback quand WebSocket non dispo)
+  const geoRestRef = useRef(null);
+
+  useEffect(() => {
+    if (isOnline) {
+      startGeoRestPolling();
+    } else {
+      stopGeoRestPolling();
+    }
+    return () => stopGeoRestPolling();
+  }, [isOnline]);
+
+  const startGeoRestPolling = () => {
+    if (geoRestRef.current) return;
+    geoRestRef.current = navigator.geolocation?.watchPosition(
+      (pos) => {
+        api.post('/drivers/location', {
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+        }).catch(() => {});
+      },
+      () => {},
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
+    );
+  };
+
+  const stopGeoRestPolling = () => {
+    if (geoRestRef.current !== null) {
+      navigator.geolocation?.clearWatch(geoRestRef.current);
+      geoRestRef.current = null;
+    }
   };
 
   const toggleOnline = async () => {
