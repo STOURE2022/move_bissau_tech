@@ -62,14 +62,14 @@ class Command(BaseCommand):
 
         self.stdout.write(f"  {created_count} configuration(s) créée(s)")
 
-        # Providers de paiement
+        # Providers de paiement (inactifs par défaut — activer quand les clés API sont configurées)
         for name, display in [('orange_money', 'Orange Money'), ('moov_money', 'Moov Money')]:
             _, created = PaymentProvider.objects.get_or_create(
                 name=name,
                 defaults={
                     'display_name': display,
                     'provider_type': 'mobile_money',
-                    'is_active': True,
+                    'is_active': False,
                 }
             )
             if created:

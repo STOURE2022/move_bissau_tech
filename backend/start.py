@@ -43,6 +43,13 @@ if os.environ.get('ADMIN_PASSWORD'):
         capture_output=False,
     )
 
+# Initialiser la configuration système (idempotent)
+print("Initializing system config...", flush=True)
+subprocess.run(
+    [sys.executable, 'manage.py', 'init_config'],
+    capture_output=False,
+)
+
 # Tester l'import de l'application ASGI avant de lancer le serveur
 print("Testing ASGI application import...", flush=True)
 try:
