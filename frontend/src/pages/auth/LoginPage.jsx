@@ -198,6 +198,19 @@ export default function LoginPage() {
             </button>
           </p>
         </div>
+
+        {/* Accès admin */}
+        <div className="mt-6 pt-5 border-t border-gray-100">
+          <a
+            href="/admin/"
+            className="flex items-center justify-center gap-2.5 w-full bg-gradient-to-r from-gray-800 to-gray-900
+                       text-white font-semibold text-sm py-3.5 rounded-2xl shadow-md hover:shadow-lg
+                       hover:from-gray-700 hover:to-gray-800 transition-all"
+          >
+            <Shield size={16} />
+            Espace Administrateur
+          </a>
+        </div>
       </motion.div>
     </div>
   );

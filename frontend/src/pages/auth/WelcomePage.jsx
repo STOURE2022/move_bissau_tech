@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import {
   ChevronRight, ChevronDown, Shield, Zap, MapPin,
-  DollarSign, Star, Users, Phone, ArrowRight
+  DollarSign, Star, Users, Phone, ArrowRight, Settings
 } from 'lucide-react';
 
 // Image de fond du hero — charge une photo avec fallback CSS
@@ -443,6 +443,16 @@ export default function WelcomePage() {
         <p className="text-xs text-gray-400">
           Votre transport, votre prix
         </p>
+        <a
+          href="/admin/"
+          className="inline-flex items-center gap-1.5 mt-4 px-4 py-2 rounded-xl
+                     bg-gray-800 text-white text-xs font-medium
+                     hover:bg-gray-700 transition-colors shadow-sm"
+        >
+          <Settings size={13} />
+          Espace Admin
+        </a>
+
         <p className="text-[10px] text-gray-300 mt-4">
           Made with ❤️ in Bissau
         </p>
