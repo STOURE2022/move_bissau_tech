@@ -13,4 +13,5 @@ urlpatterns = [
     path('go-online', views.DriverGoOnlineView.as_view(), name='driver-go-online'),
     path('go-offline', views.DriverGoOfflineView.as_view(), name='driver-go-offline'),
     path('location', views.DriverLocationUpdateView.as_view(), name='driver-location'),
+    path('nearby', views.NearbyDriversView.as_view(), name='nearby-drivers'),
 ]

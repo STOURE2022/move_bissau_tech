@@ -19,6 +19,24 @@ const userIcon = L.divIcon({
   iconAnchor: [10, 10],
 });
 
+function makeNearbyIcon(vehicleType) {
+  const svg = vehicleType === 'car'
+    ? `<svg viewBox="0 0 24 24" width="14" height="14" fill="#1B8A4E"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg>`
+    : `<svg viewBox="0 0 24 24" width="14" height="14" fill="#1B8A4E"><path d="M19.44 9.03L15.41 5H11v2h3.59l2 2H5c-2.8 0-5 2.2-5 5s2.2 5 5 5c2.46 0 4.45-1.69 4.9-4h1.65l2.77-2.77c-.21.54-.32 1.14-.32 1.77 0 2.8 2.2 5 5 5s5-2.2 5-5c0-2.65-1.97-4.77-4.56-4.97zM5 15c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm14 0c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>`;
+  return L.divIcon({
+    className: '',
+    html: `<div style="width:30px;height:30px;background:white;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center;transition:transform 0.3s">${svg}</div>`,
+    iconSize: [30, 30],
+    iconAnchor: [15, 15],
+  });
+}
+
+// Cache des icônes pour éviter de les recréer
+const nearbyIcons = {
+  moto: makeNearbyIcon('moto'),
+  car: makeNearbyIcon('car'),
+};
+
 function LocateUser({ pos }) {
   const map = useMap();
   useEffect(() => {
@@ -73,6 +91,9 @@ export default function HomePage() {
   const [activeRequest, setActiveRequest] = useState(null);
   const [activeRide, setActiveRide] = useState(null);
 
+  // Chauffeurs proches
+  const [nearbyDrivers, setNearbyDrivers] = useState([]);
+
   useEffect(() => {
     navigator.geolocation?.getCurrentPosition(
       (p) => setUserPos([p.coords.latitude, p.coords.longitude]),
@@ -81,6 +102,22 @@ export default function HomePage() {
     );
     checkActiveTrips();
   }, []);
+
+  // Polling chauffeurs proches toutes les 10s
+  useEffect(() => {
+    fetchNearbyDrivers();
+    const interval = setInterval(fetchNearbyDrivers, 10000);
+    return () => clearInterval(interval);
+  }, [userPos, vehicleType]);
+
+  const fetchNearbyDrivers = async () => {
+    try {
+      const data = await api.get(
+        `/drivers/nearby?lat=${userPos[0]}&lng=${userPos[1]}&type=${vehicleType}`
+      );
+      if (Array.isArray(data)) setNearbyDrivers(data);
+    } catch {}
+  };
 
   const checkActiveTrips = async () => {
     // Vérifier demande en cours
@@ -128,6 +165,13 @@ export default function HomePage() {
           attribution='&copy; OSM &copy; CARTO'
         />
         <Marker position={userPos} icon={userIcon} />
+        {nearbyDrivers.map(d => (
+          <Marker
+            key={d.id}
+            position={[d.lat, d.lng]}
+            icon={nearbyIcons[d.vehicle_type] || nearbyIcons.moto}
+          />
+        ))}
         <LocateUser pos={userPos} />
       </MapContainer>
 
@@ -335,6 +379,23 @@ export default function HomePage() {
             </motion.button>
           ))}
         </div>
+
+        {/* Indicateur chauffeurs proches */}
+        {nearbyDrivers.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center justify-center gap-2 mt-3 py-2"
+          >
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
+            </span>
+            <p className="text-xs text-gray-500">
+              <span className="font-semibold text-brand-600">{nearbyDrivers.length}</span> chauffeur{nearbyDrivers.length > 1 ? 's' : ''} à proximité
+            </p>
+          </motion.div>
+        )}
       </BottomSheet>
 
       {/* Menu latéral */}

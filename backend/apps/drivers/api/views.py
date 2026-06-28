@@ -314,3 +314,60 @@ class DriverLocationUpdateView(APIView):
         request.user.save(update_fields=['last_location', 'last_location_at'])
 
         return Response({'status': 'ok'})
+
+
+class NearbyDriversView(APIView):
+    """GET /api/drivers/nearby?lat=X&lng=Y&type=moto — Chauffeurs en ligne à proximité.
+
+    Endpoint léger pour la carte passager. Retourne uniquement les positions
+    et types de véhicule, sans infos sensibles. Rafraîchi toutes les 10s.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from django.contrib.gis.db.models.functions import Distance
+        from django.contrib.gis.measure import D
+
+        lat = request.query_params.get('lat')
+        lng = request.query_params.get('lng')
+        vehicle_type = request.query_params.get('type')
+
+        if not lat or not lng:
+            return Response({'error': 'lat et lng requis'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            center = Point(float(lng), float(lat), srid=4326)
+        except (ValueError, TypeError):
+            return Response({'error': 'Coordonnées invalides'}, status=status.HTTP_400_BAD_REQUEST)
+
+        radius_m = 5000  # 5km autour du passager
+
+        drivers = Driver.objects.filter(
+            is_online=True,
+            is_verified=True,
+            user__is_banned=False,
+            user__is_active=True,
+            current_location__isnull=False,
+            current_location__distance_lte=(center, D(m=radius_m)),
+        ).exclude(
+            forced_offline_until__gt=timezone.now()
+        )
+
+        if vehicle_type in ('moto', 'car'):
+            drivers = drivers.filter(vehicle_type=vehicle_type)
+
+        drivers = drivers.annotate(
+            dist=Distance('current_location', center)
+        ).order_by('dist')[:20]
+
+        results = []
+        for d in drivers:
+            results.append({
+                'id': str(d.id),
+                'lat': d.current_location.y,
+                'lng': d.current_location.x,
+                'vehicle_type': d.vehicle_type,
+                'rating': float(d.average_rating),
+            })
+
+        return Response(results)
