@@ -71,8 +71,17 @@ ALLOWED_HOSTS = ['*']  # Railway gère le routing
 CORS_ALLOW_ALL_ORIGINS = True  # À restreindre plus tard avec les vrais domaines
 
 # === Static files ===
-# Utiliser un storage simple au lieu de CompressedManifest qui crash si le manifest est absent
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+
+# Inclure les assets du frontend React (JS, CSS, images)
+FRONTEND_DIST_DIR = BASE_DIR / 'frontend_dist'
+STATICFILES_DIRS = [FRONTEND_DIST_DIR / 'assets'] if (BASE_DIR / 'frontend_dist' / 'assets').exists() else []
+
+# Template pour servir index.html du frontend
+TEMPLATES[0]['DIRS'] = [FRONTEND_DIST_DIR, BASE_DIR / 'templates']
+
+# WhiteNoise sert aussi les fichiers du frontend (hors assets/)
+WHITENOISE_ROOT = str(FRONTEND_DIST_DIR) if FRONTEND_DIST_DIR.exists() else None
 
 # === Sentry ===
 SENTRY_DSN = os.environ.get('SENTRY_DSN', '')

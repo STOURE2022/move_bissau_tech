@@ -2,7 +2,8 @@
 from django.conf import settings
 from django.contrib import admin
 from django.http import JsonResponse
-from django.urls import include, path
+from django.urls import include, path, re_path
+from django.views.generic import TemplateView
 
 from apps.admin_dashboard.api.views import PublicCountryConfigView
 
@@ -11,22 +12,7 @@ def health_check(request):
     return JsonResponse({'status': 'ok'})
 
 
-def api_root(request):
-    return JsonResponse({
-        'service': 'MoveBissau API',
-        'status': 'running',
-        'endpoints': {
-            'health': '/healthz',
-            'auth': '/api/auth/',
-            'config': '/api/config/country',
-        }
-    })
-
-
 urlpatterns = [
-    # Racine de l'API
-    path('', api_root, name='api-root'),
-
     # Health check (léger, pas d'auth, pas de DB)
     path('healthz', health_check, name='health-check'),
 
@@ -53,3 +39,11 @@ urlpatterns = [
 if settings.DEBUG:
     from django.conf.urls.static import static
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+# Catch-all : toutes les routes non-API servent le frontend React (SPA)
+# Doit être en DERNIER pour ne pas bloquer les routes API
+urlpatterns += [
+    re_path(r'^(?!api/|django-admin/|healthz|static/).*$',
+            TemplateView.as_view(template_name='index.html'),
+            name='frontend'),
+]

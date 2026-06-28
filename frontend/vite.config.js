@@ -3,6 +3,10 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
+  build: {
+    // Les assets (JS, CSS) seront servis par WhiteNoise via /static/
+    assetsDir: 'assets',
+  },
   server: {
     port: 3000,
     proxy: {
