@@ -16,8 +16,13 @@ export default function LoginPage() {
   const { login } = useAuth();
   const country = useCountryConfig();
 
+  // Détecter si le numéro est saisi avec le préfixe complet (+XXX...)
+  const hasFullPrefix = phone.startsWith('+');
+
   // Formater le numéro : uniquement des chiffres, formaté XX XXX XXXX
   const formatPhone = (value) => {
+    // Si l'utilisateur tape +, laisser le format libre (numéro complet)
+    if (value.startsWith('+')) return value;
     const digits = value.replace(/\D/g, '').slice(0, 9);
     if (digits.length <= 2) return digits;
     if (digits.length <= 5) return `${digits.slice(0, 2)} ${digits.slice(2)}`;
@@ -25,7 +30,9 @@ export default function LoginPage() {
   };
 
   const rawPhone = phone.replace(/\s/g, '');
-  const isPhoneValid = /^\d{7,9}$/.test(rawPhone);
+  const isPhoneValid = hasFullPrefix
+    ? /^\+\d{8,15}$/.test(rawPhone)
+    : /^\d{7,9}$/.test(rawPhone);
   const isFormValid = isPhoneValid && password.length >= 6;
 
   const handleSubmit = async (e) => {
@@ -34,7 +41,8 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
     try {
-      const fullPhone = `${country.phone_prefix}${rawPhone}`;
+      // Si le numéro commence par +, l'utiliser tel quel, sinon ajouter le préfixe pays
+      const fullPhone = hasFullPrefix ? rawPhone : `${country.phone_prefix}${rawPhone}`;
       const result = await login(fullPhone, password);
       if (result) {
         navigate(result.user.role === 'driver' ? '/driver' : '/');
@@ -86,18 +94,20 @@ export default function LoginPage() {
           <div>
             <label className="text-sm font-medium text-gray-600 pl-1 block mb-1.5">Numéro de téléphone</label>
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-xl px-3 py-3.5 flex-shrink-0">
-                <span className="text-lg">{country.country_flag}</span>
-                <span className="text-sm font-semibold text-gray-700">{country.phone_prefix}</span>
-              </div>
+              {!hasFullPrefix && (
+                <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-xl px-3 py-3.5 flex-shrink-0">
+                  <span className="text-lg">{country.country_flag}</span>
+                  <span className="text-sm font-semibold text-gray-700">{country.phone_prefix}</span>
+                </div>
+              )}
               <div className="relative flex-1">
                 <Phone size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   type="tel"
-                  inputMode="numeric"
+                  inputMode={hasFullPrefix ? 'tel' : 'numeric'}
                   value={phone}
                   onChange={e => setPhone(formatPhone(e.target.value))}
-                  placeholder="95 XXX XXXX"
+                  placeholder={hasFullPrefix ? '+245 XX XXX XXXX' : '95 XXX XXXX'}
                   autoFocus
                   className={`w-full bg-gray-50 border rounded-xl pl-10 pr-4 py-3.5 text-lg font-medium tracking-wider
                     focus:outline-none focus:ring-2 transition-all
@@ -124,7 +134,14 @@ export default function LoginPage() {
               </div>
             </div>
             {rawPhone.length > 0 && !isPhoneValid && (
-              <p className="text-xs text-red-500 mt-1 pl-1">Entrez 7 à 9 chiffres (sans lettres)</p>
+              <p className="text-xs text-red-500 mt-1 pl-1">
+                {hasFullPrefix ? 'Format : +245XXXXXXXXX' : 'Entrez 7 à 9 chiffres'}
+              </p>
+            )}
+            {rawPhone.length === 0 && (
+              <p className="text-xs text-gray-400 mt-1 pl-1">
+                Tapez <span className="font-semibold">+</span> pour entrer un numéro international complet
+              </p>
             )}
           </div>
 

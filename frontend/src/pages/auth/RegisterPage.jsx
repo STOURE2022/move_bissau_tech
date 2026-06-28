@@ -27,8 +27,11 @@ export default function RegisterPage() {
 
   const set = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 
+  const hasFullPrefix = form.phone.startsWith('+');
+
   // Formater le numéro
   const formatPhone = (value) => {
+    if (value.startsWith('+')) return value;
     const digits = value.replace(/\D/g, '').slice(0, 9);
     if (digits.length <= 2) return digits;
     if (digits.length <= 5) return `${digits.slice(0, 2)} ${digits.slice(2)}`;
@@ -36,7 +39,9 @@ export default function RegisterPage() {
   };
 
   const rawPhone = form.phone.replace(/\s/g, '');
-  const isPhoneValid = /^\d{7,9}$/.test(rawPhone);
+  const isPhoneValid = hasFullPrefix
+    ? /^\+\d{8,15}$/.test(rawPhone)
+    : /^\d{7,9}$/.test(rawPhone);
   const isNameValid = form.firstName.trim().length >= 2 && form.lastName.trim().length >= 2;
   const isPasswordValid = form.password.length >= 6 && !(/^\d+$/.test(form.password));
   const isPasswordMatch = form.password === form.passwordConfirm && form.passwordConfirm.length > 0;
@@ -65,7 +70,7 @@ export default function RegisterPage() {
     setLoading(true);
     setError('');
     try {
-      const fullPhone = `${country.phone_prefix}${rawPhone}`;
+      const fullPhone = hasFullPrefix ? rawPhone : `${country.phone_prefix}${rawPhone}`;
       const result = await register({
         phone: fullPhone,
         password: form.password,
