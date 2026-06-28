@@ -18,6 +18,7 @@ ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv(
 
 # === Applications ===
 DJANGO_APPS = [
+    'jazzmin',  # Doit être avant django.contrib.admin
     'daphne',  # Doit être avant django.contrib.staticfiles
     'django.contrib.admin',
     'django.contrib.auth',
@@ -249,3 +250,87 @@ MAX_SEARCH_RADIUS_M = 10000
 MAX_DRIVERS_NOTIFIED = 10
 RIDE_REQUEST_TTL_SECONDS = 300  # 5 minutes
 RIDE_OFFER_TTL_SECONDS = 120  # 2 minutes
+
+# === Jazzmin Admin UI ===
+JAZZMIN_SETTINGS = {
+    'site_title': 'MoveBissau Admin',
+    'site_header': 'MoveBissau',
+    'site_brand': 'MoveBissau',
+    'welcome_sign': 'Bienvenue sur MoveBissau Admin',
+    'copyright': 'MoveBissau Technologies',
+
+    # Icônes Font Awesome pour chaque app/modèle
+    'icons': {
+        'auth': 'fas fa-users-cog',
+        'auth.Group': 'fas fa-users',
+        'accounts.User': 'fas fa-user',
+        'accounts.OTPCode': 'fas fa-key',
+        'drivers.Driver': 'fas fa-id-card',
+        'drivers.DriverDocument': 'fas fa-file-alt',
+        'drivers.Vehicle': 'fas fa-motorcycle',
+        'rides.RideRequest': 'fas fa-hand-paper',
+        'rides.RideOffer': 'fas fa-comments-dollar',
+        'rides.Ride': 'fas fa-route',
+        'payments.PaymentProvider': 'fas fa-plug',
+        'payments.Payment': 'fas fa-money-bill-wave',
+        'payments.Refund': 'fas fa-undo',
+        'commissions.CommissionCredit': 'fas fa-wallet',
+        'commissions.CreditTransaction': 'fas fa-exchange-alt',
+        'commissions.Withdrawal': 'fas fa-cash-register',
+        'ratings.Rating': 'fas fa-star',
+        'incidents.Incident': 'fas fa-exclamation-triangle',
+        'notifications.Notification': 'fas fa-bell',
+        'admin_dashboard.SystemConfig': 'fas fa-cogs',
+        'admin_dashboard.SmsProvider': 'fas fa-sms',
+        'django_celery_beat.PeriodicTask': 'fas fa-clock',
+    },
+    'default_icon_parents': 'fas fa-folder',
+    'default_icon_children': 'fas fa-circle',
+
+    # Menu latéral
+    'order_with_respect_to': [
+        'accounts', 'drivers', 'rides', 'payments',
+        'commissions', 'ratings', 'incidents', 'notifications',
+        'admin_dashboard', 'django_celery_beat', 'auth',
+    ],
+
+    # UI
+    'show_sidebar': True,
+    'navigation_expanded': False,
+    'hide_apps': [],
+    'hide_models': [],
+    'related_modal_active': True,
+    'use_google_fonts_cdn': True,
+}
+
+JAZZMIN_UI_TWEAKS = {
+    'navbar_small_text': False,
+    'footer_small_text': True,
+    'body_small_text': False,
+    'brand_small_text': False,
+    'brand_colour': False,
+    'accent': 'accent-success',
+    'navbar': 'navbar-dark',
+    'no_navbar_border': True,
+    'navbar_fixed': True,
+    'layout_boxed': False,
+    'footer_fixed': False,
+    'sidebar_fixed': True,
+    'sidebar': 'sidebar-dark-success',
+    'sidebar_nav_small_text': False,
+    'sidebar_disable_expand': False,
+    'sidebar_nav_child_indent': True,
+    'sidebar_nav_compact_style': True,
+    'sidebar_nav_legacy_style': False,
+    'sidebar_nav_flat_style': False,
+    'theme': 'default',
+    'dark_mode_theme': 'darkly',
+    'button_classes': {
+        'primary': 'btn-outline-primary',
+        'secondary': 'btn-outline-secondary',
+        'info': 'btn-info',
+        'warning': 'btn-warning',
+        'danger': 'btn-danger',
+        'success': 'btn-success',
+    },
+}
