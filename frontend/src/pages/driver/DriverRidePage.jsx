@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker } from 'react-leaflet';
 import { motion } from 'framer-motion';
@@ -74,10 +74,31 @@ export default function DriverRidePage() {
   const [cancelling, setCancelling] = useState(false);
   const [confirmingPayment, setConfirmingPayment] = useState(false);
 
+  // Polling ride + envoi GPS continu
+  const geoWatchRef = useRef(null);
+
   useEffect(() => {
     loadRide();
-    const interval = setInterval(loadRide, 5000);
-    return () => clearInterval(interval);
+    const interval = setInterval(loadRide, 3000);
+
+    // Envoyer la position GPS en continu pendant la course
+    geoWatchRef.current = navigator.geolocation?.watchPosition(
+      (pos) => {
+        api.post('/drivers/location', {
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+        }).catch(() => {});
+      },
+      () => {},
+      { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 }
+    );
+
+    return () => {
+      clearInterval(interval);
+      if (geoWatchRef.current !== null) {
+        navigator.geolocation?.clearWatch(geoWatchRef.current);
+      }
+    };
   }, []);
 
   const loadRide = async () => {
