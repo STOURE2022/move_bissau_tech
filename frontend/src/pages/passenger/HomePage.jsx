@@ -84,11 +84,6 @@ export default function HomePage() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
-  // Onboarding première connexion
-  if (showOnboarding) {
-    return <Onboarding onComplete={() => setShowOnboarding(false)} />;
-  }
-
   // Favoris
   const [savedPlaces, setSavedPlacesState] = useState(getSavedPlaces());
   const [editingPlace, setEditingPlace] = useState(null); // 'home' | 'work' | null
@@ -584,6 +579,11 @@ export default function HomePage() {
           </>
         )}
       </AnimatePresence>
+
+      {/* Onboarding première connexion (overlay) */}
+      {showOnboarding && (
+        <Onboarding onComplete={() => setShowOnboarding(false)} />
+      )}
     </div>
   );
 }
