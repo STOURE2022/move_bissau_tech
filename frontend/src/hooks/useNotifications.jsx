@@ -37,12 +37,29 @@ export function useNotifications() {
     }
   }, []);
 
-  // Jouer le son
+  // Jouer le son (max 3 secondes)
   const playSound = useCallback(() => {
     try {
       if (audioRef.current) {
         audioRef.current.currentTime = 0;
         audioRef.current.play().catch(() => {});
+        // Arrêter après 3 secondes (c'est une notification, pas une chanson)
+        setTimeout(() => {
+          if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.currentTime = 0;
+          }
+        }, 3000);
+      }
+    } catch {}
+  }, []);
+
+  // Stopper le son immédiatement
+  const stopSound = useCallback(() => {
+    try {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
       }
     } catch {}
   }, []);
@@ -81,5 +98,5 @@ export function useNotifications() {
     }
   }, [permission, swReady, playSound]);
 
-  return { permission, requestPermission, notify, playSound, swReady };
+  return { permission, requestPermission, notify, playSound, stopSound, swReady };
 }

@@ -38,7 +38,7 @@ export default function DriverHomePage() {
   const geoWatchRef = useRef(null);
 
   const stats = useDriverStats(isOnline);
-  const { notify, requestPermission } = useNotifications();
+  const { notify, requestPermission, stopSound } = useNotifications();
 
   useEffect(() => {
     loadProfile();
@@ -127,13 +127,16 @@ export default function DriverHomePage() {
     if (rideRequests.length === 0) return;
     const interval = setInterval(() => {
       const now = Date.now();
-      setRideRequests(prev => prev.filter(r => {
-        // Expiration serveur
-        if (new Date(r.expires_at).getTime() <= now) return false;
-        // Timeout chauffeur : 60s max pour répondre
-        if (r._shownAt && (now - r._shownAt) > 60000) return false;
-        return true;
-      }));
+      setRideRequests(prev => {
+        const filtered = prev.filter(r => {
+          if (new Date(r.expires_at).getTime() <= now) return false;
+          if (r._shownAt && (now - r._shownAt) > 60000) return false;
+          return true;
+        });
+        // Si des demandes ont été retirées, stopper le son
+        if (filtered.length < prev.length) stopSound();
+        return filtered;
+      });
     }, 1000);
     return () => clearInterval(interval);
   }, [rideRequests.length]);
@@ -300,6 +303,7 @@ export default function DriverHomePage() {
 
   // === Envoyer une offre ===
   const sendOffer = async (requestId, price) => {
+    stopSound(); // Arrêter le son immédiatement
     setSendingOffer(requestId);
     try {
       await api.post('/rides/offers', {
