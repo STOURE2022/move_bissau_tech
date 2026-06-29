@@ -109,6 +109,20 @@ export default function RequestPage() {
   const [pickupAddress, setPickupAddress] = useState('Ma position');
   const [dropoff, setDropoff] = useState(presetDropoff || null);
   const [dropoffAddress, setDropoffAddress] = useState(presetDropoffAddress || '');
+
+  // Si on a une adresse preset mais pas de coords, géocoder automatiquement
+  useEffect(() => {
+    if (presetDropoffAddress && !presetDropoff) {
+      searchAddress(presetDropoffAddress, country.country_code, country.default_lat, country.default_lng)
+        .then(results => {
+          if (results.length > 0) {
+            const pos = [parseFloat(results[0].lat), parseFloat(results[0].lon)];
+            setDropoff(pos);
+          }
+        })
+        .catch(() => {});
+    }
+  }, []);
   const [vehicleType, setVehicleType] = useState(initialType);
   const [estimate, setEstimate] = useState(null);
   const [price, setPrice] = useState(0);

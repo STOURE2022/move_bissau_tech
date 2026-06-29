@@ -133,9 +133,21 @@ export default function HomePage() {
     } catch {}
   };
 
-  const savePlace = (key) => {
+  const savePlace = async (key) => {
     if (!editValue.trim()) return;
-    const updated = { ...savedPlaces, [key]: { label: editValue.trim() } };
+    // Géocoder l'adresse pour obtenir les coordonnées
+    let coords = null;
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(editValue.trim())}&limit=1&accept-language=fr`,
+        { headers: { 'User-Agent': 'MoveBissau/1.0' } }
+      );
+      const results = await res.json();
+      if (results.length > 0) {
+        coords = [parseFloat(results[0].lat), parseFloat(results[0].lon)];
+      }
+    } catch {}
+    const updated = { ...savedPlaces, [key]: { label: editValue.trim(), coords } };
     setSavedPlaces(updated);
     setSavedPlacesState(updated);
     setEditingPlace(null);
@@ -143,13 +155,14 @@ export default function HomePage() {
   };
 
   const goToRequest = (dropoffData) => {
-    navigate('/request', {
-      state: {
-        vehicleType,
-        userPos,
-        ...(dropoffData || {}),
-      },
-    });
+    // S'assurer que les données de dropoff sont valides
+    const state = { vehicleType, userPos };
+    if (dropoffData) {
+      if (dropoffData.presetDropoff) state.presetDropoff = dropoffData.presetDropoff;
+      if (dropoffData.presetDropoffAddress) state.presetDropoffAddress = dropoffData.presetDropoffAddress;
+      if (dropoffData.preferredDriver) state.preferredDriver = dropoffData.preferredDriver;
+    }
+    navigate('/request', { state });
   };
 
   return (
@@ -372,21 +385,30 @@ export default function HomePage() {
           </motion.button>
         )}
 
-        {/* Barre de recherche */}
-        <motion.button
-          whileTap={{ scale: 0.98 }}
-          onClick={() => goToRequest()}
-          className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-4 flex items-center gap-3 mb-4
-                     hover:bg-gray-100 hover:border-gray-300 transition-all text-left"
-        >
-          <div className="w-10 h-10 bg-brand-50 rounded-xl flex items-center justify-center">
-            <Search size={18} className="text-brand-500" />
-          </div>
-          <div>
-            <p className="font-medium text-gray-800">Où allez-vous ?</p>
-            <p className="text-xs text-gray-400">Touchez pour choisir votre destination</p>
-          </div>
-        </motion.button>
+        {/* Barre de recherche + bouton menu */}
+        <div className="flex gap-2 mb-4">
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            onClick={() => goToRequest()}
+            className="flex-1 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-4 flex items-center gap-3
+                       hover:bg-gray-100 hover:border-gray-300 transition-all text-left"
+          >
+            <div className="w-10 h-10 bg-brand-50 rounded-xl flex items-center justify-center">
+              <Search size={18} className="text-brand-500" />
+            </div>
+            <div>
+              <p className="font-medium text-gray-800">Où allez-vous ?</p>
+              <p className="text-xs text-gray-400">Touchez pour choisir</p>
+            </div>
+          </motion.button>
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setMenuOpen(true)}
+            className="w-14 bg-brand-500 rounded-2xl flex items-center justify-center shadow-sm"
+          >
+            <Menu size={22} className="text-white" />
+          </motion.button>
+        </div>
 
         {/* Raccourcis Maison / Travail */}
         <div className="flex gap-2 mb-4">
@@ -420,7 +442,10 @@ export default function HomePage() {
                 ) : saved ? (
                   <motion.button
                     whileTap={{ scale: 0.96 }}
-                    onClick={() => goToRequest({ presetDropoffAddress: saved.label })}
+                    onClick={() => goToRequest({
+                      presetDropoff: saved.coords || null,
+                      presetDropoffAddress: saved.label,
+                    })}
                     className="w-full flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-left hover:bg-gray-50 transition group"
                   >
                     <place.icon size={16} className={place.color} />
@@ -459,7 +484,7 @@ export default function HomePage() {
                   transition={{ delay: i * 0.05 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => goToRequest({
-                    presetDropoff: r.coords,
+                    presetDropoff: r.coords || null,
                     presetDropoffAddress: r.address,
                   })}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 transition text-left"
