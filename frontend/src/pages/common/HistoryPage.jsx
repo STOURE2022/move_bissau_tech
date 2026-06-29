@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, RefreshCw, Receipt, X } from 'lucide-react';
-import { AnimatePresence } from 'framer-motion';
 import api from '../../api/client';
 import { useAuth } from '../../hooks/useAuth';
 import RideReceipt from '../../components/ui/RideReceipt';
@@ -23,7 +22,7 @@ function groupByMonth(rides) {
   const groups = {};
   rides.forEach(r => {
     const d = new Date(r.created_at);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const key = `${d.getFullYear()}-${d.getMonth()}`;
     const label = d.toLocaleDateString('fr', { month: 'long', year: 'numeric' });
     if (!groups[key]) groups[key] = { label, rides: [] };
     groups[key].rides.push(r);
@@ -40,11 +39,13 @@ export default function HistoryPage() {
   const { isDriver } = useAuth();
 
   useEffect(() => {
-    api.get('/rides/history').then(setRides).catch(() => {}).finally(() => setLoading(false));
+    api.get('/rides/history').then(data => {
+      setRides(Array.isArray(data) ? data : []);
+    }).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
   const filtered = rides.filter(r => {
-    if (filter === 'done') return r.status === 'paid' || r.status === 'completed';
+    if (filter === 'done') return ['paid', 'completed'].includes(r.status);
     if (filter === 'cancelled') return r.status === 'cancelled';
     return true;
   });
@@ -52,54 +53,64 @@ export default function HistoryPage() {
   const groups = groupByMonth(filtered);
 
   const rebook = (ride) => {
-    navigate('/request', {
-      state: {
-        presetDropoff: ride.dropoff_lat ? [ride.dropoff_lat, ride.dropoff_lng] : null,
-        presetDropoffAddress: ride.dropoff_address,
-      },
-    });
+    navigate('/request', { state: {
+      presetDropoff: ride.dropoff_lat && ride.dropoff_lng ? [ride.dropoff_lat, ride.dropoff_lng] : null,
+      presetDropoffAddress: ride.dropoff_address,
+      vehicleType: ride.vehicle_type,
+    }});
   };
 
+  // Stats rapides
+  const totalRides = rides.filter(r => ['paid', 'completed'].includes(r.status)).length;
+  const totalSpent = rides.filter(r => ['paid', 'completed'].includes(r.status))
+    .reduce((sum, r) => sum + (r.agreed_price || 0), 0);
+
   return (
-    <div className="min-h-[100dvh] bg-gray-50 pb-20">
-      <div className="bg-white px-5 pt-5 pb-4 flex items-center gap-3 border-b">
-        <button onClick={() => navigate(-1)} className="p-2 -ml-2 rounded-xl hover:bg-gray-100">
-          <ArrowLeft size={22} className="text-gray-700" />
-        </button>
-        <h2 className="text-lg font-bold flex-1">Historique</h2>
-        <span className="text-sm text-gray-400">{rides.length} courses</span>
+    <div className="min-h-[100dvh] bg-gray-50 pb-24">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-brand-500 to-emerald-500 px-5 pt-8 pb-6">
+        <h1 className="text-white text-xl font-bold">Historique</h1>
+        <div className="flex gap-4 mt-3">
+          <div className="bg-white/15 backdrop-blur-sm rounded-xl px-4 py-2 flex-1 text-center">
+            <p className="text-white/70 text-[10px]">Courses</p>
+            <p className="text-white font-bold text-lg">{totalRides}</p>
+          </div>
+          <div className="bg-white/15 backdrop-blur-sm rounded-xl px-4 py-2 flex-1 text-center">
+            <p className="text-white/70 text-[10px]">Total dépensé</p>
+            <p className="text-white font-bold text-lg">{totalSpent.toLocaleString()} F</p>
+          </div>
+        </div>
       </div>
 
-      {/* Filtres */}
-      <div className="px-5 pt-3 pb-1 flex gap-2">
-        {FILTERS.map(f => (
-          <button
-            key={f.id}
-            onClick={() => setFilter(f.id)}
-            className={`px-4 py-2 rounded-full text-xs font-semibold transition-all ${
-              filter === f.id
-                ? 'bg-brand-500 text-white shadow-sm'
-                : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
+      <div className="px-4 -mt-3">
+        {/* Filtres */}
+        <div className="bg-white rounded-2xl shadow-sm p-1 flex gap-1 mb-4">
+          {FILTERS.map(f => (
+            <button
+              key={f.id}
+              onClick={() => setFilter(f.id)}
+              className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all ${
+                filter === f.id
+                  ? 'bg-brand-500 text-white shadow-sm'
+                  : 'text-gray-500 hover:bg-gray-50'
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
 
-      <div className="px-5 py-3">
+        {/* Liste */}
         {loading ? (
           <div className="space-y-3">
             {[1, 2, 3].map(i => (
-              <div key={i} className="bg-white rounded-2xl p-4 shadow-soft animate-pulse">
+              <div key={i} className="bg-white rounded-2xl p-4 shadow-sm animate-pulse">
                 <div className="flex items-center justify-between mb-3">
                   <div className="h-4 w-20 bg-gray-200 rounded" />
                   <div className="h-5 w-16 bg-gray-200 rounded-full" />
                 </div>
-                <div className="space-y-2">
-                  <div className="h-3 w-3/4 bg-gray-100 rounded" />
-                  <div className="h-3 w-2/3 bg-gray-100 rounded" />
-                </div>
+                <div className="h-3 w-3/4 bg-gray-100 rounded mb-2" />
+                <div className="h-3 w-2/3 bg-gray-100 rounded" />
               </div>
             ))}
           </div>
@@ -111,65 +122,68 @@ export default function HistoryPage() {
         ) : (
           groups.map((group) => (
             <div key={group.label} className="mb-5">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2 px-1">
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2 px-1">
                 {group.label}
               </p>
               <div className="space-y-2">
                 {group.rides.map((ride, i) => {
                   const status = statusLabels[ride.status] || { text: ride.status, color: 'bg-gray-100 text-gray-600' };
                   const canRebook = !isDriver && (ride.status === 'paid' || ride.status === 'completed');
+                  const dateStr = new Date(ride.created_at).toLocaleDateString('fr', {
+                    day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+                  });
 
                   return (
                     <motion.div
                       key={ride.id}
-                      initial={{ opacity: 0, y: 10 }}
+                      initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.03 }}
-                      className="bg-white rounded-2xl p-4 shadow-soft"
+                      className="bg-white rounded-2xl shadow-sm overflow-hidden"
                     >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <span>{ride.vehicle_type === 'moto' ? '🏍️' : '🚗'}</span>
-                          <span className="font-bold text-gray-800">{ride.agreed_price} F</span>
+                      <div className="p-4">
+                        {/* Header */}
+                        <div className="flex items-center justify-between mb-2.5">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-9 h-9 bg-brand-50 rounded-xl flex items-center justify-center">
+                              <span className="text-base">{ride.vehicle_type === 'moto' ? '🏍️' : '🚗'}</span>
+                            </div>
+                            <div>
+                              <span className="font-bold text-gray-800">{ride.agreed_price} F</span>
+                              <p className="text-[10px] text-gray-400">{dateStr}</p>
+                            </div>
+                          </div>
+                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${status.color}`}>
+                            {status.text}
+                          </span>
                         </div>
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${status.color}`}>
-                          {status.text}
-                        </span>
-                      </div>
-                      <div className="text-xs text-gray-500 space-y-1">
-                        <p className="flex items-center gap-1.5">
-                          <span className="w-1.5 h-1.5 bg-brand-500 rounded-full" />
-                          {ride.pickup_address || 'Départ'}
-                        </p>
-                        <p className="flex items-center gap-1.5">
-                          <span className="w-1.5 h-1.5 bg-accent rounded-full" />
-                          {ride.dropoff_address || 'Arrivée'}
-                        </p>
-                      </div>
-                      <div className="flex items-center justify-between mt-3">
-                        <p className="text-[10px] text-gray-400">
-                          {new Date(ride.created_at).toLocaleDateString('fr', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}
-                        </p>
-                        <div className="flex items-center gap-3">
-                          {canRebook && (
+
+                        {/* Trajet compact */}
+                        <div className="flex items-center gap-2 text-xs text-gray-500 mb-3">
+                          <span className="w-1.5 h-1.5 bg-brand-500 rounded-full flex-shrink-0" />
+                          <span className="truncate">{ride.pickup_address || 'Départ'}</span>
+                          <span className="text-gray-300">→</span>
+                          <span className="truncate">{ride.dropoff_address || 'Arrivée'}</span>
+                          <span className="w-1.5 h-1.5 bg-red-500 rounded-full flex-shrink-0" />
+                        </div>
+
+                        {/* Actions */}
+                        {canRebook && (
+                          <div className="flex gap-2">
                             <button
                               onClick={() => setReceiptRide(ride)}
-                              className="flex items-center gap-1 text-xs text-gray-500 font-medium hover:text-gray-700 transition"
+                              className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-gray-50 rounded-xl text-xs font-semibold text-gray-600 hover:bg-gray-100 transition"
                             >
-                              <Receipt size={12} />
-                              Reçu
+                              <Receipt size={12} /> Reçu
                             </button>
-                          )}
-                          {canRebook && (
                             <button
                               onClick={() => rebook(ride)}
-                              className="flex items-center gap-1 text-xs text-brand-600 font-semibold hover:text-brand-700 transition"
+                              className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-brand-50 rounded-xl text-xs font-semibold text-brand-600 hover:bg-brand-100 transition"
                             >
-                              <RefreshCw size={12} />
-                              Refaire
+                              <RefreshCw size={12} /> Refaire
                             </button>
-                          )}
-                        </div>
+                          </div>
+                        )}
                       </div>
                     </motion.div>
                   );
