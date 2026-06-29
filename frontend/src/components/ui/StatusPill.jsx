@@ -2,6 +2,7 @@ import clsx from 'clsx';
 import { motion } from 'framer-motion';
 
 const statusConfig = {
+  driver_assigned:  { label: 'Chauffeur assigné', color: 'bg-brand-100 text-brand-700', dot: 'bg-brand-500' },
   driver_en_route: { label: 'Chauffeur en route', color: 'bg-blue-100 text-blue-700', dot: 'bg-blue-500' },
   driver_arrived:  { label: 'Chauffeur arrivé', color: 'bg-indigo-100 text-indigo-700', dot: 'bg-indigo-500' },
   passenger_onboard: { label: 'En course', color: 'bg-brand-100 text-brand-700', dot: 'bg-brand-500' },
