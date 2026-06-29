@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, RefreshCw } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Receipt, X } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
 import api from '../../api/client';
 import { useAuth } from '../../hooks/useAuth';
+import RideReceipt from '../../components/ui/RideReceipt';
 
 const statusLabels = {
   paid: { text: 'Payée', color: 'bg-green-100 text-green-700' },
@@ -33,6 +35,7 @@ export default function HistoryPage() {
   const [rides, setRides] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [receiptRide, setReceiptRide] = useState(null);
   const navigate = useNavigate();
   const { isDriver } = useAuth();
 
@@ -147,15 +150,26 @@ export default function HistoryPage() {
                         <p className="text-[10px] text-gray-400">
                           {new Date(ride.created_at).toLocaleDateString('fr', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}
                         </p>
-                        {canRebook && (
-                          <button
-                            onClick={() => rebook(ride)}
-                            className="flex items-center gap-1 text-xs text-brand-600 font-semibold hover:text-brand-700 transition"
-                          >
-                            <RefreshCw size={12} />
-                            Refaire
-                          </button>
-                        )}
+                        <div className="flex items-center gap-3">
+                          {canRebook && (
+                            <button
+                              onClick={() => setReceiptRide(ride)}
+                              className="flex items-center gap-1 text-xs text-gray-500 font-medium hover:text-gray-700 transition"
+                            >
+                              <Receipt size={12} />
+                              Reçu
+                            </button>
+                          )}
+                          {canRebook && (
+                            <button
+                              onClick={() => rebook(ride)}
+                              className="flex items-center gap-1 text-xs text-brand-600 font-semibold hover:text-brand-700 transition"
+                            >
+                              <RefreshCw size={12} />
+                              Refaire
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </motion.div>
                   );
@@ -165,6 +179,23 @@ export default function HistoryPage() {
           ))
         )}
       </div>
+
+      {/* Modal reçu */}
+      <AnimatePresence>
+        {receiptRide && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+            onClick={() => setReceiptRide(null)}
+          >
+            <div onClick={e => e.stopPropagation()}>
+              <RideReceipt ride={receiptRide} onClose={() => setReceiptRide(null)} />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

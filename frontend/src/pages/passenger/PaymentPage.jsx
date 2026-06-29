@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Banknote, Smartphone, ArrowLeft, CheckCircle } from 'lucide-react';
+import { Banknote, Smartphone, ArrowLeft, CheckCircle, Star, ChevronRight } from 'lucide-react';
 import api from '../../api/client';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
+import RideReceipt from '../../components/ui/RideReceipt';
 import { useToast } from '../../components/ui/Toast';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -23,11 +24,10 @@ export default function PaymentPage() {
   const [method, setMethod] = useState(() => localStorage.getItem('mb_pay_method') || 'cash');
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [step, setStep] = useState('pay'); // 'pay' | 'receipt'
 
   useEffect(() => {
     api.get(`/rides/${rideId}`).then(setRide).catch(() => {});
-    // Pré-remplir le téléphone depuis le profil
     if (user?.phone) setPhone(user.phone);
   }, []);
 
@@ -35,17 +35,17 @@ export default function PaymentPage() {
     setLoading(true);
     try {
       if (method === 'cash') {
-        // Le chauffeur confirme côté chauffeur
-        setSuccess(true);
-        setTimeout(() => navigate(`/rate/${rideId}`), 2000);
+        setStep('receipt');
       } else {
         await api.post('/payments/initiate', {
           ride_id: rideId,
           payment_method: method,
           phone,
         });
-        setSuccess(true);
-        setTimeout(() => navigate(`/rate/${rideId}`), 2000);
+        // Recharger la course pour avoir les données de paiement à jour
+        const updated = await api.get(`/rides/${rideId}`);
+        setRide(updated);
+        setStep('receipt');
       }
     } catch (e) {
       toast.show(e.message || 'Erreur de paiement', 'error');
@@ -53,29 +53,72 @@ export default function PaymentPage() {
     }
   };
 
-  if (success) {
+  // === Écran reçu ===
+  if (step === 'receipt') {
     return (
-      <div className="h-[100dvh] flex flex-col items-center justify-center bg-white px-8">
-        <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ type: 'spring', damping: 10 }}
-        >
-          <CheckCircle size={80} className="text-brand-500 mx-auto" />
-        </motion.div>
-        <h2 className="text-2xl font-bold mt-6">
-          {method === 'cash' ? 'Payez le chauffeur' : 'Paiement initié !'}
-        </h2>
-        <p className="text-gray-500 mt-2 text-center">
-          {method === 'cash'
-            ? 'Remettez le montant en espèces à votre chauffeur'
-            : 'Confirmez le paiement sur votre téléphone'
-          }
-        </p>
+      <div className="min-h-[100dvh] bg-gray-50 flex flex-col">
+        <div className="flex-1 flex flex-col items-center justify-center px-5 py-8">
+          {/* Animation succès */}
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: 'spring', damping: 10 }}
+            className="mb-6"
+          >
+            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
+              <CheckCircle size={44} className="text-green-500" />
+            </div>
+          </motion.div>
+
+          <motion.h2
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="text-xl font-bold text-gray-800 mb-1"
+          >
+            {method === 'cash' ? 'Payez le chauffeur' : 'Paiement réussi !'}
+          </motion.h2>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="text-sm text-gray-500 mb-6 text-center"
+          >
+            {method === 'cash'
+              ? 'Remettez le montant en espèces à votre chauffeur'
+              : 'Confirmez le paiement sur votre téléphone'
+            }
+          </motion.p>
+
+          {/* Reçu */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="w-full"
+          >
+            <RideReceipt ride={ride} showActions={false} />
+          </motion.div>
+        </div>
+
+        {/* CTA en bas */}
+        <div className="px-5 pb-8 space-y-3">
+          <Button onClick={() => navigate(`/rate/${rideId}`)}>
+            <Star size={18} />
+            Noter le chauffeur
+          </Button>
+          <button
+            onClick={() => navigate('/')}
+            className="w-full py-3 text-gray-400 text-sm font-medium hover:text-gray-600 transition"
+          >
+            Passer et revenir à l'accueil
+          </button>
+        </div>
       </div>
     );
   }
 
+  // === Écran paiement ===
   return (
     <div className="min-h-[100dvh] bg-white">
       {/* Header */}

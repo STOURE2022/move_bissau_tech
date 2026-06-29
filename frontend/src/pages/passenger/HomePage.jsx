@@ -12,6 +12,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useCountryConfig } from '../../hooks/useCountryConfig';
 import { useGeolocation } from '../../hooks/useGeolocation';
 import BottomSheet from '../../components/ui/BottomSheet';
+import Onboarding from '../../components/ui/Onboarding';
 import L from 'leaflet';
 
 const userIcon = L.divIcon({
@@ -79,8 +80,14 @@ export default function HomePage() {
   const userPos = geo.position;
   const [menuOpen, setMenuOpen] = useState(false);
   const [vehicleType, setVehicleType] = useState('moto');
+  const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem('mb_onboarded'));
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+
+  // Onboarding première connexion
+  if (showOnboarding) {
+    return <Onboarding onComplete={() => setShowOnboarding(false)} />;
+  }
 
   // Favoris
   const [savedPlaces, setSavedPlacesState] = useState(getSavedPlaces());

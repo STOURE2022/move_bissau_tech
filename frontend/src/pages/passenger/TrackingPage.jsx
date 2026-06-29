@@ -152,12 +152,35 @@ export default function TrackingPage() {
     );
   }
 
+  // Calcul ETA (vitesse moyenne 20 km/h en ville)
+  const calcEta = () => {
+    if (!driverPos) return null;
+    const target = ['driver_assigned', 'driver_en_route'].includes(ride.status)
+      ? (ride.pickup_lat ? [ride.pickup_lat, ride.pickup_lng] : null)
+      : ['passenger_onboard'].includes(ride.status)
+        ? (ride.dropoff_lat ? [ride.dropoff_lat, ride.dropoff_lng] : null)
+        : null;
+    if (!target) return null;
+    // Haversine simplifié
+    const R = 6371000;
+    const dLat = (target[0] - driverPos[0]) * Math.PI / 180;
+    const dLng = (target[1] - driverPos[1]) * Math.PI / 180;
+    const a = Math.sin(dLat/2)**2 + Math.cos(driverPos[0]*Math.PI/180) * Math.cos(target[0]*Math.PI/180) * Math.sin(dLng/2)**2;
+    const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const minutes = Math.max(1, Math.round(dist / (20000/60))); // 20km/h
+    return minutes;
+  };
+
+  const etaMin = calcEta();
+  const etaText = etaMin ? (etaMin <= 1 ? '~1 min' : `~${etaMin} min`) : null;
+
   const statusMessages = {
-    driver_assigned: { emoji: '🚀', text: 'Chauffeur assigné', sub: 'Il va bientôt partir' },
-    driver_en_route: { emoji: '🏍️', text: 'En route vers vous', sub: 'Il arrive bientôt !' },
+    driver_assigned: { emoji: '🚀', text: 'Chauffeur assigné', sub: etaText ? `Arrivée estimée : ${etaText}` : 'Il va bientôt partir' },
+    driver_en_route: { emoji: '🏍️', text: 'En route vers vous', sub: etaText ? `Arrive dans ${etaText}` : 'Il arrive bientôt !' },
     driver_arrived:  { emoji: '📍', text: 'Il est arrivé !', sub: 'Rejoignez votre chauffeur' },
-    passenger_onboard: { emoji: '🛣️', text: 'En course', sub: 'Profitez du trajet' },
+    passenger_onboard: { emoji: '🛣️', text: 'En course', sub: etaText ? `Arrivée dans ${etaText}` : 'Profitez du trajet' },
     completed:       { emoji: '🎉', text: 'Vous êtes arrivé !', sub: 'Procédez au paiement' },
+    paid:            { emoji: '✅', text: 'Course payée', sub: 'Notez votre chauffeur' },
   };
   const statusInfo = statusMessages[ride.status] || { emoji: '⏳', text: ride.status, sub: '' };
 
