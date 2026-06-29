@@ -303,10 +303,25 @@ export default function DriverHomePage() {
       });
       setSentOffers(prev => new Set([...prev, requestId]));
       setShowCounter(prev => ({ ...prev, [requestId]: false }));
-      // Vérifier immédiatement si l'offre a été acceptée (polling rapide)
       setTimeout(checkActiveRide, 2000);
     } catch (e) {
-      alert(e.message);
+      // La demande a été annulée ou a expiré → retirer de la liste
+      setRideRequests(prev => prev.filter(r => r.id !== requestId));
+      // Message clair au chauffeur
+      const msg = e.message || '';
+      if (msg.includes('introuvable') || msg.includes('expirée')) {
+        // Toast ou feedback visuel au lieu d'un alert moche
+        if (typeof window !== 'undefined') {
+          // Créer un toast temporaire
+          const toast = document.createElement('div');
+          toast.className = 'fixed top-4 left-4 right-4 z-[200] bg-amber-500 text-white px-4 py-3 rounded-2xl shadow-lg text-center text-sm font-semibold';
+          toast.textContent = '⚠️ Le passager a annulé cette demande';
+          document.body.appendChild(toast);
+          setTimeout(() => toast.remove(), 3000);
+        }
+      } else {
+        alert(e.message);
+      }
     }
     setSendingOffer(null);
   };
