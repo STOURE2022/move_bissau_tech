@@ -30,6 +30,7 @@ export default function DriverHomePage() {
   const [showCounter, setShowCounter] = useState({});
   const [sendingOffer, setSendingOffer] = useState(null);
   const [sentOffers, setSentOffers] = useState(new Set());
+  const seenRequestsRef = useRef(new Set()); // IDs déjà vus (pour ne pas re-sonner)
 
   // WebSocket refs
   const requestsWsRef = useRef(null);
@@ -90,6 +91,7 @@ export default function DriverHomePage() {
       clearInterval(pollRef.current);
       setRideRequests([]);
       setSentOffers(new Set());
+      seenRequestsRef.current.clear();
     }
     return () => clearInterval(pollRef.current);
   }, [isOnline]);
@@ -102,14 +104,17 @@ export default function DriverHomePage() {
           const existingIds = new Set(prev.map(r => r.id));
           const newRequests = data
             .filter(r => !existingIds.has(r.id) && !sentOffers.has(r.id))
-            .map(r => ({ ...r, _shownAt: Date.now() }));
+            .map(r => ({ ...r, _shownAt: r._shownAt || Date.now() }));
           if (newRequests.length === 0) return prev;
-          // Notification pour chaque nouvelle demande
+          // Son + notification uniquement pour les VRAIS nouveaux (jamais vus)
           newRequests.forEach(r => {
-            notify('Nouvelle course !', {
-              body: `${r.passenger_name} · ${r.proposed_price} F · ${((r.estimated_distance_m || 0) / 1000).toFixed(1)} km`,
-              tag: `request-${r.id}`,
-            });
+            if (!seenRequestsRef.current.has(r.id)) {
+              seenRequestsRef.current.add(r.id);
+              notify('Nouvelle course !', {
+                body: `${r.passenger_name} · ${r.proposed_price} F · ${((r.estimated_distance_m || 0) / 1000).toFixed(1)} km`,
+                tag: `request-${r.id}`,
+              });
+            }
           });
           return [...newRequests, ...prev];
         });
