@@ -43,13 +43,13 @@ export function useNotifications() {
       if (audioRef.current) {
         audioRef.current.currentTime = 0;
         audioRef.current.play().catch(() => {});
-        // Arrêter après 3 secondes (c'est une notification, pas une chanson)
+        // Arrêter après 10 secondes
         setTimeout(() => {
           if (audioRef.current) {
             audioRef.current.pause();
             audioRef.current.currentTime = 0;
           }
-        }, 3000);
+        }, 10000);
       }
     } catch {}
   }, []);
