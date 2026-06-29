@@ -13,6 +13,8 @@ import CompleteProfilePage from './pages/auth/CompleteProfilePage';
 import HomePage from './pages/passenger/HomePage';
 import RequestPage from './pages/passenger/RequestPage';
 import OffersPage from './pages/passenger/OffersPage';
+import MyRidesPage from './pages/passenger/MyRidesPage';
+import PassengerNav from './components/layout/PassengerNav';
 import TrackingPage from './pages/passenger/TrackingPage';
 import PaymentPage from './pages/passenger/PaymentPage';
 import PassengerProfilePage from './pages/passenger/PassengerProfilePage';
@@ -41,6 +43,8 @@ export default function App() {
   const { isAuthenticated, isDriver } = useAuth();
 
   return (
+    <>
+    {isAuthenticated && !isDriver && <PassengerNav />}
     <Routes>
       {/* Auth — redirige vers home si déjà connecté */}
       <Route path="/welcome" element={isAuthenticated ? <Navigate to={isDriver ? '/driver' : '/'} /> : <WelcomePage />} />
@@ -52,6 +56,7 @@ export default function App() {
 
       {/* Passager */}
       <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+      <Route path="/my-rides" element={<ProtectedRoute><MyRidesPage /></ProtectedRoute>} />
       <Route path="/request" element={<ProtectedRoute><RequestPage /></ProtectedRoute>} />
       <Route path="/offers/:requestId" element={<ProtectedRoute><OffersPage /></ProtectedRoute>} />
       <Route path="/tracking/:rideId" element={<ProtectedRoute><TrackingPage /></ProtectedRoute>} />
@@ -79,5 +84,6 @@ export default function App() {
         } />
       } />
     </Routes>
+    </>
   );
 }

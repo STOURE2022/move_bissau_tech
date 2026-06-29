@@ -298,11 +298,17 @@ export default function OffersPage() {
                 </div>
               </motion.div>
 
-              {/* Timer */}
+              {/* Timer + Annuler */}
               <div className="flex items-center justify-center gap-2 mt-4">
                 <Clock size={14} className="text-gray-400" />
                 <span className="text-sm text-gray-500 font-mono">{formatTime(elapsed)}</span>
               </div>
+              <button
+                onClick={cancelRequest}
+                className="w-full mt-4 py-3 text-red-500 text-sm font-semibold rounded-2xl border border-red-200 hover:bg-red-50 transition"
+              >
+                Annuler la demande
+              </button>
             </div>
           </motion.div>
         ) : (
