@@ -14,6 +14,7 @@ urlpatterns = [
     path('requests/<uuid:request_id>/cancel', views.RideRequestCancelView.as_view(), name='ride-request-cancel'),
     path('requests/<uuid:request_id>/offers', views.RideRequestOffersView.as_view(), name='ride-request-offers'),
     path('requests/<uuid:request_id>/accept-offer', views.AcceptOfferView.as_view(), name='accept-offer'),
+    path('requests/<uuid:request_id>/reject-offer', views.RejectOfferView.as_view(), name='reject-offer'),
 
     # Demandes disponibles pour les chauffeurs (polling)
     path('requests/nearby', views.NearbyRideRequestsView.as_view(), name='nearby-ride-requests'),

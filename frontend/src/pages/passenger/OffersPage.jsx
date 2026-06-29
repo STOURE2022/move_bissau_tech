@@ -419,9 +419,12 @@ export default function OffersPage() {
                         </motion.button>
                         <motion.button
                           whileTap={{ scale: 0.95 }}
-                          onClick={() => {
-                            // Refuser : retirer l'offre de la liste localement
+                          onClick={async () => {
+                            // Refuser l'offre en base + retirer de la liste
                             setOffers(prev => prev.filter(o => o.id !== offer.id));
+                            try {
+                              await api.post(`/rides/requests/${requestId}/reject-offer`, { offer_id: offer.id });
+                            } catch {}
                           }}
                           className="px-4 py-3.5 border-2 border-red-200 text-red-500 rounded-2xl hover:bg-red-50 transition font-semibold text-sm"
                         >

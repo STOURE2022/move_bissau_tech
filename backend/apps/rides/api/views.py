@@ -332,6 +332,33 @@ class AcceptOfferView(APIView):
         return Response(RideSerializer(ride).data, status=status.HTTP_201_CREATED)
 
 
+class RejectOfferView(APIView):
+    """POST /api/rides/requests/<id>/reject-offer — Passager refuse une offre."""
+    permission_classes = [IsAuthenticated, IsPassenger]
+
+    def post(self, request, request_id):
+        offer_id = request.data.get('offer_id')
+        if not offer_id:
+            return Response({'error': 'offer_id requis.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            offer = RideOffer.objects.get(
+                id=offer_id,
+                ride_request_id=request_id,
+                ride_request__passenger=request.user,
+                status='pending',
+            )
+        except RideOffer.DoesNotExist:
+            return Response({'error': 'Offre introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+
+        offer.status = 'rejected'
+        offer.save(update_fields=['status', 'updated_at'])
+
+        logger.info(f"Offre {offer_id} rejetée par le passager")
+
+        return Response({'status': 'rejected'})
+
+
 class RideOfferCreateView(APIView):
     """POST /api/rides/offers — Chauffeur fait une offre."""
     permission_classes = [IsAuthenticated, IsDriver]
