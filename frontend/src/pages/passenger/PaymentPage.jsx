@@ -26,6 +26,12 @@ export default function PaymentPage() {
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState('pay'); // 'pay' | 'receipt'
 
+  // Code promo
+  const [promoCode, setPromoCode] = useState('');
+  const [promoResult, setPromoResult] = useState(null); // { valid, discount_amount, new_price }
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [promoError, setPromoError] = useState('');
+
   useEffect(() => {
     api.get(`/rides/${rideId}`).then(setRide).catch(() => {});
     if (user?.phone) setPhone(user.phone);
@@ -144,6 +150,55 @@ export default function PaymentPage() {
             {ride?.pickup_address} → {ride?.dropoff_address}
           </p>
         </motion.div>
+
+        {/* Code promo */}
+        <div className="mb-5">
+          <p className="text-sm font-semibold text-gray-700 mb-2">Code promo</p>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={promoCode}
+              onChange={e => { setPromoCode(e.target.value.toUpperCase()); setPromoError(''); setPromoResult(null); }}
+              placeholder="Entrez votre code"
+              className="flex-1 px-4 py-3 border border-gray-200 rounded-xl text-sm font-mono uppercase tracking-wider
+                         focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+            />
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              disabled={promoLoading || !promoCode.trim()}
+              onClick={async () => {
+                setPromoLoading(true); setPromoError('');
+                try {
+                  const res = await api.post('/auth/promo/validate', {
+                    code: promoCode.trim(),
+                    ride_price: ride?.agreed_price || 0,
+                  });
+                  setPromoResult(res);
+                } catch (e) {
+                  setPromoError(e.message || 'Code invalide');
+                  setPromoResult(null);
+                }
+                setPromoLoading(false);
+              }}
+              className="px-5 py-3 bg-brand-500 text-white font-semibold rounded-xl text-sm hover:bg-brand-600 transition disabled:opacity-40"
+            >
+              {promoLoading ? '...' : 'Appliquer'}
+            </motion.button>
+          </div>
+          {promoError && <p className="text-xs text-red-500 mt-1.5">{promoError}</p>}
+          {promoResult?.valid && (
+            <motion.div
+              initial={{ opacity: 0, y: -5 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-3 py-2 mt-2"
+            >
+              <span className="text-green-600 text-sm">🎉</span>
+              <p className="text-xs text-green-700 font-medium">
+                -{promoResult.discount_amount} F appliqué ! Nouveau prix : <span className="font-bold">{promoResult.new_price} F</span>
+              </p>
+            </motion.div>
+          )}
+        </div>
 
         {/* Choix méthode */}
         <p className="text-sm font-semibold text-gray-700 mb-3">Mode de paiement</p>

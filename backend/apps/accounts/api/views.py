@@ -122,6 +122,26 @@ class RegisterView(APIView):
             )
             get_or_create_credit(driver)
 
+        # Traiter le code parrain
+        referral_code = data.get('referral_code', '').strip().upper()
+        if referral_code:
+            try:
+                # Chercher le parrain par son code (MB + 6 chars de l'ID)
+                from apps.accounts.models_promo import Referral
+                potential_referrers = User.objects.exclude(id=user.id)
+                for ref_user in potential_referrers:
+                    expected_code = f"MB{str(ref_user.id).replace('-', '')[:6].upper()}"
+                    if expected_code == referral_code:
+                        Referral.objects.create(
+                            referrer=ref_user,
+                            referred=user,
+                            referral_code=referral_code,
+                        )
+                        logger.info(f"Parrainage créé: {ref_user.phone} → {user.phone} ({referral_code})")
+                        break
+            except Exception as e:
+                logger.warning(f"Erreur parrainage: {e}")
+
         refresh = RefreshToken.for_user(user)
         return Response({
             'access': str(refresh.access_token),

@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Star, Home, CheckCircle } from 'lucide-react';
+import { Star, Home, CheckCircle, Heart } from 'lucide-react';
 import api from '../../api/client';
 import { useAuth } from '../../hooks/useAuth';
 import Button from '../../components/ui/Button';
+
+const TIP_AMOUNTS = [0, 100, 200, 500];
 
 export default function RatePage() {
   const { rideId } = useParams();
@@ -15,6 +17,7 @@ export default function RatePage() {
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [ride, setRide] = useState(null);
+  const [tip, setTip] = useState(0);
 
   const homePath = isDriver ? '/driver' : '/';
 
@@ -111,6 +114,39 @@ export default function RatePage() {
           <p className="text-sm text-gray-500 mb-6">
             {score === 5 ? 'Excellent !' : score >= 4 ? 'Très bien' : score >= 3 ? 'Correct' : score >= 2 ? 'Peut mieux faire' : 'Décevant'}
           </p>
+
+          {/* Pourboire (passager uniquement) */}
+          {!isDriver && (
+            <div className="mb-5">
+              <div className="flex items-center justify-center gap-1.5 mb-3">
+                <Heart size={14} className="text-pink-500" />
+                <p className="text-sm font-semibold text-gray-600">Laisser un pourboire ?</p>
+              </div>
+              <div className="flex justify-center gap-2">
+                {TIP_AMOUNTS.map(amount => (
+                  <motion.button
+                    key={amount}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => { setTip(amount); navigator.vibrate?.(10); }}
+                    className={`px-4 py-2.5 rounded-2xl text-sm font-bold transition-all ${
+                      tip === amount
+                        ? amount === 0
+                          ? 'bg-gray-200 text-gray-700'
+                          : 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-sm'
+                        : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+                    }`}
+                  >
+                    {amount === 0 ? 'Non' : `${amount} F`}
+                  </motion.button>
+                ))}
+              </div>
+              {tip > 0 && (
+                <p className="text-xs text-pink-500 text-center mt-2">
+                  Merci pour votre générosité ! 💕
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Commentaire */}
           <textarea

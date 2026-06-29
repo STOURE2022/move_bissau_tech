@@ -7,6 +7,7 @@ import {
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../components/ui/Toast';
 import ReferralCard from '../../components/ui/ReferralCard';
+import EmergencyContacts from '../../components/ui/EmergencyContacts';
 import api from '../../api/client';
 
 export default function PassengerProfilePage() {
@@ -234,6 +235,9 @@ export default function PassengerProfilePage() {
             ))}
           </div>
         </motion.div>
+
+        {/* Contacts d'urgence */}
+        <EmergencyContacts />
 
         {/* Parrainage */}
         <ReferralCard />

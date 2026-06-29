@@ -17,6 +17,7 @@ export default function RegisterPage() {
     passwordConfirm: '',
     role: 'passenger',
     lang: 'fr',
+    referralCode: '',
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -71,7 +72,7 @@ export default function RegisterPage() {
     setError('');
     try {
       const fullPhone = hasFullPrefix ? rawPhone : `${country.phone_prefix}${rawPhone}`;
-      const result = await register({
+      const regData = {
         phone: fullPhone,
         password: form.password,
         password_confirm: form.passwordConfirm,
@@ -79,7 +80,9 @@ export default function RegisterPage() {
         last_name: form.lastName.trim(),
         role: form.role,
         preferred_lang: form.lang,
-      });
+      };
+      if (form.referralCode.trim()) regData.referral_code = form.referralCode.trim().toUpperCase();
+      const result = await register(regData);
       if (result) {
         navigate(form.role === 'driver' ? '/driver/setup' : '/');
       }
@@ -294,6 +297,23 @@ export default function RegisterPage() {
               <p className="text-sm text-red-600">{error}</p>
             </motion.div>
           )}
+
+          {/* Code parrain */}
+          <div>
+            <label className="text-sm font-medium text-gray-600 pl-1 block mb-1.5">Code parrain (optionnel)</label>
+            <div className="relative">
+              <input
+                type="text"
+                value={form.referralCode}
+                onChange={e => set('referralCode', e.target.value.toUpperCase())}
+                placeholder="Ex: MB3X9K"
+                maxLength={10}
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-sm font-mono uppercase tracking-wider
+                           focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
+              />
+            </div>
+            <p className="text-[10px] text-gray-400 mt-1 pl-1">Gagnez 500 F CFA si un ami vous a parrainé</p>
+          </div>
 
           <div className="pt-2">
             <Button type="submit" loading={loading} disabled={!isFormValid}>
