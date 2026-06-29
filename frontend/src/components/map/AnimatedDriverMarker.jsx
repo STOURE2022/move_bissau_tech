@@ -20,24 +20,90 @@ function calcHeading(from, to) {
 
 function createDriverIcon(vehicleType, heading = 0) {
   const isCar = vehicleType === 'car';
-  const svg = isCar
-    ? `<svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg>`
-    : `<svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M19.44 9.03L15.41 5H11v2h3.59l2 2H5c-2.8 0-5 2.2-5 5s2.2 5 5 5c2.46 0 4.45-1.69 4.9-4h1.65l2.77-2.77c-.21.54-.32 1.14-.32 1.77 0 2.8 2.2 5 5 5s5-2.2 5-5c0-2.65-1.97-4.77-4.56-4.97zM5 15c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm14 0c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>`;
+
+  // Icône voiture 3D vue de dessus
+  const carSvg = `<svg viewBox="0 0 50 50" width="38" height="38">
+    <defs>
+      <linearGradient id="cg" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:#2d2d2d"/>
+        <stop offset="100%" style="stop-color:#1a1a1a"/>
+      </linearGradient>
+      <linearGradient id="wg" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" style="stop-color:#87CEEB;stop-opacity:0.9"/>
+        <stop offset="100%" style="stop-color:#4A90D9;stop-opacity:0.7"/>
+      </linearGradient>
+    </defs>
+    <!-- Ombre -->
+    <ellipse cx="25" cy="47" rx="14" ry="3" fill="rgba(0,0,0,0.15)"/>
+    <!-- Corps voiture -->
+    <rect x="11" y="8" width="28" height="34" rx="8" fill="url(#cg)"/>
+    <!-- Toit/pare-brise avant -->
+    <rect x="14" y="12" width="22" height="10" rx="4" fill="url(#wg)"/>
+    <!-- Lunette arrière -->
+    <rect x="15" y="30" width="20" height="7" rx="3" fill="url(#wg)" opacity="0.6"/>
+    <!-- Roues -->
+    <rect x="8" y="13" width="5" height="8" rx="2.5" fill="#111"/>
+    <rect x="37" y="13" width="5" height="8" rx="2.5" fill="#111"/>
+    <rect x="8" y="30" width="5" height="8" rx="2.5" fill="#111"/>
+    <rect x="37" y="30" width="5" height="8" rx="2.5" fill="#111"/>
+    <!-- Phares avant -->
+    <rect x="14" y="8" width="6" height="3" rx="1.5" fill="#FFD700" opacity="0.9"/>
+    <rect x="30" y="8" width="6" height="3" rx="1.5" fill="#FFD700" opacity="0.9"/>
+    <!-- Feux arrière -->
+    <rect x="14" y="39" width="5" height="2" rx="1" fill="#FF3333" opacity="0.8"/>
+    <rect x="31" y="39" width="5" height="2" rx="1" fill="#FF3333" opacity="0.8"/>
+    <!-- Reflet -->
+    <rect x="16" y="14" width="8" height="4" rx="2" fill="white" opacity="0.3"/>
+  </svg>`;
+
+  // Icône moto 3D vue de dessus
+  const motoSvg = `<svg viewBox="0 0 50 50" width="38" height="38">
+    <defs>
+      <linearGradient id="mg" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:#E53E3E"/>
+        <stop offset="100%" style="stop-color:#C53030"/>
+      </linearGradient>
+    </defs>
+    <!-- Ombre -->
+    <ellipse cx="25" cy="47" rx="10" ry="3" fill="rgba(0,0,0,0.15)"/>
+    <!-- Roue arrière -->
+    <ellipse cx="25" cy="38" rx="7" ry="7" fill="#222" stroke="#444" stroke-width="1.5"/>
+    <ellipse cx="25" cy="38" rx="3" ry="3" fill="#666"/>
+    <!-- Corps moto -->
+    <rect x="21" y="14" width="8" height="22" rx="4" fill="url(#mg)"/>
+    <!-- Réservoir -->
+    <ellipse cx="25" cy="22" rx="6" ry="4" fill="url(#mg)"/>
+    <ellipse cx="25" cy="22" rx="4" ry="2.5" fill="#FF6B6B" opacity="0.5"/>
+    <!-- Roue avant -->
+    <ellipse cx="25" cy="10" rx="6" ry="6" fill="#222" stroke="#444" stroke-width="1.5"/>
+    <ellipse cx="25" cy="10" rx="2.5" ry="2.5" fill="#666"/>
+    <!-- Guidon -->
+    <rect x="14" y="8" width="22" height="3" rx="1.5" fill="#333"/>
+    <!-- Phare -->
+    <ellipse cx="25" cy="6" rx="3" ry="2" fill="#FFD700" opacity="0.9"/>
+    <!-- Selle -->
+    <ellipse cx="25" cy="30" rx="5" ry="3" fill="#1a1a1a"/>
+    <!-- Casque conducteur -->
+    <ellipse cx="25" cy="26" rx="4.5" ry="4" fill="#222"/>
+    <ellipse cx="25" cy="25" rx="3.5" ry="2.5" fill="#333"/>
+    <rect x="22" y="23" width="6" height="2" rx="1" fill="#87CEEB" opacity="0.5"/>
+    <!-- Feu arrière -->
+    <rect x="22" y="42" width="6" height="2" rx="1" fill="#FF3333" opacity="0.8"/>
+  </svg>`;
+
+  const svg = isCar ? carSvg : motoSvg;
 
   return L.divIcon({
     className: '',
     html: `<div style="
-      width:46px;height:46px;
-      background:#1B8A4E;
-      border:3px solid white;
-      border-radius:50%;
-      box-shadow:0 3px 14px rgba(0,0,0,0.35);
-      display:flex;align-items:center;justify-content:center;
-      transform:rotate(${heading - 90}deg);
+      width:50px;height:50px;
+      filter:drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+      transform:rotate(${heading}deg);
       transition:transform 1s ease;
+      display:flex;align-items:center;justify-content:center;
     ">${svg}</div>`,
-    iconSize: [46, 46],
-    iconAnchor: [23, 23],
+    iconSize: [50, 50],
+    iconAnchor: [25, 25],
   });
 }
 

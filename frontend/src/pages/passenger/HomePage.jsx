@@ -23,18 +23,34 @@ const userIcon = L.divIcon({
 });
 
 function makeNearbyIcon(vehicleType) {
-  const svg = vehicleType === 'car'
-    ? `<svg viewBox="0 0 24 24" width="14" height="14" fill="#1B8A4E"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg>`
-    : `<svg viewBox="0 0 24 24" width="14" height="14" fill="#1B8A4E"><path d="M19.44 9.03L15.41 5H11v2h3.59l2 2H5c-2.8 0-5 2.2-5 5s2.2 5 5 5c2.46 0 4.45-1.69 4.9-4h1.65l2.77-2.77c-.21.54-.32 1.14-.32 1.77 0 2.8 2.2 5 5 5s5-2.2 5-5c0-2.65-1.97-4.77-4.56-4.97zM5 15c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm14 0c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>`;
+  const isCar = vehicleType === 'car';
+  const miniCar = `<svg viewBox="0 0 50 50" width="24" height="24">
+    <defs><linearGradient id="ncg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#2d2d2d"/><stop offset="100%" style="stop-color:#1a1a1a"/></linearGradient></defs>
+    <rect x="11" y="8" width="28" height="34" rx="8" fill="url(#ncg)"/>
+    <rect x="14" y="12" width="22" height="10" rx="4" fill="#87CEEB" opacity="0.7"/>
+    <rect x="8" y="13" width="5" height="8" rx="2.5" fill="#111"/><rect x="37" y="13" width="5" height="8" rx="2.5" fill="#111"/>
+    <rect x="8" y="30" width="5" height="8" rx="2.5" fill="#111"/><rect x="37" y="30" width="5" height="8" rx="2.5" fill="#111"/>
+    <rect x="14" y="8" width="6" height="3" rx="1.5" fill="#FFD700" opacity="0.8"/>
+    <rect x="30" y="8" width="6" height="3" rx="1.5" fill="#FFD700" opacity="0.8"/>
+  </svg>`;
+  const miniMoto = `<svg viewBox="0 0 50 50" width="24" height="24">
+    <defs><linearGradient id="nmg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#E53E3E"/><stop offset="100%" style="stop-color:#C53030"/></linearGradient></defs>
+    <ellipse cx="25" cy="38" rx="6" ry="6" fill="#222"/>
+    <rect x="21" y="14" width="8" height="22" rx="4" fill="url(#nmg)"/>
+    <ellipse cx="25" cy="10" rx="5" ry="5" fill="#222"/>
+    <rect x="15" y="8" width="20" height="3" rx="1.5" fill="#333"/>
+    <ellipse cx="25" cy="6" rx="3" ry="2" fill="#FFD700" opacity="0.8"/>
+    <ellipse cx="25" cy="26" rx="4" ry="3.5" fill="#222"/>
+  </svg>`;
   return L.divIcon({
     className: '',
-    html: `<div style="width:30px;height:30px;background:white;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center;transition:transform 0.3s">${svg}</div>`,
-    iconSize: [30, 30],
-    iconAnchor: [15, 15],
+    html: `<div style="width:34px;height:34px;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.25));display:flex;align-items:center;justify-content:center">${isCar ? miniCar : miniMoto}</div>`,
+    iconSize: [34, 34],
+    iconAnchor: [17, 17],
   });
 }
 
-// Cache des icônes pour éviter de les recréer
+// Cache des icônes
 const nearbyIcons = {
   moto: makeNearbyIcon('moto'),
   car: makeNearbyIcon('car'),
@@ -179,7 +195,9 @@ export default function HomePage() {
           attribution='&copy; OSM &copy; CARTO'
         />
         <Marker position={userPos} icon={userIcon} />
-        {nearbyDrivers.map(d => (
+        {nearbyDrivers
+          .filter(d => d.vehicle_type === vehicleType)
+          .map(d => (
           <Marker
             key={d.id}
             position={[d.lat, d.lng]}
@@ -526,7 +544,7 @@ export default function HomePage() {
         </div>
 
         {/* Indicateur chauffeurs proches */}
-        {nearbyDrivers.length > 0 && (
+        {nearbyDrivers.filter(d => d.vehicle_type === vehicleType).length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
@@ -537,7 +555,7 @@ export default function HomePage() {
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
             </span>
             <p className="text-xs text-gray-500">
-              <span className="font-semibold text-brand-600">{nearbyDrivers.length}</span> chauffeur{nearbyDrivers.length > 1 ? 's' : ''} à proximité
+              <span className="font-semibold text-brand-600">{nearbyDrivers.filter(d => d.vehicle_type === vehicleType).length}</span> {vehicleType === 'moto' ? 'moto' : 'voiture'}{nearbyDrivers.filter(d => d.vehicle_type === vehicleType).length > 1 ? 's' : ''} à proximité
             </p>
           </motion.div>
         )}
