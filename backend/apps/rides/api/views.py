@@ -83,33 +83,46 @@ class NearbyRideRequestsView(APIView):
     def get(self, request):
         from django.contrib.gis.measure import D
 
-        driver = request.user.driver_profile
-        if not driver.is_online or not driver.current_location:
+        try:
+            driver = request.user.driver_profile
+        except Exception:
             return Response([])
 
-        radius_m = get_config_int('default_search_radius_m', 5000)
+        if not driver.is_online:
+            return Response([])
 
-        # Demandes en cours, du bon type de véhicule, dans le rayon
-        requests = RideRequest.objects.filter(
+        # Demandes en cours non expirées
+        requests_qs = RideRequest.objects.filter(
             status__in=['pending', 'offers_received'],
-            vehicle_type=driver.vehicle_type,
-            pickup_location__distance_lte=(driver.current_location, D(m=radius_m)),
             expires_at__gt=timezone.now(),
         ).exclude(
-            # Exclure les demandes où ce chauffeur a déjà fait une offre
             offers__driver=driver,
-        ).order_by('-created_at')[:10]
+        ).select_related('passenger')
+
+        # Filtre géographique seulement si le chauffeur a une position GPS
+        if driver.current_location:
+            radius_m = get_config_int('default_search_radius_m', 50000)  # 50km par défaut pour tests
+            requests_qs = requests_qs.filter(
+                pickup_location__distance_lte=(driver.current_location, D(m=radius_m)),
+            )
+        # Pas de filtre véhicule strict — montrer toutes les demandes
+        # Le chauffeur voit tout et décide lui-même
+
+        requests_qs = requests_qs.order_by('-created_at')[:10]
 
         results = []
-        for r in requests:
-            distance_m = r.pickup_location.distance(driver.current_location) * 100000  # approx
-            try:
-                from django.contrib.gis.db.models.functions import Distance as DistFunc
-                distance_m = Driver.objects.filter(id=driver.id).annotate(
-                    d=DistFunc('current_location', r.pickup_location)
-                ).first().d.m
-            except Exception:
-                pass
+        for r in requests_qs:
+            distance_m = 0
+            if driver.current_location and r.pickup_location:
+                try:
+                    from django.contrib.gis.db.models.functions import Distance as DistFunc
+                    annotated = Driver.objects.filter(id=driver.id).annotate(
+                        d=DistFunc('current_location', r.pickup_location)
+                    ).first()
+                    if annotated and annotated.d:
+                        distance_m = annotated.d.m
+                except Exception:
+                    pass
 
             results.append({
                 'id': str(r.id),

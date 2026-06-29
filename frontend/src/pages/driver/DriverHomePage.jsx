@@ -157,16 +157,22 @@ export default function DriverHomePage() {
     return () => stopGeoRestPolling();
   }, [isOnline]);
 
+  const [gpsOk, setGpsOk] = useState(false);
+
   const startGeoRestPolling = () => {
     if (geoRestRef.current) return;
     geoRestRef.current = navigator.geolocation?.watchPosition(
       (pos) => {
+        setGpsOk(true);
         api.post('/drivers/location', {
           latitude: pos.coords.latitude,
           longitude: pos.coords.longitude,
         }).catch(() => {});
       },
-      () => {},
+      (err) => {
+        setGpsOk(false);
+        console.warn('[Driver GPS]', err.message);
+      },
       { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
     );
   };
@@ -353,6 +359,9 @@ export default function DriverHomePage() {
               <Timer size={14} className="text-green-300" />
               <span className="text-white/80 text-xs">En ligne depuis</span>
               <span className="text-white font-mono font-bold text-sm">{stats.onlineTimer}</span>
+              {!gpsOk && (
+                <span className="text-yellow-300 text-[10px] ml-2">⚠ GPS en attente</span>
+              )}
             </motion.div>
           )}
 
