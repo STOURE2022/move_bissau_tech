@@ -314,13 +314,22 @@ export default function OffersPage() {
         ) : (
           /* Liste des offres */
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-bold text-gray-700">
-                {offers.length} offre{offers.length > 1 ? 's' : ''} reçue{offers.length > 1 ? 's' : ''}
-              </p>
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                <span className="text-xs text-gray-400">Mise à jour auto</span>
+            {/* Bandeau offres reçues */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-4 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 bg-brand-50 rounded-xl flex items-center justify-center">
+                  <span className="text-sm">🎉</span>
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-gray-800">
+                    {offers.length} offre{offers.length > 1 ? 's' : ''} reçue{offers.length > 1 ? 's' : ''}
+                  </p>
+                  <p className="text-[10px] text-gray-400">Choisissez votre chauffeur</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 bg-green-50 px-2.5 py-1 rounded-full">
+                <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+                <span className="text-[10px] text-green-600 font-medium">En direct</span>
               </div>
             </div>
 
