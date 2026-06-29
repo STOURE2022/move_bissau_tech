@@ -313,80 +313,125 @@ export default function OffersPage() {
           </motion.div>
         ) : (
           /* Liste des offres */
-          <div className="space-y-3">
-            <p className="text-sm font-semibold text-gray-600 mb-2">
-              {offers.length} offre{offers.length > 1 ? 's' : ''} reçue{offers.length > 1 ? 's' : ''}
-            </p>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-bold text-gray-700">
+                {offers.length} offre{offers.length > 1 ? 's' : ''} reçue{offers.length > 1 ? 's' : ''}
+              </p>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                <span className="text-xs text-gray-400">Mise à jour auto</span>
+              </div>
+            </div>
 
             <AnimatePresence>
-              {offers.map((offer, i) => (
-                <motion.div
-                  key={offer.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.1 }}
-                  className="bg-white rounded-2xl shadow-soft p-4 border border-gray-100"
-                >
-                  <div className="flex items-start gap-3">
-                    {/* Avatar */}
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl ${
-                      offer.driver_vehicle_type === 'moto' ? 'bg-brand-50' : 'bg-blue-50'
-                    }`}>
-                      {offer.driver_vehicle_type === 'moto' ? '🏍️' : '🚗'}
-                    </div>
+              {offers.map((offer, i) => {
+                const eta = Math.max(1, Math.ceil((offer.estimated_arrival_s || 60) / 60));
+                const dist = ((offer.driver_distance_m || 0) / 1000).toFixed(1);
+                const isCounter = offer.is_counter_offer;
+                const priceDiff = offer.offered_price - (request?.proposed_price || 0);
 
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="font-semibold text-gray-800">{offer.driver_name}</p>
-                        {offer.driver_rating > 0 && (
-                          <span className="flex items-center gap-0.5 text-xs bg-yellow-50 text-yellow-700 px-1.5 py-0.5 rounded-full">
-                            <Star size={10} fill="currentColor" />
-                            {Number(offer.driver_rating).toFixed(1)}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex gap-3 mt-1 text-xs text-gray-500">
-                        <span className="flex items-center gap-1">
-                          <Navigation size={10} />
-                          {((offer.driver_distance_m || 0) / 1000).toFixed(1)} km
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Clock size={10} />
-                          {Math.ceil((offer.estimated_arrival_s || 0) / 60)} min
-                        </span>
-                      </div>
-                      {offer.driver_vehicle_info && (
-                        <p className="text-xs text-gray-400 mt-1">{offer.driver_vehicle_info}</p>
-                      )}
-                    </div>
-
-                    {/* Prix */}
-                    <div className="text-right">
-                      <p className="text-xl font-extrabold text-brand-600">{offer.offered_price}</p>
-                      <p className="text-xs text-gray-400">F CFA</p>
-                      {offer.is_counter_offer && (
-                        <span className="text-[10px] bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded-full font-medium">
-                          Contre-offre
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Barre de prix visuelle */}
-                  <PriceBar offeredPrice={offer.offered_price} />
-
-                  <Button
-                    size="full"
-                    className="mt-3"
-                    onClick={() => acceptOffer(offer.id)}
-                    loading={accepting === offer.id}
+                return (
+                  <motion.div
+                    key={offer.id}
+                    initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ delay: i * 0.1, type: 'spring', damping: 20 }}
+                    className="bg-white rounded-3xl shadow-md border border-gray-100 overflow-hidden"
                   >
-                    Choisir — {offer.offered_price} F
-                  </Button>
-                </motion.div>
-              ))}
+                    {/* Badge contre-offre */}
+                    {isCounter && (
+                      <div className="bg-amber-50 px-4 py-1.5 flex items-center gap-2">
+                        <TrendingUp size={12} className="text-amber-600" />
+                        <span className="text-xs font-semibold text-amber-700">
+                          Contre-offre ({priceDiff > 0 ? '+' : ''}{priceDiff} F)
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="p-4">
+                      {/* Chauffeur + Prix */}
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-14 h-14 rounded-2xl bg-brand-50 flex items-center justify-center text-2xl flex-shrink-0">
+                          {offer.driver_vehicle_type === 'moto' ? '🏍️' : '🚗'}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="font-bold text-gray-800 text-base">{offer.driver_name}</p>
+                            {offer.driver_rating > 0 && (
+                              <span className="flex items-center gap-0.5 text-xs bg-yellow-50 text-yellow-700 px-2 py-0.5 rounded-full">
+                                ⭐ {Number(offer.driver_rating).toFixed(1)}
+                              </span>
+                            )}
+                          </div>
+                          {offer.driver_vehicle_info && (
+                            <p className="text-xs text-gray-400 mt-0.5">{offer.driver_vehicle_info}</p>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <p className="text-2xl font-black text-brand-600">{offer.offered_price}</p>
+                          <p className="text-[10px] text-gray-400 font-medium">F CFA</p>
+                        </div>
+                      </div>
+
+                      {/* Stats : distance + ETA */}
+                      <div className="flex gap-2 mb-4">
+                        <div className="flex-1 bg-gray-50 rounded-xl px-3 py-2 text-center">
+                          <p className="text-xs text-gray-400">Distance</p>
+                          <p className="font-bold text-gray-700 text-sm">{dist} km</p>
+                        </div>
+                        <div className="flex-1 bg-gray-50 rounded-xl px-3 py-2 text-center">
+                          <p className="text-xs text-gray-400">Arrivée</p>
+                          <p className="font-bold text-gray-700 text-sm">~{eta} min</p>
+                        </div>
+                        <div className="flex-1 bg-gray-50 rounded-xl px-3 py-2 text-center">
+                          <p className="text-xs text-gray-400">Votre prix</p>
+                          <p className="font-bold text-gray-700 text-sm">{request?.proposed_price} F</p>
+                        </div>
+                      </div>
+
+                      {/* Barre de prix visuelle */}
+                      <PriceBar offeredPrice={offer.offered_price} />
+
+                      {/* Boutons Accepter / Refuser */}
+                      <div className="flex gap-2 mt-3">
+                        <motion.button
+                          whileTap={{ scale: 0.97 }}
+                          onClick={() => acceptOffer(offer.id)}
+                          disabled={accepting === offer.id}
+                          className="flex-1 bg-gradient-to-r from-brand-500 to-emerald-500 text-white font-bold py-3.5 rounded-2xl
+                                     flex items-center justify-center gap-2 shadow-sm hover:shadow-md transition-all disabled:opacity-50"
+                        >
+                          {accepting === offer.id ? (
+                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <>✓ Accepter — {offer.offered_price} F</>
+                          )}
+                        </motion.button>
+                        <motion.button
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => {
+                            // Refuser : retirer l'offre de la liste localement
+                            setOffers(prev => prev.filter(o => o.id !== offer.id));
+                          }}
+                          className="px-4 py-3.5 border-2 border-red-200 text-red-500 rounded-2xl hover:bg-red-50 transition font-semibold text-sm"
+                        >
+                          ✗
+                        </motion.button>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
             </AnimatePresence>
+
+            {/* Annuler la demande en bas */}
+            <button
+              onClick={cancelRequest}
+              className="w-full py-3 text-red-500 text-sm font-semibold rounded-2xl border border-red-200 hover:bg-red-50 transition mt-2"
+            >
+              Annuler la demande
+            </button>
           </div>
         )}
       </div>
