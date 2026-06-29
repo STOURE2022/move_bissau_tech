@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet';
 import { motion } from 'framer-motion';
-import { Phone, Share2, AlertTriangle, ArrowLeft } from 'lucide-react';
+import { Phone, Share2, AlertTriangle, ArrowLeft, Home } from 'lucide-react';
 import api from '../../api/client';
 import Button from '../../components/ui/Button';
 import ConfirmModal from '../../components/ui/ConfirmModal';
@@ -84,7 +84,14 @@ export default function TrackingPage() {
       if (data.driver_lat && data.driver_lng) {
         setDriverPos([data.driver_lat, data.driver_lng]);
       }
-      if (data.status === 'paid') navigate(`/rate/${rideId}`);
+      // Rediriger vers la notation dès que la course est payée
+      if (data.status === 'paid') {
+        navigate(`/rate/${rideId}`, { replace: true });
+      }
+      // Si annulée, retour accueil
+      if (data.status === 'cancelled') {
+        navigate('/', { replace: true });
+      }
     } catch {}
   };
 
@@ -180,9 +187,10 @@ export default function TrackingPage() {
 
         <button
           onClick={() => navigate('/')}
-          className="absolute top-4 left-4 z-10 w-10 h-10 bg-white rounded-2xl shadow-card flex items-center justify-center"
+          className="absolute top-4 left-4 z-10 bg-white rounded-2xl shadow-card flex items-center gap-2 px-3 py-2.5"
         >
-          <ArrowLeft size={18} />
+          <ArrowLeft size={16} className="text-gray-700" />
+          <span className="text-sm font-medium text-gray-700">Accueil</span>
         </button>
       </div>
 
@@ -222,11 +230,23 @@ export default function TrackingPage() {
           </div>
         </div>
 
-        {/* Actions */}
+        {/* Actions selon statut */}
         {ride.status === 'completed' ? (
-          <Button onClick={() => navigate(`/payment/${rideId}`)}>
-            Payer {ride.agreed_price} F CFA
-          </Button>
+          <div className="space-y-2">
+            <Button onClick={() => navigate(`/payment/${rideId}`)}>
+              Payer {ride.agreed_price} F CFA
+            </Button>
+            <p className="text-xs text-gray-400 text-center">Le chauffeur attend votre paiement</p>
+          </div>
+        ) : ride.status === 'paid' ? (
+          <div className="space-y-3">
+            <div className="flex items-center justify-center gap-2 py-3 bg-green-50 rounded-2xl">
+              <span className="text-green-600 font-bold text-sm">✅ Course payée</span>
+            </div>
+            <Button onClick={() => navigate(`/rate/${rideId}`)}>
+              Noter le chauffeur
+            </Button>
+          </div>
         ) : (
           <div className="grid grid-cols-3 gap-2">
             <motion.button
@@ -256,7 +276,7 @@ export default function TrackingPage() {
           </div>
         )}
 
-        {ride.status !== 'completed' && ride.status !== 'passenger_onboard' && (
+        {['driver_assigned', 'driver_en_route', 'driver_arrived'].includes(ride.status) && (
           <button
             onClick={() => setShowCancel(true)}
             className="w-full mt-3 py-2.5 text-red-500 text-sm font-medium rounded-xl hover:bg-red-50 transition"

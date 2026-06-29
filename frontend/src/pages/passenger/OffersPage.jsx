@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Star, Navigation, Clock, X, AlertCircle, TrendingUp, RefreshCw } from 'lucide-react';
+import { Star, Navigation, Clock, X, AlertCircle, TrendingUp, RefreshCw, ArrowLeft } from 'lucide-react';
 import api from '../../api/client';
 import Button from '../../components/ui/Button';
 import { useToast } from '../../components/ui/Toast';
@@ -126,8 +126,8 @@ export default function OffersPage() {
       {/* Header */}
       <div className="bg-brand-500 px-5 pt-5 pb-8 text-white">
         <div className="flex items-center gap-3 mb-4">
-          <button onClick={cancelRequest} className="p-1.5 rounded-xl hover:bg-white/10">
-            <X size={22} />
+          <button onClick={() => navigate('/')} className="p-1.5 rounded-xl hover:bg-white/10">
+            <ArrowLeft size={22} />
           </button>
           <div className="flex-1">
             <p className="text-brand-200 text-xs">Votre proposition</p>
