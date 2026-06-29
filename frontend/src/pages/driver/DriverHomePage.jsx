@@ -98,7 +98,9 @@ export default function DriverHomePage() {
       if (Array.isArray(data) && data.length > 0) {
         setRideRequests(prev => {
           const existingIds = new Set(prev.map(r => r.id));
-          const newRequests = data.filter(r => !existingIds.has(r.id) && !sentOffers.has(r.id));
+          const newRequests = data
+            .filter(r => !existingIds.has(r.id) && !sentOffers.has(r.id))
+            .map(r => ({ ...r, _shownAt: Date.now() }));
           if (newRequests.length === 0) return prev;
           return [...newRequests, ...prev];
         });
@@ -106,12 +108,18 @@ export default function DriverHomePage() {
     } catch {}
   };
 
-  // Countdown pour expiration des demandes
+  // Countdown : retirer les demandes expirées ou > 60s d'affichage
   useEffect(() => {
     if (rideRequests.length === 0) return;
     const interval = setInterval(() => {
       const now = Date.now();
-      setRideRequests(prev => prev.filter(r => new Date(r.expires_at).getTime() > now));
+      setRideRequests(prev => prev.filter(r => {
+        // Expiration serveur
+        if (new Date(r.expires_at).getTime() <= now) return false;
+        // Timeout chauffeur : 60s max pour répondre
+        if (r._shownAt && (now - r._shownAt) > 60000) return false;
+        return true;
+      }));
     }, 1000);
     return () => clearInterval(interval);
   }, [rideRequests.length]);
@@ -287,12 +295,17 @@ export default function DriverHomePage() {
     setSendingOffer(null);
   };
 
-  // Helper : temps restant
-  const getTimeLeft = (expiresAt) => {
-    const diff = Math.max(0, Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000));
-    const min = Math.floor(diff / 60);
-    const sec = diff % 60;
-    return min > 0 ? `${min}m ${sec}s` : `${sec}s`;
+  // Helper : temps restant pour le chauffeur (max 60s)
+  const getDriverTimeLeft = (req) => {
+    if (!req._shownAt) return '60s';
+    const elapsed = Math.floor((Date.now() - req._shownAt) / 1000);
+    return `${Math.max(0, 60 - elapsed)}s`;
+  };
+
+  const getTimePct = (req) => {
+    if (!req._shownAt) return 100;
+    const elapsed = (Date.now() - req._shownAt) / 1000;
+    return Math.max(0, ((60 - elapsed) / 60) * 100);
   };
 
   return (
@@ -474,82 +487,120 @@ export default function DriverHomePage() {
                         key={req.id}
                         initial={{ opacity: 0, y: 20, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, x: -100 }}
-                        className="bg-white rounded-2xl shadow-soft border border-gray-100 overflow-hidden"
+                        exit={{ opacity: 0, x: -200, scale: 0.8 }}
+                        transition={{ type: 'spring', damping: 20 }}
+                        className="bg-white rounded-3xl shadow-md border border-gray-100 overflow-hidden"
                       >
-                        {/* En-tête avec countdown */}
-                        <div className="flex items-center justify-between px-4 pt-3 pb-2">
-                          <div className="flex items-center gap-2">
-                            <span className="text-lg">{req.vehicle_type === 'moto' ? '🏍️' : '🚗'}</span>
-                            <span className="text-sm font-medium text-gray-700">{req.passenger_name}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5 bg-red-50 px-2.5 py-1 rounded-full">
-                            <Clock size={12} className="text-red-500" />
-                            <span className="text-xs font-mono font-bold text-red-600">{getTimeLeft(req.expires_at)}</span>
-                          </div>
+                        {/* Barre de progression 60s */}
+                        <div className="h-1 bg-gray-100">
+                          <motion.div
+                            className={`h-full transition-all duration-1000 ${
+                              getTimePct(req) > 30 ? 'bg-brand-500' : 'bg-red-500'
+                            }`}
+                            style={{ width: `${getTimePct(req)}%` }}
+                          />
                         </div>
 
-                        {/* Adresses */}
-                        <div className="px-4 py-2 space-y-2">
-                          <div className="flex items-start gap-2.5">
-                            <div className="mt-1 w-3 h-3 rounded-full bg-green-500 border-2 border-green-200 flex-shrink-0" />
-                            <p className="text-sm text-gray-800 line-clamp-1">{req.pickup_address}</p>
-                          </div>
-                          <div className="flex items-start gap-2.5">
-                            <div className="mt-1 w-3 h-3 rounded-full bg-red-500 border-2 border-red-200 flex-shrink-0" />
-                            <p className="text-sm text-gray-800 line-clamp-1">{req.dropoff_address}</p>
-                          </div>
-                        </div>
-
-                        {/* Prix et distance */}
-                        <div className="flex items-center justify-between px-4 py-2 bg-gray-50/50">
+                        {/* En-tête */}
+                        <div className="flex items-center justify-between px-5 pt-4 pb-2">
                           <div className="flex items-center gap-3">
-                            <div className="flex items-center gap-1 text-xs text-gray-500">
-                              <Navigation size={12} />
-                              {((req.estimated_distance_m || 0) / 1000).toFixed(1)} km
+                            <div className="w-10 h-10 bg-brand-50 rounded-2xl flex items-center justify-center">
+                              <span className="text-lg">{req.vehicle_type === 'moto' ? '🏍️' : '🚗'}</span>
+                            </div>
+                            <div>
+                              <p className="font-bold text-gray-800">{req.passenger_name}</p>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <span className="text-xs text-gray-400">
+                                  {req.distance_to_pickup_m
+                                    ? `${(req.distance_to_pickup_m / 1000).toFixed(1)} km de vous`
+                                    : `${((req.estimated_distance_m || 0) / 1000).toFixed(1)} km`
+                                  }
+                                </span>
+                              </div>
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="text-xl font-extrabold text-brand-600">{req.proposed_price} F</p>
-                            {req.suggested_price !== req.proposed_price && (
-                              <p className="text-[10px] text-gray-400">Suggéré : {req.suggested_price} F</p>
-                            )}
+                            <p className="text-2xl font-black text-brand-600">{req.proposed_price}</p>
+                            <p className="text-[10px] text-gray-400 font-medium">F CFA</p>
                           </div>
                         </div>
 
-                        {/* Actions */}
-                        <div className="px-4 py-3 border-t border-gray-100">
-                          {alreadySent ? (
-                            <div className="flex items-center justify-center gap-2 py-2 text-green-600">
-                              <CheckCircle size={18} />
-                              <span className="text-sm font-semibold">Offre envoyée — en attente</span>
+                        {/* Trajet */}
+                        <div className="px-5 py-3">
+                          <div className="flex gap-3">
+                            <div className="flex flex-col items-center pt-1">
+                              <div className="w-2.5 h-2.5 rounded-full bg-brand-500" />
+                              <div className="w-0.5 h-6 bg-gray-200 my-0.5" />
+                              <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
                             </div>
-                          ) : (
-                            <>
-                              <div className="flex gap-2">
-                                <Button
-                                  size="full"
-                                  loading={isSending && !isCounterOpen}
-                                  onClick={() => sendOffer(req.id, req.proposed_price)}
-                                  className="flex-1"
-                                >
-                                  <Send size={14} />
-                                  Accepter — {req.proposed_price} F
-                                </Button>
-                                <motion.button
-                                  whileTap={{ scale: 0.95 }}
-                                  onClick={() => setShowCounter(p => ({ ...p, [req.id]: !p[req.id] }))}
-                                  className={`px-3 rounded-xl border-2 transition-colors ${
-                                    isCounterOpen
-                                      ? 'border-brand-500 bg-brand-50 text-brand-600'
-                                      : 'border-gray-200 text-gray-500 hover:border-gray-300'
-                                  }`}
-                                >
-                                  <TrendingUp size={16} />
-                                </motion.button>
-                              </div>
+                            <div className="flex-1 space-y-2">
+                              <p className="text-sm text-gray-700 line-clamp-1">{req.pickup_address || 'Position du passager'}</p>
+                              <p className="text-sm text-gray-700 line-clamp-1">{req.dropoff_address}</p>
+                            </div>
+                          </div>
+                        </div>
 
-                              {/* Contre-offre */}
+                        {/* Timer + prix suggéré */}
+                        <div className="flex items-center justify-between px-5 py-2">
+                          <div className="flex items-center gap-1.5">
+                            <Timer size={13} className={getTimePct(req) > 30 ? 'text-brand-500' : 'text-red-500'} />
+                            <span className={`text-xs font-mono font-bold ${getTimePct(req) > 30 ? 'text-brand-600' : 'text-red-600'}`}>
+                              {getDriverTimeLeft(req)}
+                            </span>
+                          </div>
+                          {req.suggested_price !== req.proposed_price && (
+                            <span className="text-[10px] text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full">
+                              Prix suggéré : {req.suggested_price} F
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Actions */}
+                        <div className="px-5 pb-4 pt-1">
+                          {alreadySent ? (
+                            <motion.div
+                              initial={{ scale: 0.9 }}
+                              animate={{ scale: 1 }}
+                              className="flex items-center justify-center gap-2 py-3 bg-green-50 rounded-2xl"
+                            >
+                              <CheckCircle size={18} className="text-green-600" />
+                              <span className="text-sm font-bold text-green-700">Offre envoyée — en attente</span>
+                            </motion.div>
+                          ) : (
+                            <div className="space-y-2">
+                              {/* Bouton accepter principal */}
+                              <motion.button
+                                whileTap={{ scale: 0.97 }}
+                                onClick={() => sendOffer(req.id, req.proposed_price)}
+                                disabled={isSending}
+                                className="w-full bg-gradient-to-r from-brand-500 to-emerald-500 text-white font-bold py-3.5 rounded-2xl
+                                           flex items-center justify-center gap-2 shadow-sm hover:shadow-md transition-all disabled:opacity-50"
+                              >
+                                {isSending && !isCounterOpen ? (
+                                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                  <>
+                                    <Send size={16} />
+                                    Accepter — {req.proposed_price} F
+                                  </>
+                                )}
+                              </motion.button>
+
+                              {/* Contre-offre toggle */}
+                              <motion.button
+                                whileTap={{ scale: 0.97 }}
+                                onClick={() => setShowCounter(p => ({ ...p, [req.id]: !p[req.id] }))}
+                                className={`w-full py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all ${
+                                  isCounterOpen
+                                    ? 'bg-brand-50 text-brand-600 border-2 border-brand-200'
+                                    : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+                                }`}
+                              >
+                                <TrendingUp size={14} />
+                                {isCounterOpen ? 'Fermer' : 'Proposer un autre prix'}
+                              </motion.button>
+
+                              {/* Contre-offre input */}
                               <AnimatePresence>
                                 {isCounterOpen && (
                                   <motion.div
@@ -558,31 +609,35 @@ export default function DriverHomePage() {
                                     exit={{ opacity: 0, height: 0 }}
                                     className="overflow-hidden"
                                   >
-                                    <div className="flex items-center gap-2 mt-3">
-                                      <input
-                                        type="number"
-                                        placeholder="Votre prix"
-                                        value={counterPrices[req.id] || ''}
-                                        onChange={e => setCounterPrices(p => ({ ...p, [req.id]: e.target.value }))}
-                                        className="flex-1 px-3 py-2.5 border-2 border-gray-200 rounded-xl text-center font-bold text-lg focus:border-brand-500 focus:outline-none"
-                                      />
-                                      <span className="text-sm text-gray-500 font-medium">F CFA</span>
-                                      <Button
-                                        size="sm"
-                                        loading={isSending && isCounterOpen}
+                                    <div className="flex items-center gap-2 pt-1">
+                                      <div className="flex-1 relative">
+                                        <input
+                                          type="number"
+                                          placeholder="Votre prix"
+                                          value={counterPrices[req.id] || ''}
+                                          onChange={e => setCounterPrices(p => ({ ...p, [req.id]: e.target.value }))}
+                                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-2xl text-center font-bold text-xl
+                                                     focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                                        />
+                                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-gray-400 font-medium">F</span>
+                                      </div>
+                                      <motion.button
+                                        whileTap={{ scale: 0.95 }}
+                                        disabled={isSending}
                                         onClick={() => {
                                           const price = parseInt(counterPrices[req.id]);
                                           if (!price || price < 100) return alert('Prix invalide');
                                           sendOffer(req.id, price);
                                         }}
+                                        className="bg-brand-500 text-white font-bold px-5 py-3 rounded-2xl hover:bg-brand-600 transition disabled:opacity-50"
                                       >
-                                        Envoyer
-                                      </Button>
+                                        {isSending ? '...' : 'Envoyer'}
+                                      </motion.button>
                                     </div>
                                   </motion.div>
                                 )}
                               </AnimatePresence>
-                            </>
+                            </div>
                           )}
                         </div>
                       </motion.div>
