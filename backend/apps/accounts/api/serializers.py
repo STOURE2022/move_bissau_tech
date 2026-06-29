@@ -18,6 +18,7 @@ class RegisterSerializer(serializers.Serializer):
     last_name = serializers.CharField(max_length=100)
     role = serializers.ChoiceField(choices=['passenger', 'driver'], default='passenger')
     preferred_lang = serializers.ChoiceField(choices=['fr', 'pt', 'gcr'], default='fr')
+    referral_code = serializers.CharField(max_length=20, required=False, allow_blank=True)
 
     def validate_phone(self, value):
         value = value.strip().replace(' ', '')

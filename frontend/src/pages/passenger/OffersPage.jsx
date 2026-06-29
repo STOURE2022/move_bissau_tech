@@ -5,6 +5,7 @@ import { Star, Navigation, Clock, X, AlertCircle, TrendingUp, RefreshCw, ArrowLe
 import api from '../../api/client';
 import Button from '../../components/ui/Button';
 import { useToast } from '../../components/ui/Toast';
+import { useNotifications } from '../../hooks/useNotifications';
 import { addRecentDestination } from './HomePage';
 
 const TIMEOUT_SECONDS = 120;
@@ -18,8 +19,11 @@ export default function OffersPage() {
   const [accepting, setAccepting] = useState(null);
   const [elapsed, setElapsed] = useState(0);
   const [timedOut, setTimedOut] = useState(false);
+  const { notify, requestPermission } = useNotifications();
+  const prevOffersCount = useState(0);
 
   useEffect(() => {
+    requestPermission();
     loadRequest();
     const interval = setInterval(loadOffers, 3000);
     return () => clearInterval(interval);
@@ -48,6 +52,14 @@ export default function OffersPage() {
   const loadOffers = async () => {
     try {
       const data = await api.get(`/rides/requests/${requestId}/offers`);
+      // Notification quand une nouvelle offre arrive
+      if (data.length > offers.length && offers.length > 0) {
+        const latest = data[data.length - 1];
+        notify('Nouvelle offre reçue !', {
+          body: `${latest.driver_name} propose ${latest.offered_price} F`,
+          tag: 'new-offer',
+        });
+      }
       setOffers(data);
       if (data.length > 0) setTimedOut(false);
     } catch {}

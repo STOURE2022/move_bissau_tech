@@ -22,4 +22,11 @@ urlpatterns = [
     path('users/me', views.UserProfileView.as_view(), name='user-profile'),
     path('users/me/language', views.ChangeLanguageView.as_view(), name='change-language'),
     path('avatar', views.AvatarUploadView.as_view(), name='avatar-upload'),
+
+    # Codes promo
+    path('promo/validate', views.ValidatePromoCodeView.as_view(), name='validate-promo'),
+
+    # Parrainage
+    path('referral/code', views.ReferralCodeView.as_view(), name='referral-code'),
+    path('referral/stats', views.ReferralStatsView.as_view(), name='referral-stats'),
 ]

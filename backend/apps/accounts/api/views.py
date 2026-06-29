@@ -343,3 +343,78 @@ class AdminResetPasswordView(APIView):
             'message': f'Mot de passe réinitialisé pour {user.first_name} {user.last_name}.',
             'phone': user.phone,
         })
+
+
+class ValidatePromoCodeView(APIView):
+    """POST /api/auth/promo/validate — Valider un code promo."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        from apps.accounts.models_promo import PromoCode, PromoUsage
+
+        code = request.data.get('code', '').strip().upper()
+        ride_price = request.data.get('ride_price', 0)
+
+        if not code:
+            return Response({'error': 'Code requis.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            promo = PromoCode.objects.get(code=code)
+        except PromoCode.DoesNotExist:
+            return Response({'error': 'Code promo invalide.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if not promo.is_valid:
+            return Response({'error': 'Ce code promo a expiré ou n\'est plus disponible.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Vérifier usage par utilisateur
+        user_uses = PromoUsage.objects.filter(promo_code=promo, user=request.user).count()
+        if user_uses >= promo.max_uses_per_user:
+            return Response({'error': 'Vous avez déjà utilisé ce code promo.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        discount = promo.calculate_discount(ride_price) if ride_price else 0
+
+        return Response({
+            'valid': True,
+            'code': promo.code,
+            'description': promo.description,
+            'discount_type': promo.discount_type,
+            'discount_value': promo.discount_value,
+            'discount_amount': discount,
+            'new_price': max(0, ride_price - discount) if ride_price else None,
+        })
+
+
+class ReferralCodeView(APIView):
+    """GET /api/auth/referral/code — Obtenir son code de parrainage."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from apps.accounts.models_promo import generate_referral_code
+
+        user = request.user
+        # Le code de parrainage est basé sur l'ID utilisateur
+        code = f"MB{str(user.id).replace('-', '')[:6].upper()}"
+
+        return Response({
+            'referral_code': code,
+            'share_text': f"Rejoins MoveBissau avec mon code {code} et gagne 500 F CFA ! Télécharge l'app : https://movebissautech-production.up.railway.app",
+        })
+
+
+class ReferralStatsView(APIView):
+    """GET /api/auth/referral/stats — Stats de parrainage."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from apps.accounts.models_promo import Referral
+
+        referrals = Referral.objects.filter(referrer=request.user)
+        total = referrals.count()
+        credited = referrals.filter(referrer_credited=True).count()
+        total_bonus = credited * 500  # Configurable
+
+        return Response({
+            'total_referrals': total,
+            'credited_referrals': credited,
+            'total_bonus': total_bonus,
+        })

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import api from '../../api/client';
 import { useAuth } from '../../hooks/useAuth';
+import { useNotifications } from '../../hooks/useNotifications';
 import { useDriverStats } from '../../hooks/useDriverStats';
 import Button from '../../components/ui/Button';
 import DriverNav from '../../components/layout/DriverNav';
@@ -36,6 +37,7 @@ export default function DriverHomePage() {
   const geoWatchRef = useRef(null);
 
   const stats = useDriverStats(isOnline);
+  const { notify, requestPermission } = useNotifications();
 
   useEffect(() => {
     loadProfile();
@@ -102,6 +104,13 @@ export default function DriverHomePage() {
             .filter(r => !existingIds.has(r.id) && !sentOffers.has(r.id))
             .map(r => ({ ...r, _shownAt: Date.now() }));
           if (newRequests.length === 0) return prev;
+          // Notification pour chaque nouvelle demande
+          newRequests.forEach(r => {
+            notify('Nouvelle course !', {
+              body: `${r.passenger_name} · ${r.proposed_price} F · ${((r.estimated_distance_m || 0) / 1000).toFixed(1)} km`,
+              tag: `request-${r.id}`,
+            });
+          });
           return [...newRequests, ...prev];
         });
       }
@@ -172,6 +181,7 @@ export default function DriverHomePage() {
   const toggleOnline = async () => {
     setToggling(true); setError('');
     try {
+      if (!isOnline) await requestPermission(); // Demander permission notif quand le chauffeur passe en ligne
       await api.post(isOnline ? '/drivers/go-offline' : '/drivers/go-online');
       setIsOnline(!isOnline);
     } catch (e) { setError(e.message); }

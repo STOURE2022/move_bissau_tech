@@ -152,3 +152,7 @@ class OTPCode(models.Model):
     @property
     def is_valid(self):
         return not self.is_used and not self.is_expired and self.attempts < 3
+
+
+# Importer les modèles promo/parrainage pour que Django les détecte
+from apps.accounts.models_promo import PromoCode, PromoUsage, Referral  # noqa: E402, F401

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../components/ui/Toast';
+import ReferralCard from '../../components/ui/ReferralCard';
 import api from '../../api/client';
 
 export default function PassengerProfilePage() {
@@ -233,6 +234,9 @@ export default function PassengerProfilePage() {
             ))}
           </div>
         </motion.div>
+
+        {/* Parrainage */}
+        <ReferralCard />
 
         {/* Déconnexion */}
         <motion.button

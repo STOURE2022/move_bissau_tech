@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
 from .models import OTPCode, User
+from .models_promo import PromoCode, PromoUsage, Referral
 
 
 @admin.register(User)
@@ -29,3 +30,17 @@ class OTPCodeAdmin(admin.ModelAdmin):
     list_filter = ('purpose', 'is_used')
     search_fields = ('phone',)
     readonly_fields = ('id', 'created_at')
+
+
+@admin.register(PromoCode)
+class PromoCodeAdmin(admin.ModelAdmin):
+    list_display = ('code', 'discount_type', 'discount_value', 'current_uses', 'max_uses', 'is_active', 'valid_until')
+    list_filter = ('discount_type', 'is_active')
+    search_fields = ('code', 'description')
+
+
+@admin.register(Referral)
+class ReferralAdmin(admin.ModelAdmin):
+    list_display = ('referrer', 'referred', 'referral_code', 'referrer_credited', 'referred_credited', 'created_at')
+    list_filter = ('referrer_credited', 'referred_credited')
+    search_fields = ('referral_code', 'referrer__phone', 'referred__phone')
