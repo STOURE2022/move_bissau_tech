@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet';
 import { motion } from 'framer-motion';
@@ -8,19 +8,8 @@ import Button from '../../components/ui/Button';
 import ConfirmModal from '../../components/ui/ConfirmModal';
 import { useToast } from '../../components/ui/Toast';
 import StatusPill from '../../components/ui/StatusPill';
+import AnimatedDriverMarker from '../../components/map/AnimatedDriverMarker';
 import L from 'leaflet';
-
-function makeDriverIcon(vehicleType) {
-  const isCar = vehicleType === 'car';
-  const svg = isCar
-    ? `<svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg>`
-    : `<svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M19.44 9.03L15.41 5H11v2h3.59l2 2H5c-2.8 0-5 2.2-5 5s2.2 5 5 5c2.46 0 4.45-1.69 4.9-4h1.65l2.77-2.77c-.21.54-.32 1.14-.32 1.77 0 2.8 2.2 5 5 5s5-2.2 5-5c0-2.65-1.97-4.77-4.56-4.97zM5 15c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm14 0c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>`;
-  return L.divIcon({
-    className: '',
-    html: `<div style="width:42px;height:42px;background:#1B8A4E;border:3px solid white;border-radius:50%;box-shadow:0 3px 12px rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center">${svg}</div>`,
-    iconSize: [42, 42], iconAnchor: [21, 21],
-  });
-}
 
 const pickupIcon = L.divIcon({
   className: '',
@@ -72,7 +61,7 @@ export default function TrackingPage() {
 
   useEffect(() => {
     loadRide();
-    const interval = setInterval(loadRide, 5000);
+    const interval = setInterval(loadRide, 3000); // 3s pour un suivi plus fluide
     return () => clearInterval(interval);
   }, []);
 
@@ -188,7 +177,6 @@ export default function TrackingPage() {
   const dropoffCoords = ride.dropoff_lat ? [ride.dropoff_lat, ride.dropoff_lng] : null;
   const mapCenter = pickupCoords || [11.8636, -15.5977];
   const bounds = [pickupCoords, dropoffCoords, driverPos].filter(Boolean);
-  const driverIcon = makeDriverIcon(ride.vehicle_type);
 
   return (
     <div className="h-[100dvh] flex flex-col bg-white relative">
@@ -201,7 +189,13 @@ export default function TrackingPage() {
           />
           {pickupCoords && <Marker position={pickupCoords} icon={pickupIcon} />}
           {dropoffCoords && <Marker position={dropoffCoords} icon={dropoffIcon} />}
-          {driverPos && <Marker position={driverPos} icon={driverIcon} />}
+          {driverPos && (
+            <AnimatedDriverMarker
+              position={driverPos}
+              vehicleType={ride.vehicle_type}
+              followCamera={['driver_en_route', 'passenger_onboard'].includes(ride.status)}
+            />
+          )}
           {routeCoords && (
             <Polyline positions={routeCoords} pathOptions={{ color: '#1B8A4E', weight: 4, opacity: 0.7, dashArray: '8 6' }} />
           )}
