@@ -185,9 +185,9 @@ export default function DriverRidePage() {
     : [ride.pickup_lat || 11.8636, ride.pickup_lng || -15.5977];
 
   return (
-    <div className="h-[100dvh] flex flex-col bg-white overflow-hidden">
+    <div className="h-[100dvh] flex flex-col bg-gray-50 overflow-hidden">
       {/* Carte */}
-      <div className="h-[45vh] relative flex-shrink-0">
+      <div className="h-[40vh] relative flex-shrink-0">
         <button
           onClick={() => navigate('/driver')}
           className="absolute top-4 left-4 z-10 w-10 h-10 bg-white rounded-2xl shadow-card flex items-center justify-center"
@@ -234,45 +234,49 @@ export default function DriverRidePage() {
       <motion.div
         initial={{ y: 100 }}
         animate={{ y: 0 }}
-        className="bg-white flex-1 overflow-y-auto px-5 pt-5 pb-8 rounded-t-[1.5rem] shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
+        className="bg-white flex-1 overflow-y-auto px-5 pt-4 pb-6 rounded-t-[1.5rem] shadow-[0_-8px_30px_rgba(0,0,0,0.1)] -mt-4 relative z-10"
       >
-        {/* Statut */}
+        {/* Poignée */}
+        <div className="flex justify-center mb-3">
+          <div className="w-9 h-1 bg-gray-200 rounded-full" />
+        </div>
+
+        {/* Statut + prix */}
         <motion.div
           key={ride.status}
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="flex items-center gap-4 mb-4 p-3 bg-gray-50 rounded-2xl"
+          className="flex items-center gap-3 mb-3 p-3 bg-brand-50 rounded-2xl"
         >
           <span className="text-2xl">{statusInfo.emoji}</span>
           <div className="flex-1">
-            <p className="font-bold text-gray-800">{statusInfo.text}</p>
-            <p className="text-xs text-gray-500">{statusInfo.sub}</p>
+            <p className="font-bold text-gray-800 text-sm">{statusInfo.text}</p>
+            <p className="text-[11px] text-gray-500">{statusInfo.sub}</p>
           </div>
-          <p className="text-lg font-extrabold text-brand-600">{ride.agreed_price} F</p>
+          <div className="text-right">
+            <p className="text-xl font-black text-brand-600">{ride.agreed_price}</p>
+            <p className="text-[10px] text-gray-400">F CFA</p>
+          </div>
         </motion.div>
 
-        {/* Info passager et trajet */}
+        {/* Passager + trajet compact */}
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-11 h-11 bg-brand-50 rounded-2xl flex items-center justify-center overflow-hidden">
+          <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0">
             {ride.passenger_avatar ? (
               <img src={ride.passenger_avatar} alt="" className="w-full h-full object-cover" />
             ) : (
-              <User size={20} className="text-brand-500" />
+              <User size={18} className="text-gray-400" />
             )}
           </div>
-          <div className="flex-1">
-            <p className="font-semibold text-gray-800 text-sm">{ride.passenger_name}</p>
-            <div className="flex items-center gap-1 mt-0.5">
-              <p className="text-xs text-gray-400 line-clamp-1">{ride.pickup_address}</p>
-              <ArrowRight size={10} className="text-gray-300 flex-shrink-0" />
-              <p className="text-xs text-gray-400 line-clamp-1">{ride.dropoff_address}</p>
-            </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-gray-800 text-sm">{ride.passenger_name}</p>
+            <p className="text-[11px] text-gray-400 truncate">{ride.pickup_address} → {ride.dropoff_address}</p>
           </div>
         </div>
 
         {/* Boutons de contact passager */}
         {ride.passenger_phone && (
-          <div className="flex gap-2 mb-4">
+          <div className="flex gap-2 mb-3">
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={() => window.open(`tel:${ride.passenger_phone}`)}
