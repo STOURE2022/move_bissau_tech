@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
-import { RefreshCw, Phone, Star } from 'lucide-react'
+import { RefreshCw, Phone, Star, Search } from 'lucide-react'
 import api from '../api/client'
 import L from 'leaflet'
 
@@ -31,6 +31,8 @@ export default function DriversOnlinePage() {
   const [loading, setLoading] = useState(true)
   const [config, setConfig] = useState(null)
   const [selected, setSelected] = useState(null)
+  const [search, setSearch] = useState('')
+  const [filterType, setFilterType] = useState('all') // all, moto, car
 
   useEffect(() => {
     api.get('/admin/config').then(configs => {
@@ -55,6 +57,21 @@ export default function DriversOnlinePage() {
   const motos = drivers.filter(d => d.vehicle_type === 'moto')
   const cars = drivers.filter(d => d.vehicle_type === 'car')
   const withGps = drivers.filter(d => d.lat && d.lng)
+
+  // Filtrage
+  const filtered = drivers.filter(d => {
+    if (filterType === 'moto' && d.vehicle_type !== 'moto') return false
+    if (filterType === 'car' && d.vehicle_type !== 'car') return false
+    if (search) {
+      const q = search.toLowerCase()
+      return d.name.toLowerCase().includes(q) ||
+        d.phone.includes(q) ||
+        (d.plate || '').toLowerCase().includes(q) ||
+        (d.vehicle_info || '').toLowerCase().includes(q)
+    }
+    return true
+  })
+
   const mapCenter = selected?.lat ? [selected.lat, selected.lng]
     : config ? [config.lat, config.lng] : [11.8636, -15.5977]
 
@@ -99,6 +116,37 @@ export default function DriversOnlinePage() {
         </div>
       </div>
 
+      {/* Filtres */}
+      <div className="flex gap-3 items-center">
+        <div className="flex-1 relative">
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Rechercher par nom, téléphone, plaque..."
+            className="w-full px-4 py-2.5 pl-10 bg-white border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+          />
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        </div>
+        <div className="flex bg-white border rounded-xl p-0.5">
+          {[
+            { id: 'all', label: 'Tous' },
+            { id: 'moto', label: '🏍️ Motos' },
+            { id: 'car', label: '🚗 Voitures' },
+          ].map(f => (
+            <button
+              key={f.id}
+              onClick={() => setFilterType(f.id)}
+              className={`px-3 py-2 rounded-lg text-xs font-semibold transition ${
+                filterType === f.id ? 'bg-brand-500 text-white' : 'text-gray-500 hover:bg-gray-50'
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Carte */}
       <div className="bg-white rounded-xl shadow-sm border overflow-hidden" style={{ height: '450px' }}>
         <MapContainer
@@ -112,7 +160,7 @@ export default function DriversOnlinePage() {
           />
           <MapUpdater center={mapCenter} zoom={selected ? 16 : undefined} />
 
-          {drivers.map(d => d.lat && d.lng && (
+          {filtered.map(d => d.lat && d.lng && (
             <Marker
               key={d.id}
               position={[d.lat, d.lng]}
@@ -154,11 +202,11 @@ export default function DriversOnlinePage() {
               </tr>
             </thead>
             <tbody className="divide-y">
-              {drivers.length === 0 ? (
+              {filtered.length === 0 ? (
                 <tr><td colSpan={6} className="text-center py-8 text-gray-400">
-                  Aucun chauffeur en ligne
+                  {search ? 'Aucun résultat' : 'Aucun chauffeur en ligne'}
                 </td></tr>
-              ) : drivers.map(d => (
+              ) : filtered.map(d => (
                 <tr
                   key={d.id}
                   onClick={() => setSelected(selected?.id === d.id ? null : d)}
