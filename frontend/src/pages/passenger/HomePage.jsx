@@ -294,7 +294,7 @@ export default function HomePage() {
                   <div className="flex-1 bg-gray-50 rounded-xl px-3 py-2.5 text-center">
                     <p className="text-xs text-gray-400">{t('driver.vehicleInfo', 'Véhicule')}</p>
                     <p className="font-bold text-gray-800 text-sm">
-                      {selectedDriver.vehicle_type === 'moto' ? 'Moto' : '{t('passenger.car')}'}
+                      {selectedDriver.vehicle_type === 'moto' ? t('passenger.motoTaxi') : t('passenger.car')}
                     </p>
                   </div>
                   {selectedDriver.vehicle && (
