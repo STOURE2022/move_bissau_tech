@@ -433,8 +433,8 @@ export default function HomePage() {
         {/* Raccourcis {t('passenger.home')} / {t('passenger.work')} */}
         <div className="flex gap-2 mb-4">
           {[
-            { key: 'home', icon: Home, label: '{t('passenger.home')}', color: 'text-blue-500', bg: 'bg-blue-50' },
-            { key: 'work', icon: Briefcase, label: '{t('passenger.work')}', color: 'text-purple-500', bg: 'bg-purple-50' },
+            { key: 'home', icon: Home, label: t('passenger.home'), color: 'text-blue-500', bg: 'bg-blue-50' },
+            { key: 'work', icon: Briefcase, label: t('passenger.work'), color: 'text-purple-500', bg: 'bg-purple-50' },
           ].map(place => {
             const saved = savedPlaces[place.key];
             const isEditing = editingPlace === place.key;
@@ -523,8 +523,8 @@ export default function HomePage() {
         {/* Sélection véhicule */}
         <div className="flex gap-3">
           {[
-            { type: 'moto', icon: '🏍️', label: '{t('passenger.motoTaxi')}', desc: '{t('passenger.motoDesc')}' },
-            { type: 'car', icon: '🚗', label: '{t('passenger.car')}', desc: '{t('passenger.carDesc')}' },
+            { type: 'moto', icon: '🏍️', label: t('passenger.motoTaxi'), desc: t('passenger.motoDesc') },
+            { type: 'car', icon: '🚗', label: t('passenger.car'), desc: t('passenger.carDesc') },
           ].map(v => (
             <motion.button
               key={v.type}
@@ -597,8 +597,8 @@ export default function HomePage() {
 
               <nav className="p-3 space-y-1">
                 {[
-                  { icon: History, label: '{t('common.history')}', to: '/history' },
-                  { icon: User, label: '{t('common.profile')}', to: '/profile' },
+                  { icon: History, label: t('common.history'), to: '/history' },
+                  { icon: User, label: t('common.profile'), to: '/profile' },
                 ].map(item => (
                   <button
                     key={item.to}
