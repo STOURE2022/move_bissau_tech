@@ -17,6 +17,7 @@ export default function ConfirmModal({
     danger: { iconBg: 'bg-red-50', iconColor: 'text-red-500', btnColor: 'bg-red-500 hover:bg-red-600' },
     warning: { iconBg: 'bg-yellow-50', iconColor: 'text-yellow-500', btnColor: 'bg-yellow-500 hover:bg-yellow-600' },
     info: { iconBg: 'bg-brand-50', iconColor: 'text-brand-500', btnColor: 'bg-brand-500 hover:bg-brand-600' },
+    success: { iconBg: 'bg-green-50', iconColor: 'text-green-500', btnColor: 'bg-green-500 hover:bg-green-600' },
   };
   const v = variants[variant] || variants.danger;
   const Icon = CustomIcon || AlertTriangle;
