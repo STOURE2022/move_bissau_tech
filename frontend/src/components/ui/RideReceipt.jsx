@@ -1,5 +1,7 @@
+import { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { MapPin, Clock, Route, User, Car, Receipt, Download } from 'lucide-react';
+import { toPng } from 'html-to-image';
 import { useTranslation } from '../../i18n/useTranslation';
 
 /**
@@ -8,6 +10,27 @@ import { useTranslation } from '../../i18n/useTranslation';
  */
 export default function RideReceipt({ ride, onClose, showActions = true }) {
   const { t } = useTranslation();
+  const receiptRef = useRef(null);
+  const [downloading, setDownloading] = useState(false);
+
+  const downloadReceipt = async () => {
+    if (!receiptRef.current) return;
+    setDownloading(true);
+    try {
+      const dataUrl = await toPng(receiptRef.current, {
+        backgroundColor: '#ffffff',
+        pixelRatio: 2,
+      });
+      const link = document.createElement('a');
+      link.download = `MoveBissau-Recu-${String(ride.id).slice(0, 8).toUpperCase()}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch {
+      // Fallback: imprimer
+      window.print();
+    }
+    setDownloading(false);
+  };
 
   if (!ride) return null;
 
@@ -38,6 +61,7 @@ export default function RideReceipt({ ride, onClose, showActions = true }) {
 
   return (
     <motion.div
+      ref={receiptRef}
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       className="bg-white rounded-3xl shadow-elevated overflow-hidden max-w-md mx-auto"
@@ -92,7 +116,7 @@ export default function RideReceipt({ ride, onClose, showActions = true }) {
         )}
         <div className="flex items-center gap-1.5 text-xs text-gray-500">
           <Car size={14} />
-          <span>{ride.vehicle_type === 'moto' ? t('passenger.motoTaxi', 'Moto-taxi') : t('passenger.car', 'Voiture')}</span>
+          <span>{(ride.driver_vehicle?.type || ride.vehicle_type) === 'car' ? t('passenger.car', 'Voiture') : t('passenger.motoTaxi', 'Moto-taxi')}</span>
         </div>
       </div>
 
@@ -143,13 +167,25 @@ export default function RideReceipt({ ride, onClose, showActions = true }) {
       {/* Footer */}
       <div className="px-6 py-4 text-center">
         <p className="text-[10px] text-gray-300">{t('receipt.companyName', 'MoveBissau Technologies')}</p>
-        {showActions && onClose && (
-          <button
-            onClick={onClose}
-            className="mt-3 text-sm text-brand-500 font-medium hover:text-brand-600"
-          >
-            {t('common.close', 'Fermer')}
-          </button>
+        {showActions && (
+          <div className="flex items-center justify-center gap-4 mt-3">
+            <button
+              onClick={downloadReceipt}
+              disabled={downloading}
+              className="flex items-center gap-1.5 text-sm text-brand-500 font-medium hover:text-brand-600 disabled:opacity-50"
+            >
+              <Download size={14} />
+              {downloading ? '...' : t('receipt.download', 'Télécharger')}
+            </button>
+            {onClose && (
+              <button
+                onClick={onClose}
+                className="text-sm text-gray-400 font-medium hover:text-gray-600"
+              >
+                {t('common.close', 'Fermer')}
+              </button>
+            )}
+          </div>
         )}
       </div>
     </motion.div>
