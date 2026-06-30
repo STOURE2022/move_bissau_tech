@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { MapContainer, TileLayer, Marker } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Phone, Navigation, MapPin, AlertTriangle, X,
@@ -13,6 +13,15 @@ import { useToast } from '../../components/ui/Toast';
 import L from 'leaflet';
 import { useTranslation } from '../../i18n/useTranslation';
 import { useCountryConfig } from '../../hooks/useCountryConfig';
+
+function InvalidateSize() {
+  const map = useMap();
+  useEffect(() => {
+    const timer = setTimeout(() => map.invalidateSize(), 300);
+    return () => clearTimeout(timer);
+  }, [map]);
+  return null;
+}
 
 const pickupIcon = L.divIcon({
   className: '',
@@ -224,6 +233,7 @@ export default function DriverRidePage() {
             url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
             attribution="&copy; OSM"
           />
+          <InvalidateSize />
           {ride.pickup_lat && (
             <Marker position={[ride.pickup_lat, ride.pickup_lng]} icon={pickupIcon} />
           )}

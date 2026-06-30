@@ -13,6 +13,15 @@ import L from 'leaflet';
 import { useTranslation } from '../../i18n/useTranslation';
 import { useCountryConfig } from '../../hooks/useCountryConfig';
 
+function InvalidateSize() {
+  const map = useMap();
+  useEffect(() => {
+    const timer = setTimeout(() => map.invalidateSize(), 300);
+    return () => clearTimeout(timer);
+  }, [map]);
+  return null;
+}
+
 const pickupIcon = L.divIcon({
   className: '',
   html: `<div style="width:14px;height:14px;background:#22c55e;border:3px solid white;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.3)"></div>`,
@@ -200,6 +209,7 @@ export default function TrackingPage() {
             url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
             attribution='&copy; OSM'
           />
+          <InvalidateSize />
           {pickupCoords && <Marker position={pickupCoords} icon={pickupIcon} />}
           {dropoffCoords && <Marker position={dropoffCoords} icon={dropoffIcon} />}
           {driverPos && (
