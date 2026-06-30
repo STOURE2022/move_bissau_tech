@@ -7,6 +7,7 @@ import Button from '../../components/ui/Button';
 import { useToast } from '../../components/ui/Toast';
 import { useNotifications } from '../../hooks/useNotifications';
 import { addRecentDestination } from './HomePage';
+import { useTranslation } from '../../i18n/useTranslation';
 
 const TIMEOUT_SECONDS = 120;
 
@@ -14,6 +15,7 @@ export default function OffersPage() {
   const { requestId } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
+  const { t } = useTranslation();
   const [request, setRequest] = useState(null);
   const [offers, setOffers] = useState([]);
   const [accepting, setAccepting] = useState(null);
@@ -55,8 +57,8 @@ export default function OffersPage() {
       // Notification quand une nouvelle offre arrive
       if (data.length > offers.length && offers.length > 0) {
         const latest = data[data.length - 1];
-        notify('Nouvelle offre reçue !', {
-          body: `${latest.driver_name} propose ${latest.offered_price} F`,
+        notify(t('offers.newOfferReceived', 'Nouvelle offre reçue !'), {
+          body: `${latest.driver_name} ${t('offers.proposes', 'propose')} ${latest.offered_price} F`,
           tag: 'new-offer',
         });
       }
@@ -79,7 +81,7 @@ export default function OffersPage() {
       }
       navigate(`/tracking/${ride.id}`);
     } catch (e) {
-      toast.show(e.message || 'Erreur', 'error');
+      toast.show(e.message || t('common.error', 'Erreur'), 'error');
       setAccepting(null);
     }
   };
@@ -114,20 +116,20 @@ export default function OffersPage() {
           <div
             className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-brand-500 rounded-full border-2 border-white shadow-sm"
             style={{ left: `${proposedPct}%` }}
-            title="Votre prix"
+            title={t('offers.yourPrice', 'Votre prix')}
           />
           {/* Marqueur prix chauffeur */}
           {offeredPrice !== request.proposed_price && (
             <div
               className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-yellow-500 rounded-full border-2 border-white shadow-sm"
               style={{ left: `${offeredPct}%` }}
-              title="Prix chauffeur"
+              title={t('offers.driverPrice', 'Prix chauffeur')}
             />
           )}
         </div>
         <div className="flex justify-between mt-1 text-[9px] text-gray-400">
-          <span>Votre prix: {request.proposed_price} F</span>
-          {offeredPrice !== request.proposed_price && <span>Chauffeur: {offeredPrice} F</span>}
+          <span>{t('offers.yourPrice', 'Votre prix')}: {request.proposed_price} F</span>
+          {offeredPrice !== request.proposed_price && <span>{t('offers.driverLabel', 'Chauffeur')}: {offeredPrice} F</span>}
         </div>
       </div>
     );
@@ -142,15 +144,15 @@ export default function OffersPage() {
             <ArrowLeft size={22} />
           </button>
           <div className="flex-1">
-            <p className="text-brand-200 text-xs">Votre proposition</p>
-            <p className="text-2xl font-bold">{request?.proposed_price || '—'} F CFA</p>
+            <p className="text-brand-200 text-xs">{t('offers.yourProposal', 'Votre proposition')}</p>
+            <p className="text-2xl font-bold">{request?.proposed_price || '—'} {t('common.fcfa', 'F CFA')}</p>
           </div>
           <div className="text-right">
             <div className="flex items-center gap-1.5">
               <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
               <p className="text-brand-100 text-sm font-mono">{formatTime(elapsed)}</p>
             </div>
-            <p className="text-brand-200 text-xs">{request?.notified_count || 0} chauffeurs</p>
+            <p className="text-brand-200 text-xs">{request?.notified_count || 0} {t('offers.drivers', 'chauffeurs')}</p>
           </div>
         </div>
       </div>
@@ -167,9 +169,9 @@ export default function OffersPage() {
             <div className="w-16 h-16 bg-yellow-50 rounded-full mx-auto flex items-center justify-center mb-4">
               <AlertCircle size={32} className="text-yellow-500" />
             </div>
-            <h3 className="font-bold text-gray-800 text-lg">Aucun chauffeur disponible</h3>
+            <h3 className="font-bold text-gray-800 text-lg">{t('offers.noDrivers', 'Aucun chauffeur disponible')}</h3>
             <p className="text-gray-500 text-sm mt-2 mb-5">
-              Aucune offre reçue après {Math.floor(TIMEOUT_SECONDS / 60)} minutes. Essayez ces options :
+              {t('offers.noOffersAfter', 'Aucune offre reçue après')} {Math.floor(TIMEOUT_SECONDS / 60)} {t('offers.minutes', 'minutes')}. {t('offers.tryOptions', 'Essayez ces options :')}
             </p>
 
             <div className="space-y-2">
@@ -179,8 +181,8 @@ export default function OffersPage() {
               >
                 <RefreshCw size={18} className="text-brand-500" />
                 <div>
-                  <p className="text-sm font-semibold text-brand-700">Relancer la recherche</p>
-                  <p className="text-xs text-brand-500">Attendre encore 2 minutes</p>
+                  <p className="text-sm font-semibold text-brand-700">{t('offers.retrySearch', 'Relancer la recherche')}</p>
+                  <p className="text-xs text-brand-500">{t('offers.waitMore', 'Attendre encore 2 minutes')}</p>
                 </div>
               </button>
               <button
@@ -189,15 +191,15 @@ export default function OffersPage() {
               >
                 <TrendingUp size={18} className="text-yellow-600" />
                 <div>
-                  <p className="text-sm font-semibold text-yellow-700">Augmenter le prix</p>
-                  <p className="text-xs text-yellow-600">Un prix plus élevé attire plus de chauffeurs</p>
+                  <p className="text-sm font-semibold text-yellow-700">{t('offers.increasePrice', 'Augmenter le prix')}</p>
+                  <p className="text-xs text-yellow-600">{t('offers.increasePriceSub', 'Un prix plus élevé attire plus de chauffeurs')}</p>
                 </div>
               </button>
               <button
                 onClick={cancelRequest}
                 className="w-full py-3 text-red-500 text-sm font-medium rounded-xl hover:bg-red-50 transition"
               >
-                Annuler la demande
+                {t('request.cancelRequest', 'Annuler la demande')}
               </button>
             </div>
           </motion.div>
@@ -232,18 +234,18 @@ export default function OffersPage() {
             <div className="px-6 pb-6">
               {/* Titre */}
               <h3 className="font-bold text-gray-800 text-lg text-center mb-1">
-                Recherche en cours...
+                {t('offers.searching', 'Recherche en cours...')}
               </h3>
               <p className="text-gray-400 text-xs text-center mb-5">
-                {request?.notified_count || 0} chauffeur{(request?.notified_count || 0) > 1 ? 's' : ''} notifié{(request?.notified_count || 0) > 1 ? 's' : ''}
+                {request?.notified_count || 0} {t('offers.notified', 'chauffeur(s) notifié(s)')}
               </p>
 
               {/* Étapes de progression */}
               <div className="space-y-3 mb-5">
                 {[
-                  { label: 'Demande envoyée', done: elapsed >= 0, active: elapsed < 3 },
-                  { label: 'Chauffeurs notifiés', done: elapsed >= 3, active: elapsed >= 3 && elapsed < 10 },
-                  { label: 'En attente de réponses', done: false, active: elapsed >= 10 },
+                  { label: t('offers.requestSent', 'Demande envoyée'), done: elapsed >= 0, active: elapsed < 3 },
+                  { label: t('offers.driversNotified', 'Chauffeurs notifiés'), done: elapsed >= 3, active: elapsed >= 3 && elapsed < 10 },
+                  { label: t('offers.waitingForOffers', 'En attente de réponses'), done: false, active: elapsed >= 10 },
                 ].map((step, i) => (
                   <motion.div
                     key={step.label}
@@ -285,14 +287,19 @@ export default function OffersPage() {
                 </span>
                 <div>
                   <p className="text-xs font-semibold text-brand-700">
-                    {['Le saviez-vous ?', 'Sécurité', 'Bon plan', 'Qualité'][Math.floor(elapsed / 8) % 4]}
+                    {[
+                      t('offers.tip.didYouKnow', 'Le saviez-vous ?'),
+                      t('offers.tip.security', 'Sécurité'),
+                      t('offers.tip.goodDeal', 'Bon plan'),
+                      t('offers.tip.quality', 'Qualité'),
+                    ][Math.floor(elapsed / 8) % 4]}
                   </p>
                   <p className="text-xs text-brand-600 mt-0.5">
                     {[
-                      'Vous pouvez proposer votre propre prix. Les chauffeurs décident de l\'accepter ou de faire une contre-offre.',
-                      'Tous les chauffeurs sont vérifiés. Vous pouvez partager votre trajet en temps réel avec vos proches.',
-                      'Plus votre prix est proche du prix suggéré, plus vite vous recevrez des offres.',
-                      'Après chaque course, notez votre chauffeur pour aider la communauté.',
+                      t('offers.tip.tip1', "Vous pouvez proposer votre propre prix. Les chauffeurs décident de l'accepter ou de faire une contre-offre."),
+                      t('offers.tip.tip2', 'Tous les chauffeurs sont vérifiés. Vous pouvez partager votre trajet en temps réel avec vos proches.'),
+                      t('offers.tip.tip3', 'Plus votre prix est proche du prix suggéré, plus vite vous recevrez des offres.'),
+                      t('offers.tip.tip4', 'Après chaque course, notez votre chauffeur pour aider la communauté.'),
                     ][Math.floor(elapsed / 8) % 4]}
                   </p>
                 </div>
@@ -307,7 +314,7 @@ export default function OffersPage() {
                 onClick={cancelRequest}
                 className="w-full mt-4 py-3 text-red-500 text-sm font-semibold rounded-2xl border border-red-200 hover:bg-red-50 transition"
               >
-                Annuler la demande
+                {t('request.cancelRequest', 'Annuler la demande')}
               </button>
             </div>
           </motion.div>
@@ -322,14 +329,14 @@ export default function OffersPage() {
                 </div>
                 <div>
                   <p className="text-sm font-bold text-gray-800">
-                    {offers.length} offre{offers.length > 1 ? 's' : ''} reçue{offers.length > 1 ? 's' : ''}
+                    {offers.length} {t('offers.offersReceived', 'offre(s) reçue(s)')}
                   </p>
-                  <p className="text-[10px] text-gray-400">Choisissez votre chauffeur</p>
+                  <p className="text-[10px] text-gray-400">{t('offers.chooseDriver', 'Choisissez votre chauffeur')}</p>
                 </div>
               </div>
               <div className="flex items-center gap-1.5 bg-green-50 px-2.5 py-1 rounded-full">
                 <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
-                <span className="text-[10px] text-green-600 font-medium">En direct</span>
+                <span className="text-[10px] text-green-600 font-medium">{t('offers.live', 'En direct')}</span>
               </div>
             </div>
 
@@ -356,14 +363,14 @@ export default function OffersPage() {
                         <div className="bg-amber-50 px-4 py-1.5 flex items-center gap-2 flex-1">
                           <TrendingUp size={12} className="text-amber-600" />
                           <span className="text-xs font-semibold text-amber-700">
-                            Contre-offre ({priceDiff > 0 ? '+' : ''}{priceDiff} F)
+                            {t('offers.counterOffer', 'Contre-offre')} ({priceDiff > 0 ? '+' : ''}{priceDiff} F)
                           </span>
                         </div>
                       ) : (
                         <div className="bg-green-50 px-4 py-1.5 flex items-center gap-2 flex-1">
                           <span className="text-xs">✅</span>
                           <span className="text-xs font-semibold text-green-700">
-                            A accepté votre prix
+                            {t('offers.acceptedYourPrice', 'A accepté votre prix')}
                           </span>
                         </div>
                       )}
@@ -373,7 +380,7 @@ export default function OffersPage() {
                       }`}>
                         <span className="text-sm">{offer.driver_vehicle_type === 'moto' ? '🏍️' : '🚗'}</span>
                         <span className={`text-[10px] font-bold ${vehicleMismatch ? 'text-orange-600' : 'text-gray-500'}`}>
-                          {offer.driver_vehicle_type === 'moto' ? 'Moto' : 'Voiture'}
+                          {offer.driver_vehicle_type === 'moto' ? 'Moto' : t('passenger.car', 'Voiture')}
                         </span>
                       </div>
                     </div>
@@ -383,8 +390,8 @@ export default function OffersPage() {
                       <div className="bg-orange-50 border-t border-orange-100 px-4 py-2 flex items-center gap-2">
                         <span className="text-orange-500 text-sm">⚠️</span>
                         <p className="text-[11px] text-orange-700">
-                          Vous avez demandé {request.vehicle_type === 'car' ? 'une voiture' : 'une moto'},
-                          ce chauffeur est en <strong>{offer.driver_vehicle_type === 'moto' ? 'moto' : 'voiture'}</strong>
+                          {t('offers.vehicleMismatch', 'Vous avez demandé')} {request.vehicle_type === 'car' ? t('offers.aCar', 'une voiture') : t('offers.aMoto', 'une moto')},
+                          {t('offers.vehicleMismatchDriver', 'ce chauffeur est en')} <strong>{offer.driver_vehicle_type === 'moto' ? t('offers.moto', 'moto') : t('offers.car', 'voiture')}</strong>
                         </p>
                       </div>
                     )}
@@ -414,22 +421,22 @@ export default function OffersPage() {
                         </div>
                         <div className="text-right">
                           <p className="text-2xl font-black text-brand-600">{offer.offered_price}</p>
-                          <p className="text-[10px] text-gray-400 font-medium">F CFA</p>
+                          <p className="text-[10px] text-gray-400 font-medium">{t('common.fcfa', 'F CFA')}</p>
                         </div>
                       </div>
 
                       {/* Stats : distance + ETA */}
                       <div className="flex gap-2 mb-4">
                         <div className="flex-1 bg-gray-50 rounded-xl px-3 py-2 text-center">
-                          <p className="text-xs text-gray-400">Distance</p>
+                          <p className="text-xs text-gray-400">{t('request.distance', 'Distance')}</p>
                           <p className="font-bold text-gray-700 text-sm">{dist} km</p>
                         </div>
                         <div className="flex-1 bg-gray-50 rounded-xl px-3 py-2 text-center">
-                          <p className="text-xs text-gray-400">Arrivée</p>
+                          <p className="text-xs text-gray-400">{t('offers.arrival', 'Arrivée')}</p>
                           <p className="font-bold text-gray-700 text-sm">~{eta} min</p>
                         </div>
                         <div className="flex-1 bg-gray-50 rounded-xl px-3 py-2 text-center">
-                          <p className="text-xs text-gray-400">Votre prix</p>
+                          <p className="text-xs text-gray-400">{t('offers.yourPrice', 'Votre prix')}</p>
                           <p className="font-bold text-gray-700 text-sm">{request?.proposed_price} F</p>
                         </div>
                       </div>
@@ -449,9 +456,9 @@ export default function OffersPage() {
                           {accepting === offer.id ? (
                             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                           ) : isCounter ? (
-                            <>✓ Accepter — {offer.offered_price} F</>
+                            <>✓ {t('offers.accept', 'Accepter')} — {offer.offered_price} F</>
                           ) : (
-                            <>✓ Choisir ce chauffeur</>
+                            <>✓ {t('offers.chooseThisDriver', 'Choisir ce chauffeur')}</>
                           )}
                         </motion.button>
                         {/* Refuser si contre-offre OU véhicule différent */}
@@ -481,7 +488,7 @@ export default function OffersPage() {
               onClick={cancelRequest}
               className="w-full py-3 text-red-500 text-sm font-semibold rounded-2xl border border-red-200 hover:bg-red-50 transition mt-2"
             >
-              Annuler la demande
+              {t('request.cancelRequest', 'Annuler la demande')}
             </button>
           </div>
         )}

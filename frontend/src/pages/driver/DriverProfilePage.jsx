@@ -8,10 +8,12 @@ import {
 import api from '../../api/client';
 import { useAuth } from '../../hooks/useAuth';
 import DriverNav from '../../components/layout/DriverNav';
+import { useTranslation } from '../../i18n/useTranslation';
 
 export default function DriverProfilePage() {
   const { user, logout, refreshUser } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [profile, setProfile] = useState(null);
   const [credit, setCredit] = useState(null);
   const [ratings, setRatings] = useState([]);
@@ -62,9 +64,9 @@ export default function DriverProfilePage() {
   };
 
   const verificationLabel = {
-    approved: 'Vérifié',
-    pending: 'En attente',
-    rejected: 'Rejeté',
+    approved: t('driver.verified', 'Vérifié'),
+    pending: t('driver.pendingVerification', 'En attente'),
+    rejected: t('driver.rejected', 'Rejeté'),
   };
 
   return (
@@ -111,10 +113,10 @@ export default function DriverProfilePage() {
         {/* Stats résumé */}
         <div className="grid grid-cols-4 gap-2">
           {[
-            { value: profile ? Number(profile.average_rating).toFixed(1) : '—', label: 'Note', icon: '⭐' },
-            { value: profile?.total_rides || 0, label: 'Courses', icon: '🏍️' },
-            { value: `${credit?.balance || 0}`, label: 'Crédit F', icon: '💰' },
-            { value: `${profile?.acceptance_rate ? Number(profile.acceptance_rate).toFixed(0) : 0}%`, label: 'Accept.', icon: '✅' },
+            { value: profile ? Number(profile.average_rating).toFixed(1) : '—', label: t('driver.ratingLabel', 'Note'), icon: '⭐' },
+            { value: profile?.total_rides || 0, label: t('driver.ridesCount', 'Courses'), icon: '🏍️' },
+            { value: `${credit?.balance || 0}`, label: t('driver.creditF', 'Crédit F'), icon: '💰' },
+            { value: `${profile?.acceptance_rate ? Number(profile.acceptance_rate).toFixed(0) : 0}%`, label: t('driver.acceptance', 'Accept.'), icon: '✅' },
           ].map((s, i) => (
             <motion.div
               key={s.label}
@@ -157,16 +159,16 @@ export default function DriverProfilePage() {
                 profile.verification_status === 'rejected' ? 'text-red-800' : 'text-yellow-800'
               }`}>
                 {profile.verification_status === 'rejected'
-                  ? 'Dossier rejeté — corrigez vos documents'
-                  : 'Dossier en attente de validation'
+                  ? t('driver.dossierRejected', 'Dossier rejeté — corrigez vos documents')
+                  : t('driver.dossierPending', 'Dossier en attente de validation')
                 }
               </p>
               <p className={`text-xs mt-0.5 ${
                 profile.verification_status === 'rejected' ? 'text-red-600' : 'text-yellow-600'
               }`}>
                 {profile.verification_status === 'rejected'
-                  ? 'Cliquez pour resoumettre'
-                  : 'Complétez votre dossier pour commencer'
+                  ? t('driver.clickToResubmit', 'Cliquez pour resoumettre')
+                  : t('driver.completeDossier', 'Complétez votre dossier pour commencer')
                 }
               </p>
             </div>
@@ -179,10 +181,10 @@ export default function DriverProfilePage() {
       <div className="px-5">
         <div className="bg-white rounded-2xl shadow-soft p-1 flex gap-1 mb-5">
           {[
-            { id: 'info', label: 'Infos' },
-            { id: 'vehicle', label: 'Véhicule' },
-            { id: 'docs', label: 'Documents' },
-            { id: 'ratings', label: 'Avis' },
+            { id: 'info', label: t('driver.tabInfo', 'Infos') },
+            { id: 'vehicle', label: t('driver.tabVehicle', 'Véhicule') },
+            { id: 'docs', label: t('driver.tabDocs', 'Documents') },
+            { id: 'ratings', label: t('driver.tabRatings', 'Avis') },
           ].map(tab => (
             <button
               key={tab.id}
@@ -206,11 +208,11 @@ export default function DriverProfilePage() {
             <div className="space-y-3">
               <div className="bg-white rounded-2xl shadow-soft overflow-hidden divide-y divide-gray-50">
                 {[
-                  { icon: Phone, label: 'Téléphone', value: user?.phone },
-                  { icon: Globe, label: 'Langue', value: user?.preferred_lang === 'fr' ? 'Français' : user?.preferred_lang === 'pt' ? 'Português' : 'Kriol' },
-                  { icon: Car, label: 'Type véhicule', value: profile?.vehicle_type === 'moto' ? '🏍️ Moto-taxi' : '🚗 Voiture' },
-                  { icon: Shield, label: 'Statut', value: verificationLabel[profile?.verification_status] },
-                  { icon: FileText, label: 'Permis', value: profile?.license_number || 'Non renseigné' },
+                  { icon: Phone, label: t('profilePage.phone', 'Téléphone'), value: user?.phone },
+                  { icon: Globe, label: t('profilePage.language', 'Langue'), value: user?.preferred_lang === 'fr' ? 'Français' : user?.preferred_lang === 'pt' ? 'Português' : 'Kriol' },
+                  { icon: Car, label: t('driver.vehicleType', 'Type véhicule'), value: profile?.vehicle_type === 'moto' ? '🏍️ Moto-taxi' : '🚗 Voiture' },
+                  { icon: Shield, label: t('driver.status', 'Statut'), value: verificationLabel[profile?.verification_status] },
+                  { icon: FileText, label: t('driver.license', 'Permis'), value: profile?.license_number || t('driver.notProvided', 'Non renseigné') },
                 ].map(item => (
                   <div key={item.label} className="flex items-center gap-3 px-4 py-3.5">
                     <div className="w-9 h-9 bg-gray-50 rounded-xl flex items-center justify-center">
@@ -226,7 +228,7 @@ export default function DriverProfilePage() {
 
               {/* Changer la langue */}
               <div className="bg-white rounded-2xl shadow-soft p-4">
-                <p className="text-xs text-gray-400 mb-2">Changer la langue</p>
+                <p className="text-xs text-gray-400 mb-2">{t('profilePage.changeLang', 'Changer la langue')}</p>
                 <div className="flex gap-2">
                   {[
                     { code: 'fr', label: 'Français', flag: '🇫🇷' },
@@ -253,7 +255,7 @@ export default function DriverProfilePage() {
                 className="w-full bg-white rounded-2xl shadow-soft p-4 flex items-center gap-3 text-red-500 hover:bg-red-50 transition"
               >
                 <LogOut size={20} />
-                <span className="font-semibold">Déconnexion</span>
+                <span className="font-semibold">{t('common.logout', 'Déconnexion')}</span>
               </button>
             </div>
           )}
@@ -273,14 +275,14 @@ export default function DriverProfilePage() {
                     </div>
                   </div>
                   <div className="bg-gray-50 rounded-xl p-3 flex items-center justify-between">
-                    <span className="text-xs text-gray-400">Immatriculation</span>
+                    <span className="text-xs text-gray-400">{t('driver.registration', 'Immatriculation')}</span>
                     <span className="font-mono font-bold text-gray-800 text-lg tracking-wider">{v.plate_number}</span>
                   </div>
                 </div>
               )) : (
                 <div className="bg-white rounded-2xl shadow-soft p-8 text-center">
                   <Car size={40} className="mx-auto text-gray-300 mb-3" />
-                  <p className="text-gray-500">Aucun véhicule enregistré</p>
+                  <p className="text-gray-500">{t('driver.noVehicle', 'Aucun véhicule enregistré')}</p>
                 </div>
               )}
             </div>
@@ -303,8 +305,8 @@ export default function DriverProfilePage() {
                   <div className="flex-1">
                     <p className="font-medium text-gray-800 text-sm">{doc.doc_type}</p>
                     <p className="text-xs text-gray-400">
-                      {doc.status === 'approved' ? 'Approuvé' :
-                       doc.status === 'pending' ? 'En cours de vérification' : 'Rejeté'}
+                      {doc.status === 'approved' ? t('driver.docApproved', 'Approuvé') :
+                       doc.status === 'pending' ? t('driver.docPendingReview', 'En cours de vérification') : t('driver.docRejected', 'Rejeté')}
                     </p>
                     {doc.rejection_reason && (
                       <p className="text-xs text-red-500 mt-0.5">{doc.rejection_reason}</p>
@@ -321,16 +323,22 @@ export default function DriverProfilePage() {
               )) : (
                 <div className="bg-white rounded-2xl shadow-soft p-8 text-center">
                   <FileText size={40} className="mx-auto text-gray-300 mb-3" />
-                  <p className="text-gray-500 mb-1">Aucun document soumis</p>
-                  <p className="text-gray-400 text-xs">Soumettez vos documents pour être vérifié</p>
+                  <p className="text-gray-500 mb-1">{t('driver.noDocSubmitted', 'Aucun document soumis')}</p>
+                  <p className="text-gray-400 text-xs">{t('driver.submitDocsToVerify', 'Soumettez vos documents pour être vérifié')}</p>
                 </div>
               )}
 
               {/* Documents requis */}
               <div className="bg-brand-50 rounded-2xl p-4">
-                <p className="text-xs font-semibold text-brand-700 mb-2">Documents requis</p>
+                <p className="text-xs font-semibold text-brand-700 mb-2">{t('driver.requiredDocs', 'Documents requis')}</p>
                 <div className="space-y-1.5">
-                  {["Pièce d'identité", "Permis de conduire", "Assurance", "Casier judiciaire", "Carte grise"].map(d => (
+                  {[
+                    t('driver.docIdentity', "Pièce d'identité"),
+                    t('driver.docLicense', 'Permis de conduire'),
+                    t('driver.docInsurance', 'Assurance'),
+                    t('driver.docCriminalRecord', 'Casier judiciaire'),
+                    t('driver.docRegistration', 'Carte grise'),
+                  ].map(d => (
                     <p key={d} className="text-xs text-brand-600 flex items-center gap-2">
                       <span className="w-1 h-1 bg-brand-500 rounded-full" /> {d}
                     </p>
@@ -357,7 +365,7 @@ export default function DriverProfilePage() {
                   ))}
                 </div>
                 <p className="text-gray-400 text-xs mt-2">
-                  {profile?.total_rides || 0} courses · {ratings.length} avis
+                  {profile?.total_rides || 0} {t('driver.ridesCount', 'courses')} · {ratings.length} {t('driver.reviews', 'avis')}
                 </p>
               </div>
 
@@ -365,8 +373,8 @@ export default function DriverProfilePage() {
               {ratings.length === 0 ? (
                 <div className="bg-white rounded-2xl shadow-soft p-8 text-center">
                   <Star size={40} className="mx-auto text-gray-300 mb-3" />
-                  <p className="text-gray-500">Aucun avis pour le moment</p>
-                  <p className="text-gray-400 text-xs mt-1">Les avis apparaîtront après vos courses</p>
+                  <p className="text-gray-500">{t('driver.noReviews', 'Aucun avis pour le moment')}</p>
+                  <p className="text-gray-400 text-xs mt-1">{t('driver.reviewsWillAppear', 'Les avis apparaîtront après vos courses')}</p>
                 </div>
               ) : (
                 ratings.map((r, i) => (

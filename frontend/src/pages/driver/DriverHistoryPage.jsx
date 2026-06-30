@@ -6,19 +6,21 @@ import api from '../../api/client';
 import { useDriverStats } from '../../hooks/useDriverStats';
 import DriverNav from '../../components/layout/DriverNav';
 import WeeklyChart from '../../components/driver/WeeklyChart';
-
-const statusConfig = {
-  paid:      { text: 'Payée', color: 'bg-green-100 text-green-700' },
-  completed: { text: 'Terminée', color: 'bg-blue-100 text-blue-700' },
-  cancelled: { text: 'Annulée', color: 'bg-red-100 text-red-700' },
-};
+import { useTranslation } from '../../i18n/useTranslation';
 
 export default function DriverHistoryPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [rides, setRides] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const stats = useDriverStats(false);
+
+  const statusConfig = {
+    paid:      { text: t('historyPage.statusPaid', 'Payée'), color: 'bg-green-100 text-green-700' },
+    completed: { text: t('historyPage.statusCompleted', 'Terminée'), color: 'bg-blue-100 text-blue-700' },
+    cancelled: { text: t('historyPage.statusCancelled', 'Annulée'), color: 'bg-red-100 text-red-700' },
+  };
 
   useEffect(() => {
     api.get('/rides/history')
@@ -42,15 +44,15 @@ export default function DriverHistoryPage() {
           <button onClick={() => navigate(-1)} className="p-2 -ml-2 rounded-xl hover:bg-gray-100">
             <ArrowLeft size={22} className="text-gray-700" />
           </button>
-          <h2 className="text-xl font-bold text-gray-800">Historique</h2>
+          <h2 className="text-xl font-bold text-gray-800">{t('historyPage.title', 'Historique')}</h2>
         </div>
 
         {/* Stats résumé */}
         <div className="grid grid-cols-3 gap-2 mb-4">
           {[
-            { label: 'Courses', value: paidRides.length, icon: Car, color: 'bg-brand-50 text-brand-600' },
-            { label: 'Revenus', value: `${totalEarnings} F`, icon: TrendingUp, color: 'bg-green-50 text-green-600' },
-            { label: 'Commission', value: `${totalCommission} F`, icon: Calendar, color: 'bg-orange-50 text-orange-600' },
+            { label: t('driver.ridesCount', 'Courses'), value: paidRides.length, icon: Car, color: 'bg-brand-50 text-brand-600' },
+            { label: t('driver.revenue', 'Revenus'), value: `${totalEarnings} F`, icon: TrendingUp, color: 'bg-green-50 text-green-600' },
+            { label: t('driver.commission', 'Commission'), value: `${totalCommission} F`, icon: Calendar, color: 'bg-orange-50 text-orange-600' },
           ].map(s => (
             <div key={s.label} className={`rounded-xl p-3 text-center ${s.color.split(' ')[0]}`}>
               <s.icon size={16} className={`mx-auto ${s.color.split(' ')[1]}`} />
@@ -63,10 +65,10 @@ export default function DriverHistoryPage() {
         {/* Filtres */}
         <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
           {[
-            { id: 'all', label: 'Toutes' },
-            { id: 'paid', label: 'Payées' },
-            { id: 'completed', label: 'Terminées' },
-            { id: 'cancelled', label: 'Annulées' },
+            { id: 'all', label: t('historyPage.all', 'Toutes') },
+            { id: 'paid', label: t('driver.filterPaid', 'Payées') },
+            { id: 'completed', label: t('historyPage.completed', 'Terminées') },
+            { id: 'cancelled', label: t('historyPage.cancelled', 'Annulées') },
           ].map(f => (
             <button
               key={f.id}
@@ -102,9 +104,9 @@ export default function DriverHistoryPage() {
         ) : filtered.length === 0 ? (
           <div className="text-center py-16">
             <p className="text-4xl mb-4">📋</p>
-            <p className="text-gray-500 font-medium">Aucune course</p>
+            <p className="text-gray-500 font-medium">{t('historyPage.noRides', 'Aucune course')}</p>
             <p className="text-gray-400 text-sm mt-1">
-              {filter !== 'all' ? 'Essayez un autre filtre' : 'Vos courses apparaîtront ici'}
+              {filter !== 'all' ? t('driver.tryAnotherFilter', 'Essayez un autre filtre') : t('driver.ridesWillAppear', 'Vos courses apparaîtront ici')}
             </p>
           </div>
         ) : (
@@ -131,11 +133,11 @@ export default function DriverHistoryPage() {
                 <div className="space-y-1 text-xs text-gray-500">
                   <p className="flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 bg-brand-500 rounded-full flex-shrink-0" />
-                    <span className="truncate">{ride.pickup_address || 'Départ'}</span>
+                    <span className="truncate">{ride.pickup_address || t('receipt.departure', 'Départ')}</span>
                   </p>
                   <p className="flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 bg-red-500 rounded-full flex-shrink-0" />
-                    <span className="truncate">{ride.dropoff_address || 'Arrivée'}</span>
+                    <span className="truncate">{ride.dropoff_address || t('receipt.arrival', 'Arrivée')}</span>
                   </p>
                 </div>
 
@@ -145,7 +147,7 @@ export default function DriverHistoryPage() {
                   </p>
                   {ride.commission_amount > 0 && (
                     <p className="text-[10px] text-orange-500 font-medium">
-                      Commission : {ride.commission_amount} F
+                      {t('driver.commission', 'Commission')} : {ride.commission_amount} F
                     </p>
                   )}
                 </div>

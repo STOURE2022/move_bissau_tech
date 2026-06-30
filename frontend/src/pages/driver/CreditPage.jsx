@@ -7,9 +7,11 @@ import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import { useToast } from '../../components/ui/Toast';
 import DriverNav from '../../components/layout/DriverNav';
+import { useTranslation } from '../../i18n/useTranslation';
 
 export default function CreditPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [credit, setCredit] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [showTopup, setShowTopup] = useState(false);
@@ -69,7 +71,7 @@ export default function CreditPage() {
         withdrawal_method: withdrawMethod,
         phone: withdrawPhone,
       });
-      toast.show('Demande de retrait envoyée !', 'success');
+      toast.show(t('driver.withdrawRequestSent', 'Demande de retrait envoyée !'), 'success');
       setShowWithdraw(false);
       setWithdrawAmount('');
       loadCredit();
@@ -90,18 +92,18 @@ export default function CreditPage() {
           <button onClick={() => navigate(-1)} className="p-1.5 rounded-xl hover:bg-white/10">
             <ArrowLeft size={22} className="text-white" />
           </button>
-          <h2 className="text-lg font-bold text-white">Crédit commission</h2>
+          <h2 className="text-lg font-bold text-white">{t('driver.creditTitle', 'Crédit commission')}</h2>
         </div>
 
         <div className="text-center text-white">
-          <p className="text-brand-200 text-sm">Solde actuel</p>
+          <p className="text-brand-200 text-sm">{t('driver.currentBalance', 'Solde actuel')}</p>
           <motion.p
             key={credit?.balance}
             initial={{ scale: 1.1 }}
             animate={{ scale: 1 }}
             className="text-4xl font-extrabold mt-1"
           >
-            {credit?.balance || 0} <span className="text-xl">F CFA</span>
+            {credit?.balance || 0} <span className="text-xl">{t('common.fcfa', 'F CFA')}</span>
           </motion.p>
         </div>
 
@@ -112,7 +114,7 @@ export default function CreditPage() {
             icon={Plus}
             onClick={() => setShowTopup(true)}
           >
-            Recharger
+            {t('driver.recharge', 'Recharger')}
           </Button>
           {availableForWithdraw > 0 && (
             <Button
@@ -122,7 +124,7 @@ export default function CreditPage() {
               onClick={() => setShowWithdraw(true)}
               className="!bg-white/20 !text-white !border-white/30 hover:!bg-white/30"
             >
-              Retirer
+              {t('driver.withdraw', 'Retirer')}
             </Button>
           )}
         </div>
@@ -132,21 +134,21 @@ export default function CreditPage() {
         {/* Stats */}
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-white rounded-2xl p-4 shadow-soft text-center">
-            <p className="text-xs text-gray-400">Total rechargé</p>
+            <p className="text-xs text-gray-400">{t('driver.totalRecharged', 'Total rechargé')}</p>
             <p className="font-bold text-green-600">{credit?.total_topups || 0} F</p>
           </div>
           <div className="bg-white rounded-2xl p-4 shadow-soft text-center">
-            <p className="text-xs text-gray-400">Commissions payées</p>
+            <p className="text-xs text-gray-400">{t('driver.commissionsPaid', 'Commissions payées')}</p>
             <p className="font-bold text-orange-600">{credit?.total_commissions || 0} F</p>
           </div>
         </div>
 
         {/* Historique */}
         <div>
-          <h3 className="font-semibold text-gray-700 mb-3">Historique</h3>
+          <h3 className="font-semibold text-gray-700 mb-3">{t('common.history', 'Historique')}</h3>
           {transactions.length === 0 ? (
             <div className="bg-white rounded-2xl p-6 shadow-soft text-center">
-              <p className="text-gray-400 text-sm">Aucune transaction</p>
+              <p className="text-gray-400 text-sm">{t('driver.noTransaction', 'Aucune transaction')}</p>
             </div>
           ) : (
             <div className="bg-white rounded-2xl shadow-soft overflow-hidden divide-y divide-gray-50">
@@ -185,15 +187,15 @@ export default function CreditPage() {
       {/* Section retraits */}
       {withdrawals.length > 0 && (
         <div className="px-5 mt-4">
-          <h3 className="font-semibold text-gray-700 mb-3">Mes retraits</h3>
+          <h3 className="font-semibold text-gray-700 mb-3">{t('driver.myWithdrawals', 'Mes retraits')}</h3>
           <div className="bg-white rounded-2xl shadow-soft overflow-hidden divide-y divide-gray-50">
             {withdrawals.map((w) => {
               const statusConfig = {
-                pending: { icon: Clock, color: 'text-yellow-500', bg: 'bg-yellow-50', label: 'En attente' },
-                approved: { icon: CheckCircle, color: 'text-blue-500', bg: 'bg-blue-50', label: 'Approuvé' },
-                processing: { icon: RefreshCw, color: 'text-blue-500', bg: 'bg-blue-50', label: 'En cours' },
-                completed: { icon: CheckCircle, color: 'text-green-500', bg: 'bg-green-50', label: 'Effectué' },
-                rejected: { icon: XCircle, color: 'text-red-500', bg: 'bg-red-50', label: 'Rejeté' },
+                pending: { icon: Clock, color: 'text-yellow-500', bg: 'bg-yellow-50', label: t('driver.withdrawPending', 'En attente') },
+                approved: { icon: CheckCircle, color: 'text-blue-500', bg: 'bg-blue-50', label: t('driver.withdrawApproved', 'Approuvé') },
+                processing: { icon: RefreshCw, color: 'text-blue-500', bg: 'bg-blue-50', label: t('driver.withdrawProcessing', 'En cours') },
+                completed: { icon: CheckCircle, color: 'text-green-500', bg: 'bg-green-50', label: t('driver.withdrawCompleted', 'Effectué') },
+                rejected: { icon: XCircle, color: 'text-red-500', bg: 'bg-red-50', label: t('driver.withdrawRejected', 'Rejeté') },
               };
               const sc = statusConfig[w.status] || statusConfig.pending;
               return (
@@ -234,13 +236,13 @@ export default function CreditPage() {
               <div className="flex justify-center mb-2">
                 <div className="w-10 h-1 bg-gray-300 rounded-full" />
               </div>
-              <h3 className="text-xl font-bold text-center mb-2">Retirer mon argent</h3>
+              <h3 className="text-xl font-bold text-center mb-2">{t('driver.withdrawMyMoney', 'Retirer mon argent')}</h3>
               <p className="text-center text-sm text-gray-500 mb-5">
-                Disponible : <span className="font-bold text-brand-600">{availableForWithdraw} F CFA</span>
+                {t('driver.available', 'Disponible')} : <span className="font-bold text-brand-600">{availableForWithdraw} {t('common.fcfa', 'F CFA')}</span>
               </p>
 
               <Input
-                label="Montant à retirer"
+                label={t('driver.amountToWithdraw', 'Montant à retirer')}
                 type="number"
                 value={withdrawAmount}
                 onChange={e => setWithdrawAmount(e.target.value)}
@@ -268,7 +270,7 @@ export default function CreditPage() {
               </div>
 
               <Input
-                label="Numéro de réception"
+                label={t('driver.receptionNumber', 'Numéro de réception')}
                 icon={Smartphone}
                 type="tel"
                 value={withdrawPhone}
@@ -282,12 +284,12 @@ export default function CreditPage() {
                   loading={withdrawLoading}
                   disabled={!withdrawAmount || !withdrawPhone || parseInt(withdrawAmount) > availableForWithdraw || parseInt(withdrawAmount) <= 0}
                 >
-                  Demander le retrait — {withdrawAmount || 0} F
+                  {t('driver.requestWithdrawal', 'Demander le retrait')} — {withdrawAmount || 0} F
                 </Button>
               </div>
 
               <p className="text-xs text-gray-400 text-center mt-3">
-                Le retrait sera traité après approbation par l'admin
+                {t('driver.withdrawAdminApproval', "Le retrait sera traité après approbation par l'admin")}
               </p>
             </motion.div>
           </>
@@ -306,7 +308,7 @@ export default function CreditPage() {
             <div className="flex justify-center mb-2">
               <div className="w-10 h-1 bg-gray-300 rounded-full" />
             </div>
-            <h3 className="text-xl font-bold text-center mb-5">Recharger</h3>
+            <h3 className="text-xl font-bold text-center mb-5">{t('driver.recharge', 'Recharger')}</h3>
 
             {/* Montants rapides */}
             <div className="flex gap-2 mb-4">
@@ -326,7 +328,7 @@ export default function CreditPage() {
             </div>
 
             <Input
-              label="Montant personnalisé"
+              label={t('driver.customAmount', 'Montant personnalisé')}
               type="number"
               value={topupAmount}
               onChange={e => setTopupAmount(e.target.value)}
@@ -353,7 +355,7 @@ export default function CreditPage() {
             </div>
 
             <Input
-              label="Numéro de téléphone"
+              label={t('auth.phone', 'Numéro de téléphone')}
               type="tel"
               value={topupPhone}
               onChange={e => setTopupPhone(e.target.value)}
@@ -362,7 +364,7 @@ export default function CreditPage() {
 
             <div className="mt-5">
               <Button onClick={doTopup} loading={loading} disabled={!topupAmount || !topupPhone}>
-                Recharger {topupAmount} F CFA
+                {t('driver.recharge', 'Recharger')} {topupAmount} {t('common.fcfa', 'F CFA')}
               </Button>
             </div>
           </motion.div>

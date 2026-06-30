@@ -9,28 +9,30 @@ import api from '../../api/client';
 import { useAuth } from '../../hooks/useAuth';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
-
-const STEPS = [
-  { id: 'photo', title: 'Photo de profil', icon: Camera, desc: 'Ajoutez une photo claire de vous' },
-  { id: 'vehicle', title: 'Votre véhicule', icon: Car, desc: 'Informations sur votre véhicule' },
-  { id: 'docs', title: 'Documents', icon: FileText, desc: 'Pièces justificatives requises' },
-  { id: 'submit', title: 'Validation', icon: Shield, desc: 'Soumettre votre dossier' },
-];
-
-const DOC_TYPES = [
-  { id: 'identity', label: "Pièce d'identité", icon: '🪪', required: true, desc: 'BI, passeport ou carte consulaire' },
-  { id: 'license', label: 'Permis de conduire', icon: '🪪', required: true, desc: 'Permis valide catégorie A ou B' },
-  { id: 'insurance', label: 'Assurance', icon: '🛡️', required: true, desc: 'Assurance responsabilité civile' },
-  { id: 'vehicle_registration', label: 'Carte grise', icon: '📄', required: true, desc: 'Carte grise du véhicule' },
-  { id: 'criminal_record', label: 'Casier judiciaire', icon: '📋', required: true, desc: 'Extrait de casier (< 3 mois)' },
-];
+import { useTranslation } from '../../i18n/useTranslation';
 
 export default function DriverSetupPage() {
   const navigate = useNavigate();
   const { user, refreshUser } = useAuth();
+  const { t } = useTranslation();
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const STEPS = [
+    { id: 'photo', title: t('driver.setupPhoto', 'Photo de profil'), icon: Camera, desc: t('driver.setupPhotoDesc', 'Ajoutez une photo claire de vous') },
+    { id: 'vehicle', title: t('driver.setupVehicle', 'Votre véhicule'), icon: Car, desc: t('driver.setupVehicleDesc', 'Informations sur votre véhicule') },
+    { id: 'docs', title: t('driver.tabDocs', 'Documents'), icon: FileText, desc: t('driver.setupDocsDesc', 'Pièces justificatives requises') },
+    { id: 'submit', title: t('driver.setupValidation', 'Validation'), icon: Shield, desc: t('driver.setupValidationDesc', 'Soumettre votre dossier') },
+  ];
+
+  const DOC_TYPES = [
+    { id: 'identity', label: t('driver.docIdentity', "Pièce d'identité"), icon: '🪪', required: true, desc: t('driver.docIdentityDesc', 'BI, passeport ou carte consulaire') },
+    { id: 'license', label: t('driver.docLicense', 'Permis de conduire'), icon: '🪪', required: true, desc: t('driver.docLicenseDesc', 'Permis valide catégorie A ou B') },
+    { id: 'insurance', label: t('driver.docInsurance', 'Assurance'), icon: '🛡️', required: true, desc: t('driver.docInsuranceDesc', 'Assurance responsabilité civile') },
+    { id: 'vehicle_registration', label: t('driver.docRegistration', 'Carte grise'), icon: '📄', required: true, desc: t('driver.docRegistrationDesc', 'Carte grise du véhicule') },
+    { id: 'criminal_record', label: t('driver.docCriminalRecord', 'Casier judiciaire'), icon: '📋', required: true, desc: t('driver.docCriminalRecordDesc', 'Extrait de casier (< 3 mois)') },
+  ];
 
   // Photo
   const [avatarPreview, setAvatarPreview] = useState(user?.avatar_url || '');
@@ -95,7 +97,7 @@ export default function DriverSetupPage() {
         setAvatarPreview(data.avatar_url);
         refreshUser();
       }
-    } catch (e) { setError('Erreur upload photo'); }
+    } catch (e) { setError(t('driver.errorUploadPhoto', 'Erreur upload photo')); }
     setLoading(false);
   };
 
@@ -126,9 +128,9 @@ export default function DriverSetupPage() {
       if (res.ok) {
         setDocuments(prev => ({ ...prev, [docType]: data }));
       } else {
-        setError(data.error || 'Erreur upload');
+        setError(data.error || t('driver.errorUpload', 'Erreur upload'));
       }
-    } catch { setError('Erreur upload document'); }
+    } catch { setError(t('driver.errorUploadDoc', 'Erreur upload document')); }
     setUploadingDoc(null);
   };
 
@@ -161,7 +163,7 @@ export default function DriverSetupPage() {
             </button>
           )}
           <div className="flex-1">
-            <p className="text-white/50 text-xs">Étape {step + 1} / {STEPS.length}</p>
+            <p className="text-white/50 text-xs">{t('driver.stepOf', 'Étape')} {step + 1} / {STEPS.length}</p>
             <h2 className="text-white text-lg font-bold">{currentStep.title}</h2>
           </div>
         </div>
@@ -215,12 +217,12 @@ export default function DriverSetupPage() {
                 </div>
 
                 <p className="text-xs text-gray-400 text-center">
-                  Photo claire de votre visage<br />Format JPG ou PNG
+                  {t('driver.photoClear', 'Photo claire de votre visage')}<br />{t('driver.photoFormat', 'Format JPG ou PNG')}
                 </p>
               </div>
 
               <Button onClick={() => setStep(1)} disabled={loading}>
-                {avatarPreview ? 'Continuer' : 'Passer cette étape'}
+                {avatarPreview ? t('common.next', 'Continuer') : t('driver.skipStep', 'Passer cette étape')}
                 <ChevronRight size={18} />
               </Button>
             </div>
@@ -233,11 +235,11 @@ export default function DriverSetupPage() {
 
               {/* Type de véhicule */}
               <div>
-                <label className="text-sm font-medium text-gray-600 pl-1 block mb-2">Type de véhicule</label>
+                <label className="text-sm font-medium text-gray-600 pl-1 block mb-2">{t('driver.vehicleType', 'Type de véhicule')}</label>
                 <div className="grid grid-cols-2 gap-3">
                   {[
-                    { type: 'moto', emoji: '🏍️', label: 'Moto-taxi', desc: 'Deux roues' },
-                    { type: 'car', emoji: '🚗', label: 'Voiture', desc: 'Quatre roues' },
+                    { type: 'moto', emoji: '🏍️', label: t('passenger.motoTaxi', 'Moto-taxi'), desc: t('driver.twoWheels', 'Deux roues') },
+                    { type: 'car', emoji: '🚗', label: t('passenger.car', 'Voiture'), desc: t('driver.fourWheels', 'Quatre roues') },
                   ].map(v => (
                     <motion.button
                       key={v.type}
@@ -262,29 +264,29 @@ export default function DriverSetupPage() {
                 </div>
               </div>
 
-              <Input label="Marque" placeholder="Ex: Honda, Toyota..." value={vehicleForm.brand}
+              <Input label={t('driver.brand', 'Marque')} placeholder="Ex: Honda, Toyota..." value={vehicleForm.brand}
                 onChange={e => setVehicleForm(p => ({ ...p, brand: e.target.value }))} />
-              <Input label="Modèle" placeholder="Ex: CG125, Corolla..." value={vehicleForm.model}
+              <Input label={t('driver.model', 'Modèle')} placeholder="Ex: CG125, Corolla..." value={vehicleForm.model}
                 onChange={e => setVehicleForm(p => ({ ...p, model: e.target.value }))} />
 
               <div className="grid grid-cols-2 gap-3">
-                <Input label="Couleur" placeholder="Rouge, Bleu..." value={vehicleForm.color}
+                <Input label={t('driver.color', 'Couleur')} placeholder={t('driver.colorPlaceholder', 'Rouge, Bleu...')} value={vehicleForm.color}
                   onChange={e => setVehicleForm(p => ({ ...p, color: e.target.value }))} />
-                <Input label="Année" placeholder="2020" type="number" value={vehicleForm.year}
+                <Input label={t('driver.year', 'Année')} placeholder="2020" type="number" value={vehicleForm.year}
                   onChange={e => setVehicleForm(p => ({ ...p, year: e.target.value }))} />
               </div>
 
-              <Input label="Immatriculation" placeholder="AB-1234" value={vehicleForm.plate_number}
+              <Input label={t('driver.registration', 'Immatriculation')} placeholder="AB-1234" value={vehicleForm.plate_number}
                 onChange={e => setVehicleForm(p => ({ ...p, plate_number: e.target.value.toUpperCase() }))}
                 className="font-mono text-lg tracking-widest" />
 
-              <Input label="Numéro de permis" placeholder="Ex: GW-12345678" value={licenseNumber}
+              <Input label={t('driver.licenseNumber', 'Numéro de permis')} placeholder="Ex: GW-12345678" value={licenseNumber}
                 onChange={e => setLicenseNumber(e.target.value)} />
 
               {error && <p className="text-red-500 text-sm text-center">{error}</p>}
 
               <Button onClick={saveVehicle} loading={loading}>
-                Continuer <ChevronRight size={18} />
+                {t('common.next', 'Continuer')} <ChevronRight size={18} />
               </Button>
             </div>
           )}
@@ -318,7 +320,7 @@ export default function DriverSetupPage() {
                           <p className="font-semibold text-gray-800 text-sm">{doc.label}</p>
                           {doc.required && (
                             <span className="text-[9px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full font-semibold">
-                              Obligatoire
+                              {t('driver.mandatory', 'Obligatoire')}
                             </span>
                           )}
                         </div>
@@ -344,7 +346,7 @@ export default function DriverSetupPage() {
                           className="flex items-center gap-1.5 px-3 py-2 bg-brand-500 text-white rounded-xl text-xs font-semibold hover:bg-brand-600 transition"
                         >
                           <Upload size={14} />
-                          Charger
+                          {t('driver.upload', 'Charger')}
                         </button>
                       )}
                     </div>
@@ -355,8 +357,8 @@ export default function DriverSetupPage() {
                           uploaded.status === 'approved' ? 'text-green-600' :
                           uploaded.status === 'rejected' ? 'text-red-600' : 'text-yellow-600'
                         }`}>
-                          {uploaded.status === 'approved' ? '✓ Approuvé' :
-                           uploaded.status === 'rejected' ? '✗ Rejeté' : '⏳ En attente'}
+                          {uploaded.status === 'approved' ? t('driver.docStatusApproved', '✓ Approuvé') :
+                           uploaded.status === 'rejected' ? t('driver.docStatusRejected', '✗ Rejeté') : t('driver.docStatusPending', '⏳ En attente')}
                         </span>
                         <button
                           onClick={() => {
@@ -365,7 +367,7 @@ export default function DriverSetupPage() {
                           }}
                           className="text-xs text-brand-500 font-medium hover:underline"
                         >
-                          Remplacer
+                          {t('driver.replace', 'Remplacer')}
                         </button>
                       </div>
                     )}
@@ -389,7 +391,7 @@ export default function DriverSetupPage() {
               {error && <p className="text-red-500 text-sm text-center">{error}</p>}
 
               <Button onClick={() => setStep(3)} disabled={!hasRequiredDocs}>
-                {hasRequiredDocs ? 'Continuer' : 'Documents obligatoires manquants'}
+                {hasRequiredDocs ? t('common.next', 'Continuer') : t('driver.missingRequiredDocs', 'Documents obligatoires manquants')}
                 {hasRequiredDocs && <ChevronRight size={18} />}
               </Button>
             </div>
@@ -402,15 +404,15 @@ export default function DriverSetupPage() {
                 <div className="w-20 h-20 bg-brand-50 rounded-3xl flex items-center justify-center mx-auto mb-4">
                   <Shield size={40} className="text-brand-500" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-800">Prêt à soumettre ?</h3>
+                <h3 className="text-xl font-bold text-gray-800">{t('driver.readyToSubmit', 'Prêt à soumettre ?')}</h3>
                 <p className="text-gray-500 text-sm mt-2">
-                  Notre équipe vérifiera votre dossier et vous notifiera une fois validé.
+                  {t('driver.teamWillVerify', 'Notre équipe vérifiera votre dossier et vous notifiera une fois validé.')}
                 </p>
               </div>
 
               {/* Récapitulatif */}
               <div className="bg-gray-50 rounded-2xl p-4 space-y-3">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Récapitulatif</p>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{t('driver.summary', 'Récapitulatif')}</p>
 
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl overflow-hidden bg-gray-200">
@@ -458,11 +460,11 @@ export default function DriverSetupPage() {
               )}
 
               <Button onClick={submitVerification} loading={loading} icon={Shield}>
-                Soumettre mon dossier
+                {t('driver.submitDossier', 'Soumettre mon dossier')}
               </Button>
 
               <p className="text-xs text-gray-400 text-center">
-                La vérification prend généralement 24 à 48 heures
+                {t('driver.verificationDelay', 'La vérification prend généralement 24 à 48 heures')}
               </p>
             </div>
           )}

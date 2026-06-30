@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, X, CheckCircle, AlertTriangle, Wallet, Star, Info } from 'lucide-react';
 import api from '../../api/client';
+import { useTranslation } from '../../i18n/useTranslation';
 
 const typeConfig = {
   ride_status:  { icon: CheckCircle, color: 'text-green-500', bg: 'bg-green-50' },
@@ -20,6 +21,7 @@ export default function NotifBell() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const panelRef = useRef(null);
+  const { t } = useTranslation();
 
   const unreadCount = notifs.filter(n => !n.is_read).length;
 
@@ -40,8 +42,6 @@ export default function NotifBell() {
 
   const loadNotifs = async () => {
     try {
-      // On utilise un endpoint custom ou on simule avec les données existantes
-      // Pour le MVP, on crée des notifs depuis le profil chauffeur
       const profile = await api.get('/drivers/me');
       const credit = await api.get('/commissions/balance').catch(() => null);
 
@@ -51,8 +51,8 @@ export default function NotifBell() {
       if (profile.verification_status === 'approved') {
         generated.push({
           id: 'verif-ok',
-          title: 'Dossier approuvé !',
-          body: 'Votre dossier a été validé. Vous pouvez maintenant recevoir des courses.',
+          title: t('notif.dossierApproved', 'Dossier approuvé !'),
+          body: t('notif.dossierApprovedBody', 'Votre dossier a été validé. Vous pouvez maintenant recevoir des courses.'),
           notification_type: 'system',
           is_read: true,
           created_at: profile.created_at,
@@ -60,8 +60,8 @@ export default function NotifBell() {
       } else if (profile.verification_status === 'rejected') {
         generated.push({
           id: 'verif-ko',
-          title: 'Dossier rejeté',
-          body: profile.rejection_reason || 'Veuillez resoumettre vos documents.',
+          title: t('notif.dossierRejected', 'Dossier rejeté'),
+          body: profile.rejection_reason || t('notif.pleaseResubmit', 'Veuillez resoumettre vos documents.'),
           notification_type: 'incident',
           is_read: false,
           created_at: new Date().toISOString(),
@@ -69,8 +69,8 @@ export default function NotifBell() {
       } else if (profile.verification_status === 'pending') {
         generated.push({
           id: 'verif-pending',
-          title: 'Dossier en cours de vérification',
-          body: 'Notre équipe vérifie vos documents. Vous serez notifié.',
+          title: t('notif.dossierPending', 'Dossier en cours de vérification'),
+          body: t('notif.dossierPendingBody', 'Notre équipe vérifie vos documents. Vous serez notifié.'),
           notification_type: 'system',
           is_read: false,
           created_at: new Date().toISOString(),
@@ -81,8 +81,8 @@ export default function NotifBell() {
       if (credit && !credit.has_sufficient_credit) {
         generated.push({
           id: 'credit-low',
-          title: 'Crédit insuffisant',
-          body: `Votre solde est de ${credit.balance} F. Rechargez pour recevoir des courses.`,
+          title: t('notif.creditInsufficient', 'Crédit insuffisant'),
+          body: t('notif.creditInsufficientBody', `Votre solde est de ${credit.balance} F. Rechargez pour recevoir des courses.`),
           notification_type: 'credit_low',
           is_read: false,
           created_at: new Date().toISOString(),
@@ -94,8 +94,8 @@ export default function NotifBell() {
         profile.documents.filter(d => d.status === 'rejected').forEach(doc => {
           generated.push({
             id: `doc-rejected-${doc.id}`,
-            title: `Document refusé : ${doc.doc_type}`,
-            body: doc.rejection_reason || 'Veuillez resoumettre ce document.',
+            title: `${t('notif.docRefused', 'Document refusé')} : ${doc.doc_type}`,
+            body: doc.rejection_reason || t('notif.pleaseResubmitDoc', 'Veuillez resoumettre ce document.'),
             notification_type: 'incident',
             is_read: false,
             created_at: doc.reviewed_at || doc.created_at,
@@ -108,8 +108,8 @@ export default function NotifBell() {
         profile.documents.filter(d => d.status === 'approved').forEach(doc => {
           generated.push({
             id: `doc-approved-${doc.id}`,
-            title: `Document validé : ${doc.doc_type}`,
-            body: 'Votre document a été approuvé.',
+            title: `${t('notif.docValidated', 'Document validé')} : ${doc.doc_type}`,
+            body: t('notif.docApprovedBody', 'Votre document a été approuvé.'),
             notification_type: 'ride_status',
             is_read: true,
             created_at: doc.reviewed_at || doc.created_at,
@@ -124,11 +124,11 @@ export default function NotifBell() {
   const timeAgo = (dateStr) => {
     const diff = Date.now() - new Date(dateStr).getTime();
     const mins = Math.floor(diff / 60000);
-    if (mins < 1) return "À l'instant";
-    if (mins < 60) return `Il y a ${mins}min`;
+    if (mins < 1) return t('notif.justNow', "À l'instant");
+    if (mins < 60) return `${t('notif.ago', 'Il y a')} ${mins}min`;
     const hours = Math.floor(mins / 60);
-    if (hours < 24) return `Il y a ${hours}h`;
-    return `Il y a ${Math.floor(hours / 24)}j`;
+    if (hours < 24) return `${t('notif.ago', 'Il y a')} ${hours}h`;
+    return `${t('notif.ago', 'Il y a')} ${Math.floor(hours / 24)}${t('notif.days', 'j')}`;
   };
 
   return (
@@ -163,10 +163,10 @@ export default function NotifBell() {
           >
             {/* Header */}
             <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="font-semibold text-gray-800 text-sm">Notifications</h3>
+              <h3 className="font-semibold text-gray-800 text-sm">{t('notif.title', 'Notifications')}</h3>
               {unreadCount > 0 && (
                 <span className="bg-red-50 text-red-600 text-xs font-bold px-2 py-0.5 rounded-full">
-                  {unreadCount} nouvelle{unreadCount > 1 ? 's' : ''}
+                  {unreadCount} {t('notif.new', 'nouvelle')}{unreadCount > 1 ? 's' : ''}
                 </span>
               )}
             </div>
@@ -176,7 +176,7 @@ export default function NotifBell() {
               {notifs.length === 0 ? (
                 <div className="p-6 text-center">
                   <Bell size={28} className="mx-auto text-gray-300 mb-2" />
-                  <p className="text-gray-400 text-sm">Aucune notification</p>
+                  <p className="text-gray-400 text-sm">{t('notif.noNotifications', 'Aucune notification')}</p>
                 </div>
               ) : (
                 notifs.map((n, i) => {

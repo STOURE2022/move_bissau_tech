@@ -7,6 +7,8 @@ import { useTranslation } from '../../i18n/useTranslation';
  * Design inspiré des reçus Uber/InDrive.
  */
 export default function RideReceipt({ ride, onClose, showActions = true }) {
+  const { t } = useTranslation();
+
   if (!ride) return null;
 
   const date = new Date(ride.created_at);
@@ -45,12 +47,12 @@ export default function RideReceipt({ ride, onClose, showActions = true }) {
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Receipt size={18} />
-            <span className="text-sm font-medium opacity-80">Reçu de course</span>
+            <span className="text-sm font-medium opacity-80">{t('receipt.title', 'Reçu de course')}</span>
           </div>
           <span className="text-xs opacity-70 font-mono">{receiptId}</span>
         </div>
-        <p className="text-3xl font-extrabold">{ride.agreed_price} F CFA</p>
-        <p className="text-sm opacity-80 mt-1">{dateStr} à {timeStr}</p>
+        <p className="text-3xl font-extrabold">{ride.agreed_price} {t('common.fcfa', 'F CFA')}</p>
+        <p className="text-sm opacity-80 mt-1">{dateStr} {t('receipt.at', 'à')} {timeStr}</p>
       </div>
 
       {/* Trajet */}
@@ -63,11 +65,11 @@ export default function RideReceipt({ ride, onClose, showActions = true }) {
           </div>
           <div className="flex-1 space-y-3">
             <div>
-              <p className="text-xs text-gray-400">Départ</p>
+              <p className="text-xs text-gray-400">{t('receipt.departure', 'Départ')}</p>
               <p className="text-sm font-medium text-gray-800 line-clamp-1">{ride.pickup_address || 'Position GPS'}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-400">Arrivée</p>
+              <p className="text-xs text-gray-400">{t('receipt.arrival', 'Arrivée')}</p>
               <p className="text-sm font-medium text-gray-800 line-clamp-1">{ride.dropoff_address || '—'}</p>
             </div>
           </div>
@@ -90,25 +92,25 @@ export default function RideReceipt({ ride, onClose, showActions = true }) {
         )}
         <div className="flex items-center gap-1.5 text-xs text-gray-500">
           <Car size={14} />
-          <span>{ride.vehicle_type === 'moto' ? 'Moto-taxi' : 'Voiture'}</span>
+          <span>{ride.vehicle_type === 'moto' ? t('passenger.motoTaxi', 'Moto-taxi') : t('passenger.car', 'Voiture')}</span>
         </div>
       </div>
 
       {/* Détails prix */}
       <div className="px-6 py-4 space-y-2 border-b border-gray-100">
         <div className="flex justify-between text-sm">
-          <span className="text-gray-500">Prix convenu</span>
+          <span className="text-gray-500">{t('receipt.agreedPrice', 'Prix convenu')}</span>
           <span className="font-medium">{ride.agreed_price} F</span>
         </div>
         {ride.cancellation_fee > 0 && (
           <div className="flex justify-between text-sm">
-            <span className="text-gray-500">Frais d'annulation</span>
+            <span className="text-gray-500">{t('receipt.cancellationFee', "Frais d'annulation")}</span>
             <span className="font-medium text-red-600">{ride.cancellation_fee} F</span>
           </div>
         )}
         <div className="flex justify-between text-sm pt-2 border-t border-dashed border-gray-200">
-          <span className="font-bold text-gray-800">Total payé</span>
-          <span className="font-bold text-brand-600">{ride.agreed_price} F CFA</span>
+          <span className="font-bold text-gray-800">{t('receipt.totalPaid', 'Total payé')}</span>
+          <span className="font-bold text-brand-600">{ride.agreed_price} {t('common.fcfa', 'F CFA')}</span>
         </div>
       </div>
 
@@ -140,13 +142,13 @@ export default function RideReceipt({ ride, onClose, showActions = true }) {
 
       {/* Footer */}
       <div className="px-6 py-4 text-center">
-        <p className="text-[10px] text-gray-300">MoveBissau Technologies</p>
+        <p className="text-[10px] text-gray-300">{t('receipt.companyName', 'MoveBissau Technologies')}</p>
         {showActions && onClose && (
           <button
             onClick={onClose}
             className="mt-3 text-sm text-brand-500 font-medium hover:text-brand-600"
           >
-            Fermer
+            {t('common.close', 'Fermer')}
           </button>
         )}
       </div>

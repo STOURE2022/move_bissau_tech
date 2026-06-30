@@ -1,10 +1,12 @@
 import { motion } from 'framer-motion';
+import { useTranslation } from '../../i18n/useTranslation';
 
 /**
  * Graphique en barres des 7 derniers jours.
  * SVG pur — pas de librairie externe.
  */
 export default function WeeklyChart({ data, maxValue, weeklyTotal, weeklyRides }) {
+  const { t } = useTranslation();
   const barWidth = 28;
   const gap = 8;
   const chartHeight = 120;
@@ -14,12 +16,12 @@ export default function WeeklyChart({ data, maxValue, weeklyTotal, weeklyRides }
     <div className="bg-white rounded-2xl shadow-soft p-5">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <p className="text-sm font-semibold text-gray-800">Cette semaine</p>
-          <p className="text-xs text-gray-400">{weeklyRides} course{weeklyRides > 1 ? 's' : ''}</p>
+          <p className="text-sm font-semibold text-gray-800">{t('driver.thisWeek', 'Cette semaine')}</p>
+          <p className="text-xs text-gray-400">{weeklyRides} {t('driver.ridesCount', 'course')}{weeklyRides > 1 ? 's' : ''}</p>
         </div>
         <div className="text-right">
           <p className="text-lg font-extrabold text-brand-600">{weeklyTotal.toLocaleString()} F</p>
-          <p className="text-[10px] text-gray-400">Total semaine</p>
+          <p className="text-[10px] text-gray-400">{t('driver.weekTotal', 'Total semaine')}</p>
         </div>
       </div>
 
@@ -95,10 +97,10 @@ export default function WeeklyChart({ data, maxValue, weeklyTotal, weeklyRides }
       {/* Légende */}
       <div className="flex items-center justify-center gap-4 mt-3 text-[10px] text-gray-400">
         <span className="flex items-center gap-1">
-          <span className="w-2.5 h-2.5 rounded bg-brand-500" /> Aujourd'hui
+          <span className="w-2.5 h-2.5 rounded bg-brand-500" /> {t('driver.today', "Aujourd'hui")}
         </span>
         <span className="flex items-center gap-1">
-          <span className="w-2.5 h-2.5 rounded bg-green-300" /> Jours précédents
+          <span className="w-2.5 h-2.5 rounded bg-green-300" /> {t('driver.previousDays', 'Jours précédents')}
         </span>
       </div>
     </div>

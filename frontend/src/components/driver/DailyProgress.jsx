@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Target, Edit3, Check, Trophy } from 'lucide-react';
+import { useTranslation } from '../../i18n/useTranslation';
 
 /**
  * Barre d'objectif journalier avec gamification.
@@ -16,6 +17,7 @@ export default function DailyProgress({
 }) {
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(String(dailyGoal));
+  const { t } = useTranslation();
 
   const saveGoal = () => {
     const val = parseInt(editValue);
@@ -43,7 +45,7 @@ export default function DailyProgress({
             <Target size={16} className="text-yellow-600" />
           </div>
           <div>
-            <p className="text-xs text-gray-400">Objectif du jour</p>
+            <p className="text-xs text-gray-400">{t('driver.dailyGoal', 'Objectif du jour')}</p>
             {editing ? (
               <div className="flex items-center gap-1">
                 <input
@@ -61,7 +63,7 @@ export default function DailyProgress({
               </div>
             ) : (
               <p className="text-sm font-bold text-gray-800">
-                {dailyGoal.toLocaleString()} F CFA
+                {dailyGoal.toLocaleString()} {t('common.fcfa', 'F CFA')}
               </p>
             )}
           </div>
@@ -104,12 +106,12 @@ export default function DailyProgress({
       {/* Montants */}
       <div className="flex items-center justify-between text-xs">
         <span className="text-gray-500">
-          <span className="font-bold text-gray-800">{todayEarnings.toLocaleString()}</span> F gagnés
+          <span className="font-bold text-gray-800">{todayEarnings.toLocaleString()}</span> F {t('driver.earned', 'gagnés')}
         </span>
         <span className="text-gray-400">
           {goalProgress >= 100
-            ? '🎉 Objectif atteint !'
-            : `Reste ${(dailyGoal - todayEarnings).toLocaleString()} F`
+            ? `🎉 ${t('driver.goalReached', 'Objectif atteint !')}`
+            : `${t('driver.remaining', 'Reste')} ${(dailyGoal - todayEarnings).toLocaleString()} F`
           }
         </span>
       </div>
@@ -130,8 +132,8 @@ export default function DailyProgress({
               <Trophy size={24} className="text-yellow-500" />
             </motion.div>
             <div className="flex-1">
-              <p className="font-bold text-yellow-800 text-sm">Bravo !</p>
-              <p className="text-xs text-yellow-600">Vous avez atteint votre objectif du jour</p>
+              <p className="font-bold text-yellow-800 text-sm">{t('driver.bravo', 'Bravo !')}</p>
+              <p className="text-xs text-yellow-600">{t('driver.goalReachedMessage', 'Vous avez atteint votre objectif du jour')}</p>
             </div>
             <button
               onClick={onDismissGoalReached}

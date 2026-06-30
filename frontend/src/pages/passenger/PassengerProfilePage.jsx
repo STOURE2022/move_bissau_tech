@@ -9,11 +9,13 @@ import { useToast } from '../../components/ui/Toast';
 import ReferralCard from '../../components/ui/ReferralCard';
 import EmergencyContacts from '../../components/ui/EmergencyContacts';
 import api from '../../api/client';
+import { useTranslation } from '../../i18n/useTranslation';
 
 export default function PassengerProfilePage() {
   const { user, logout, refreshUser } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
+  const { t } = useTranslation();
 
   const [editing, setEditing] = useState(false);
   const [firstName, setFirstName] = useState(user?.first_name || '');
@@ -29,7 +31,7 @@ export default function PassengerProfilePage() {
     try {
       await api.patch('/auth/users/me/language', { preferred_lang: lang });
       refreshUser();
-      toast.show('Langue mise à jour', 'success');
+      toast.show(t('profilePage.langUpdated', 'Langue mise à jour'), 'success');
     } catch {}
   };
 
@@ -43,9 +45,9 @@ export default function PassengerProfilePage() {
       });
       refreshUser();
       setEditing(false);
-      toast.show('Profil mis à jour', 'success');
+      toast.show(t('passenger.profileUpdated', 'Profil mis à jour'), 'success');
     } catch (e) {
-      toast.show(e.message || 'Erreur', 'error');
+      toast.show(e.message || t('common.error', 'Erreur'), 'error');
     }
     setSaving(false);
   };
@@ -63,7 +65,7 @@ export default function PassengerProfilePage() {
       });
       if (res.ok) {
         refreshUser();
-        toast.show('Photo mise à jour', 'success');
+        toast.show(t('passenger.photoUpdated', 'Photo mise à jour'), 'success');
       }
     } catch {}
   };
@@ -76,7 +78,7 @@ export default function PassengerProfilePage() {
           <button onClick={() => navigate(-1)} className="p-2 -ml-2 rounded-xl hover:bg-white/10">
             <ArrowLeft size={22} className="text-white" />
           </button>
-          <h2 className="text-lg font-bold text-white">Mon profil</h2>
+          <h2 className="text-lg font-bold text-white">{t('common.profile', 'Mon profil')}</h2>
         </div>
 
         {/* Avatar + nom */}
@@ -100,7 +102,7 @@ export default function PassengerProfilePage() {
             <h3 className="text-white text-xl font-bold">{user?.first_name} {user?.last_name}</h3>
             <p className="text-brand-200 text-sm">{user?.phone}</p>
             <span className="inline-block mt-1 px-2 py-0.5 bg-white/20 rounded-full text-xs text-white font-medium">
-              Passager
+              {t('auth.passenger', 'Passager')}
             </span>
           </div>
         </div>
@@ -116,13 +118,13 @@ export default function PassengerProfilePage() {
           className="bg-white rounded-2xl shadow-soft overflow-hidden"
         >
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-50">
-            <p className="text-sm font-semibold text-gray-800">Informations</p>
+            <p className="text-sm font-semibold text-gray-800">{t('passenger.information', 'Informations')}</p>
             {!editing ? (
               <button
                 onClick={() => setEditing(true)}
                 className="flex items-center gap-1 text-xs text-brand-500 font-semibold"
               >
-                <Edit3 size={12} /> Modifier
+                <Edit3 size={12} /> {t('profilePage.editName', 'Modifier')}
               </button>
             ) : (
               <div className="flex gap-1">
@@ -150,7 +152,7 @@ export default function PassengerProfilePage() {
                 <User size={16} className="text-gray-500" />
               </div>
               <div className="flex-1">
-                <p className="text-xs text-gray-400">Prénom</p>
+                <p className="text-xs text-gray-400">{t('auth.firstName', 'Prénom')}</p>
                 {editing ? (
                   <input
                     value={firstName}
@@ -169,7 +171,7 @@ export default function PassengerProfilePage() {
                 <User size={16} className="text-gray-500" />
               </div>
               <div className="flex-1">
-                <p className="text-xs text-gray-400">Nom</p>
+                <p className="text-xs text-gray-400">{t('auth.lastName', 'Nom')}</p>
                 {editing ? (
                   <input
                     value={lastName}
@@ -188,7 +190,7 @@ export default function PassengerProfilePage() {
                 <Phone size={16} className="text-gray-500" />
               </div>
               <div className="flex-1">
-                <p className="text-xs text-gray-400">Téléphone</p>
+                <p className="text-xs text-gray-400">{t('profilePage.phone', 'Téléphone')}</p>
                 <p className="text-sm font-medium text-gray-800">{user?.phone}</p>
               </div>
             </div>
@@ -199,7 +201,7 @@ export default function PassengerProfilePage() {
                 <Globe size={16} className="text-gray-500" />
               </div>
               <div className="flex-1">
-                <p className="text-xs text-gray-400">Langue</p>
+                <p className="text-xs text-gray-400">{t('profilePage.language', 'Langue')}</p>
                 <p className="text-sm font-medium text-gray-800">
                   {user?.preferred_lang === 'fr' ? 'Français' : user?.preferred_lang === 'pt' ? 'Português' : 'Kriol'}
                 </p>
@@ -215,7 +217,7 @@ export default function PassengerProfilePage() {
           transition={{ delay: 0.1 }}
           className="bg-white rounded-2xl shadow-soft p-4"
         >
-          <p className="text-xs text-gray-400 mb-2">Changer la langue</p>
+          <p className="text-xs text-gray-400 mb-2">{t('profilePage.changeLang', 'Changer la langue')}</p>
           <div className="flex gap-2">
             {[
               { code: 'fr', label: 'Français', flag: '🇫🇷' },
@@ -251,7 +253,7 @@ export default function PassengerProfilePage() {
           className="w-full bg-white rounded-2xl shadow-soft p-4 flex items-center gap-3 text-red-500 hover:bg-red-50 transition"
         >
           <LogOut size={20} />
-          <span className="font-semibold">Déconnexion</span>
+          <span className="font-semibold">{t('common.logout', 'Déconnexion')}</span>
         </motion.button>
 
         <div className="h-6" />

@@ -5,6 +5,7 @@ import { User, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
+import { useTranslation } from '../../i18n/useTranslation';
 
 export default function CompleteProfilePage() {
   const [firstName, setFirstName] = useState('');
@@ -13,6 +14,7 @@ export default function CompleteProfilePage() {
   const [lang, setLang] = useState('fr');
   const { completeProfile, loading, error } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const isValid = firstName.trim().length >= 2 && lastName.trim().length >= 2;
 
@@ -59,8 +61,8 @@ export default function CompleteProfilePage() {
           >
             <User size={32} className="text-brand-500" />
           </motion.div>
-          <h2 className="text-2xl font-bold">Bienvenue !</h2>
-          <p className="text-gray-500 mt-1 text-sm">Dernière étape avant de commencer</p>
+          <h2 className="text-2xl font-bold">{t('auth.welcome', 'Bienvenue !')}</h2>
+          <p className="text-gray-500 mt-1 text-sm">{t('auth.lastStep', 'Dernière étape avant de commencer')}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -68,47 +70,47 @@ export default function CompleteProfilePage() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Input
-                label="Prénom"
+                label={t('auth.firstName', 'Prénom')}
                 value={firstName}
                 onChange={e => setFirstName(e.target.value)}
-                placeholder="Prénom"
+                placeholder={t('auth.firstName', 'Prénom')}
                 autoFocus
               />
               {firstName.length > 0 && firstName.trim().length < 2 && (
-                <p className="text-xs text-red-400 mt-1 pl-1">Min. 2 caractères</p>
+                <p className="text-xs text-red-400 mt-1 pl-1">{t('auth.minChars', 'Min. 2 caractères')}</p>
               )}
             </div>
             <div>
               <Input
-                label="Nom"
+                label={t('auth.lastName', 'Nom')}
                 value={lastName}
                 onChange={e => setLastName(e.target.value)}
-                placeholder="Nom"
+                placeholder={t('auth.lastName', 'Nom')}
               />
               {lastName.length > 0 && lastName.trim().length < 2 && (
-                <p className="text-xs text-red-400 mt-1 pl-1">Min. 2 caractères</p>
+                <p className="text-xs text-red-400 mt-1 pl-1">{t('auth.minChars', 'Min. 2 caractères')}</p>
               )}
             </div>
           </div>
 
           {/* Choix du rôle */}
           <div className="pt-2">
-            <label className="text-sm font-medium text-gray-600 pl-1 block mb-2">Je suis...</label>
+            <label className="text-sm font-medium text-gray-600 pl-1 block mb-2">{t('auth.chooseRole', 'Je suis...')}</label>
             <div className="grid grid-cols-2 gap-3">
               {[
                 {
                   value: 'passenger',
-                  label: 'Passager',
-                  desc: 'Commander une course',
+                  label: t('auth.passenger', 'Passager'),
+                  desc: t('auth.passengerDesc', 'Commander une course'),
                   icon: '🧑',
-                  features: ['Choisissez votre prix', 'Payez par mobile money'],
+                  features: [t('auth.featureChoosePrice', 'Choisissez votre prix'), t('auth.featureMobilePay', 'Payez par mobile money')],
                 },
                 {
                   value: 'driver',
-                  label: 'Chauffeur',
-                  desc: 'Proposer mes services',
+                  label: t('auth.driver', 'Chauffeur'),
+                  desc: t('auth.driverDesc', 'Proposer mes services'),
                   icon: '🏍️',
-                  features: ['Recevez des demandes', 'Gérez vos revenus'],
+                  features: [t('auth.featureReceiveRequests', 'Recevez des demandes'), t('auth.featureManageRevenue', 'Gérez vos revenus')],
                 },
               ].map(opt => (
                 <motion.button
@@ -158,7 +160,7 @@ export default function CompleteProfilePage() {
 
           {/* Langue */}
           <div className="pt-1">
-            <label className="text-sm font-medium text-gray-600 pl-1 block mb-2">Langue préférée</label>
+            <label className="text-sm font-medium text-gray-600 pl-1 block mb-2">{t('auth.chooseLang', 'Langue préférée')}</label>
             <div className="flex gap-2">
               {[
                 { code: 'fr', label: 'Français', flag: '🇫🇷' },
@@ -189,7 +191,7 @@ export default function CompleteProfilePage() {
 
           <div className="pt-3">
             <Button type="submit" loading={loading} disabled={!isValid}>
-              {role === 'driver' ? '🏍️ Commencer comme chauffeur' : '🚀 Commencer'}
+              {role === 'driver' ? `🏍️ ${t('auth.startAsDriver', 'Commencer comme chauffeur')}` : `🚀 ${t('auth.startNow', 'Commencer')}`}
             </Button>
           </div>
         </form>

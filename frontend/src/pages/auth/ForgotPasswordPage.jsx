@@ -6,6 +6,7 @@ import api from '../../api/client';
 import { useAuth } from '../../hooks/useAuth';
 import { useCountryConfig } from '../../hooks/useCountryConfig';
 import Button from '../../components/ui/Button';
+import { useTranslation } from '../../i18n/useTranslation';
 
 const STEPS = ['phone', 'otp', 'newPassword'];
 
@@ -13,6 +14,7 @@ export default function ForgotPasswordPage() {
   const navigate = useNavigate();
   const country = useCountryConfig();
   const { login } = useAuth();
+  const { t } = useTranslation();
 
   const [step, setStep] = useState('phone'); // phone → otp → newPassword
   const [phone, setPhone] = useState('');
@@ -98,8 +100,8 @@ export default function ForgotPasswordPage() {
         <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', damping: 10 }}>
           <CheckCircle size={80} className="text-brand-500" />
         </motion.div>
-        <h2 className="text-2xl font-bold mt-6">Mot de passe modifié !</h2>
-        <p className="text-gray-500 mt-2 text-center">Vous pouvez maintenant vous connecter.</p>
+        <h2 className="text-2xl font-bold mt-6">{t('auth.passwordChanged', 'Mot de passe modifié !')}</h2>
+        <p className="text-gray-500 mt-2 text-center">{t('auth.canNowLogin', 'Vous pouvez maintenant vous connecter.')}</p>
       </div>
     );
   }
@@ -135,8 +137,8 @@ export default function ForgotPasswordPage() {
               <div className="w-16 h-16 bg-brand-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <Phone size={32} className="text-brand-500" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-800">Mot de passe oublié</h2>
-              <p className="text-gray-500 mt-2 text-sm">Entrez votre numéro pour recevoir un code de réinitialisation</p>
+              <h2 className="text-2xl font-bold text-gray-800">{t('auth.passwordForgot', 'Mot de passe oublié')}</h2>
+              <p className="text-gray-500 mt-2 text-sm">{t('auth.enterPhoneForReset', 'Entrez votre numéro pour recevoir un code de réinitialisation')}</p>
             </div>
 
             <div className="flex items-center gap-2 mb-5">
@@ -161,7 +163,7 @@ export default function ForgotPasswordPage() {
             )}
 
             <Button onClick={sendOtp} loading={loading} disabled={!isPhoneValid}>
-              Envoyer le code
+              {t('auth.sendCode', 'Envoyer le code')}
             </Button>
           </>
         )}
@@ -173,9 +175,9 @@ export default function ForgotPasswordPage() {
               <div className="w-16 h-16 bg-brand-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <Shield size={32} className="text-brand-500" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-800">Code de vérification</h2>
+              <h2 className="text-2xl font-bold text-gray-800">{t('auth.verificationCode', 'Code de vérification')}</h2>
               <p className="text-gray-500 mt-2 text-sm">
-                Entrez le code envoyé au <span className="font-semibold text-gray-700">{country.phone_prefix} {phone}</span>
+                {t('auth.enterCodeSentTo', 'Entrez le code envoyé au')} <span className="font-semibold text-gray-700">{country.phone_prefix} {phone}</span>
               </p>
             </div>
 
@@ -204,7 +206,7 @@ export default function ForgotPasswordPage() {
             )}
 
             <Button onClick={() => setStep('newPassword')} disabled={digits.join('').length !== 6}>
-              Continuer
+              {t('common.next', 'Continuer')}
             </Button>
           </>
         )}
@@ -216,19 +218,19 @@ export default function ForgotPasswordPage() {
               <div className="w-16 h-16 bg-brand-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <Lock size={32} className="text-brand-500" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-800">Nouveau mot de passe</h2>
-              <p className="text-gray-500 mt-2 text-sm">Choisissez un mot de passe sécurisé</p>
+              <h2 className="text-2xl font-bold text-gray-800">{t('auth.newPassword', 'Nouveau mot de passe')}</h2>
+              <p className="text-gray-500 mt-2 text-sm">{t('auth.chooseSecurePassword', 'Choisissez un mot de passe sécurisé')}</p>
             </div>
 
             <div className="space-y-4 mb-5">
               <div>
-                <label className="text-xs font-medium text-gray-500 pl-1 block mb-1">Nouveau mot de passe</label>
+                <label className="text-xs font-medium text-gray-500 pl-1 block mb-1">{t('auth.newPassword', 'Nouveau mot de passe')}</label>
                 <div className="relative">
                   <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={newPassword} onChange={e => setNewPassword(e.target.value)}
-                    placeholder="Min. 6 caractères"
+                    placeholder={t('auth.passwordMin', 'Min. 6 caractères')}
                     className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-9 pr-12 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                   />
                   <button type="button" onClick={() => setShowPassword(!showPassword)}
@@ -237,18 +239,18 @@ export default function ForgotPasswordPage() {
                   </button>
                 </div>
                 {newPassword.length > 0 && newPassword.length < 6 && (
-                  <p className="text-[11px] text-red-500 mt-1 pl-1">Minimum 6 caractères</p>
+                  <p className="text-[11px] text-red-500 mt-1 pl-1">{t('auth.passwordMin', 'Minimum 6 caractères')}</p>
                 )}
               </div>
 
               <div>
-                <label className="text-xs font-medium text-gray-500 pl-1 block mb-1">Confirmer</label>
+                <label className="text-xs font-medium text-gray-500 pl-1 block mb-1">{t('common.confirm', 'Confirmer')}</label>
                 <div className="relative">
                   <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
-                    placeholder="Retapez le mot de passe"
+                    placeholder={t('auth.retypePassword', 'Retapez le mot de passe')}
                     className={`w-full bg-gray-50 border rounded-xl pl-9 pr-10 py-3.5 text-sm focus:outline-none focus:ring-2 transition-all
                       ${confirmPassword.length > 0
                         ? isPasswordMatch ? 'border-green-300 focus:ring-green-500/20' : 'border-red-300 focus:ring-red-500/20'
@@ -273,7 +275,7 @@ export default function ForgotPasswordPage() {
             )}
 
             <Button onClick={resetPassword} loading={loading} disabled={!isPasswordValid || !isPasswordMatch}>
-              Réinitialiser le mot de passe
+              {t('auth.resetPassword', 'Réinitialiser le mot de passe')}
             </Button>
           </>
         )}

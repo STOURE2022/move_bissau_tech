@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Shield, ArrowLeft, RefreshCw } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import Button from '../../components/ui/Button';
+import { useTranslation } from '../../i18n/useTranslation';
 
 const RESEND_COOLDOWN = 60; // secondes
 
@@ -17,6 +18,7 @@ export default function OtpPage() {
   const location = useLocation();
   const phone = location.state?.phone || '';
   const { verifyOtp, loading, error, setError, requestOtp } = useAuth();
+  const { t } = useTranslation();
 
   // Focus premier input
   useEffect(() => { inputs.current[0]?.focus(); }, []);
@@ -127,9 +129,9 @@ export default function OtpPage() {
           <Shield size={32} className="text-brand-500" />
         </motion.div>
 
-        <h2 className="text-2xl font-bold text-gray-800">Vérification</h2>
+        <h2 className="text-2xl font-bold text-gray-800">{t('auth.verification', 'Vérification')}</h2>
         <p className="text-gray-500 mt-2 text-center text-sm">
-          Entrez le code à 6 chiffres envoyé au<br />
+          {t('auth.enterCodeSent', 'Entrez le code à 6 chiffres envoyé au')}<br />
           <span className="font-semibold text-gray-700">{maskedPhone}</span>
         </p>
 
@@ -179,7 +181,7 @@ export default function OtpPage() {
             loading={loading}
             disabled={digits.join('').length !== 6}
           >
-            Vérifier
+            {t('auth.verify', 'Vérifier')}
           </Button>
         </div>
 
@@ -187,7 +189,7 @@ export default function OtpPage() {
         <div className="mt-5 text-center">
           {resendCooldown > 0 ? (
             <p className="text-gray-400 text-sm">
-              Renvoyer dans <span className="font-mono font-semibold text-gray-500">{resendCooldown}s</span>
+              {t('auth.resendIn', 'Renvoyer dans')} <span className="font-mono font-semibold text-gray-500">{resendCooldown}s</span>
             </p>
           ) : (
             <motion.button
@@ -198,7 +200,7 @@ export default function OtpPage() {
               className="flex items-center gap-2 mx-auto text-brand-500 text-sm font-semibold hover:text-brand-600 transition"
             >
               <RefreshCw size={14} className={resending ? 'animate-spin' : ''} />
-              Renvoyer le code
+              {t('auth.resendCode', 'Renvoyer le code')}
             </motion.button>
           )}
         </div>
