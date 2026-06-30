@@ -368,8 +368,12 @@ export default function OffersPage() {
                     <div className="p-4">
                       {/* Chauffeur + Prix */}
                       <div className="flex items-center gap-3 mb-3">
-                        <div className="w-14 h-14 rounded-2xl bg-brand-50 flex items-center justify-center text-2xl flex-shrink-0">
-                          {offer.driver_vehicle_type === 'moto' ? '🏍️' : '🚗'}
+                        <div className="w-14 h-14 rounded-2xl bg-brand-50 flex items-center justify-center overflow-hidden flex-shrink-0">
+                          {offer.driver_avatar ? (
+                            <img src={offer.driver_avatar} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-2xl">{offer.driver_vehicle_type === 'moto' ? '🏍️' : '🚗'}</span>
+                          )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">

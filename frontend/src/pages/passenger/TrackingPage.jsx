@@ -246,8 +246,12 @@ export default function TrackingPage() {
 
         {/* Info chauffeur */}
         <div className="flex items-center gap-3 mb-5">
-          <div className="w-12 h-12 bg-brand-50 rounded-2xl flex items-center justify-center text-xl">
-            {ride.vehicle_type === 'moto' ? '🏍️' : '🚗'}
+          <div className="w-12 h-12 bg-brand-50 rounded-2xl flex items-center justify-center overflow-hidden">
+            {ride.driver_avatar ? (
+              <img src={ride.driver_avatar} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-xl">{ride.vehicle_type === 'moto' ? '🏍️' : '🚗'}</span>
+            )}
           </div>
           <div className="flex-1">
             <p className="font-semibold text-gray-800">{ride.driver_name}</p>

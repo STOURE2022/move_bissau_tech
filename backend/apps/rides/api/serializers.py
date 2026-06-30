@@ -53,20 +53,26 @@ class CancelRideSerializer(serializers.Serializer):
 class RideOfferResponseSerializer(serializers.ModelSerializer):
     """Offre reçue par le passager."""
     driver_name = serializers.SerializerMethodField()
+    driver_avatar = serializers.SerializerMethodField()
     driver_vehicle_type = serializers.SerializerMethodField()
     driver_vehicle_info = serializers.SerializerMethodField()
+    driver_total_rides = serializers.IntegerField(source='driver.total_rides', read_only=True)
 
     class Meta:
         model = RideOffer
         fields = [
             'id', 'offered_price', 'is_counter_offer',
             'driver_distance_m', 'estimated_arrival_s', 'driver_rating',
-            'driver_name', 'driver_vehicle_type', 'driver_vehicle_info',
+            'driver_name', 'driver_avatar', 'driver_vehicle_type', 'driver_vehicle_info',
+            'driver_total_rides',
             'status', 'expires_at', 'created_at',
         ]
 
     def get_driver_name(self, obj):
         return f"{obj.driver.user.first_name} {obj.driver.user.last_name[0]}."
+
+    def get_driver_avatar(self, obj):
+        return obj.driver.user.avatar_url or ''
 
     def get_driver_vehicle_type(self, obj):
         return obj.driver.vehicle_type
@@ -100,12 +106,14 @@ class RideRequestSerializer(serializers.ModelSerializer):
 class RideSerializer(serializers.ModelSerializer):
     """Détails d'une course."""
     driver_name = serializers.SerializerMethodField()
+    driver_avatar = serializers.SerializerMethodField()
     driver_phone_masked = serializers.SerializerMethodField()
     driver_rating = serializers.DecimalField(
         source='driver.average_rating', max_digits=3, decimal_places=2, read_only=True
     )
     driver_vehicle = serializers.SerializerMethodField()
     passenger_name = serializers.SerializerMethodField()
+    passenger_avatar = serializers.SerializerMethodField()
     passenger_phone = serializers.SerializerMethodField()
     pickup_lat = serializers.SerializerMethodField()
     pickup_lng = serializers.SerializerMethodField()
@@ -122,9 +130,9 @@ class RideSerializer(serializers.ModelSerializer):
             'agreed_price', 'actual_distance_m',
             'commission_amount', 'commission_rate',
             'vehicle_type', 'status',
-            'driver_name', 'driver_phone_masked', 'driver_rating', 'driver_vehicle',
+            'driver_name', 'driver_avatar', 'driver_phone_masked', 'driver_rating', 'driver_vehicle',
             'driver_lat', 'driver_lng',
-            'passenger_name', 'passenger_phone',
+            'passenger_name', 'passenger_avatar', 'passenger_phone',
             'driver_assigned_at', 'driver_en_route_at', 'driver_arrived_at',
             'passenger_onboard_at', 'completed_at', 'paid_at',
             'cancelled_at', 'cancelled_by', 'cancellation_fee',
@@ -154,6 +162,12 @@ class RideSerializer(serializers.ModelSerializer):
 
     def get_driver_name(self, obj):
         return f"{obj.driver.user.first_name} {obj.driver.user.last_name[0]}."
+
+    def get_driver_avatar(self, obj):
+        return obj.driver.user.avatar_url or ''
+
+    def get_passenger_avatar(self, obj):
+        return obj.passenger.avatar_url or ''
 
     def get_driver_phone_masked(self, obj):
         """Masque le numéro sauf pendant la course active."""

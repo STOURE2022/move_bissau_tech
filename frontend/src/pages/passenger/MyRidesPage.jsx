@@ -182,8 +182,12 @@ export default function MyRidesPage() {
                   <div className="p-4">
                     {/* Chauffeur */}
                     <div className="flex items-center gap-3 mb-3">
-                      <div className="w-11 h-11 bg-brand-50 rounded-2xl flex items-center justify-center text-xl">
-                        {ride.vehicle_type === 'moto' ? '🏍️' : '🚗'}
+                      <div className="w-11 h-11 bg-brand-50 rounded-2xl flex items-center justify-center overflow-hidden">
+                        {ride.driver_avatar ? (
+                          <img src={ride.driver_avatar} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-xl">{ride.vehicle_type === 'moto' ? '🏍️' : '🚗'}</span>
+                        )}
                       </div>
                       <div className="flex-1">
                         <p className="font-bold text-gray-800 text-sm">{ride.driver_name}</p>
