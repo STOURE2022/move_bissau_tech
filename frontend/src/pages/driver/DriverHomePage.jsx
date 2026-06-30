@@ -85,7 +85,7 @@ export default function DriverHomePage() {
       pollRef.current = setInterval(() => {
         pollNearbyRequests();
         pollOfferStatuses();
-      }, 5000);
+      }, 3000);
     } else {
       closeWebSockets();
       clearInterval(pollRef.current);
