@@ -116,38 +116,6 @@ export default function RatePage() {
             {score === 5 ? t('rating.excellent') : score >= 4 ? t('rating.veryGood') : score >= 3 ? t('rating.good') : score >= 2 ? t('rating.bad') : t('rating.terrible')}
           </p>
 
-          {/* Pourboire (passager uniquement) */}
-          {!isDriver && (
-            <div className="mb-5">
-              <div className="flex items-center justify-center gap-1.5 mb-3">
-                <Heart size={14} className="text-pink-500" />
-                <p className="text-sm font-semibold text-gray-600">{t('rating.tip')}</p>
-              </div>
-              <div className="flex justify-center gap-2">
-                {TIP_AMOUNTS.map(amount => (
-                  <motion.button
-                    key={amount}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => { setTip(amount); navigator.vibrate?.(10); }}
-                    className={`px-4 py-2.5 rounded-2xl text-sm font-bold transition-all ${
-                      tip === amount
-                        ? amount === 0
-                          ? 'bg-gray-200 text-gray-700'
-                          : 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-sm'
-                        : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
-                    }`}
-                  >
-                    {amount === 0 ? t('common.no') : `${amount} F`}
-                  </motion.button>
-                ))}
-              </div>
-              {tip > 0 && (
-                <p className="text-xs text-pink-500 text-center mt-2">
-                  {t('rating.tipThanks')} 💕
-                </p>
-              )}
-            </div>
-          )}
 
           {/* Commentaire */}
           <textarea
