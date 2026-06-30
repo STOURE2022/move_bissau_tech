@@ -283,7 +283,7 @@ export default function HomePage() {
                 {/* Stats rapides */}
                 <div className="flex gap-2 mb-4">
                   <div className="flex-1 bg-gray-50 rounded-xl px-3 py-2.5 text-center">
-                    <p className="text-xs text-gray-400">Distance</p>
+                    <p className="text-xs text-gray-400">{t('request.distance')}</p>
                     <p className="font-bold text-gray-800 text-sm">
                       {selectedDriver.distance_m < 1000
                         ? `${selectedDriver.distance_m} m`
@@ -292,14 +292,14 @@ export default function HomePage() {
                     </p>
                   </div>
                   <div className="flex-1 bg-gray-50 rounded-xl px-3 py-2.5 text-center">
-                    <p className="text-xs text-gray-400">Véhicule</p>
+                    <p className="text-xs text-gray-400">{t('driver.vehicleInfo', 'Véhicule')}</p>
                     <p className="font-bold text-gray-800 text-sm">
                       {selectedDriver.vehicle_type === 'moto' ? 'Moto' : '{t('passenger.car')}'}
                     </p>
                   </div>
                   {selectedDriver.vehicle && (
                     <div className="flex-1 bg-gray-50 rounded-xl px-3 py-2.5 text-center">
-                      <p className="text-xs text-gray-400">Modèle</p>
+                      <p className="text-xs text-gray-400">{t('driver.model')}</p>
                       <p className="font-bold text-gray-800 text-sm truncate">
                         {selectedDriver.vehicle.brand || selectedDriver.vehicle.model || '—'}
                       </p>
