@@ -71,7 +71,7 @@ export default function RidesPage() {
                   </td>
                   <td className="px-4 py-3 font-medium">{r.agreed_price} F</td>
                   <td className="px-4 py-3 text-sm text-primary font-medium">{r.commission_amount || '-'} F</td>
-                  <td className="px-4 py-3 text-sm">{r.vehicle_type === 'moto' ? '🏍️' : '🚗'}</td>
+                  <td className="px-4 py-3 text-sm">{(r.driver_vehicle?.type || r.vehicle_type) === 'car' ? '🚗' : '🏍️'}</td>
                   <td className="px-4 py-3"><StatusBadge status={r.status} /></td>
                   <td className="px-4 py-3 text-xs text-gray-500">
                     {new Date(r.created_at).toLocaleDateString('fr')}
