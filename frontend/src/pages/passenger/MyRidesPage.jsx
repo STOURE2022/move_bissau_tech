@@ -4,24 +4,26 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MapPin, ChevronRight, Loader2, Navigation, X } from 'lucide-react';
 import api from '../../api/client';
 import { useToast } from '../../components/ui/Toast';
-
-const STATUS_CONFIG = {
-  pending:           { text: 'En attente',       color: 'bg-amber-500',  emoji: '⏳' },
-  offers_received:   { text: 'Offres reçues',    color: 'bg-blue-500',   emoji: '💬' },
-  driver_assigned:   { text: 'Chauffeur trouvé', color: 'bg-brand-500',  emoji: '🚀' },
-  driver_en_route:   { text: 'En route',         color: 'bg-brand-500',  emoji: '🏍️' },
-  driver_arrived:    { text: 'Arrivé',           color: 'bg-green-500',  emoji: '📍' },
-  passenger_onboard: { text: 'En course',        color: 'bg-green-500',  emoji: '🛣️' },
-  completed:         { text: 'À payer',          color: 'bg-orange-500', emoji: '💰' },
-};
+import { useTranslation } from '../../i18n/useTranslation';
 
 export default function MyRidesPage() {
   const navigate = useNavigate();
   const toast = useToast();
+  const { t } = useTranslation();
   const [activeRequest, setActiveRequest] = useState(null);
   const [activeRides, setActiveRides] = useState([]);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(null);
+
+  const STATUS_CONFIG = {
+    pending:           { text: t('status.pending'),          color: 'bg-amber-500',  emoji: '⏳' },
+    offers_received:   { text: t('status.offers_received'),  color: 'bg-blue-500',   emoji: '💬' },
+    driver_assigned:   { text: t('status.driver_assigned'),  color: 'bg-brand-500',  emoji: '🚀' },
+    driver_en_route:   { text: t('status.driver_en_route'),  color: 'bg-brand-500',  emoji: '🏍️' },
+    driver_arrived:    { text: t('status.driver_arrived'),   color: 'bg-green-500',  emoji: '📍' },
+    passenger_onboard: { text: t('status.passenger_onboard'),color: 'bg-green-500',  emoji: '🛣️' },
+    completed:         { text: t('tracking.pay'),            color: 'bg-orange-500', emoji: '💰' },
+  };
 
   useEffect(() => {
     loadData();
@@ -47,19 +49,19 @@ export default function MyRidesPage() {
     try {
       await api.post(`/rides/requests/${id}/cancel`);
       setActiveRequest(null);
-      toast.show('Demande annulée', 'success');
-    } catch (e) { toast.show(e.message || 'Erreur', 'error'); }
+      toast.show(t('request.requestCancelled'), 'success');
+    } catch (e) { toast.show(e.message || t('common.error'), 'error'); }
     setCancelling(null);
   };
 
   const cancelRide = async (id) => {
-    if (!confirm('Annuler la course ? Des frais peuvent s\'appliquer.')) return;
+    if (!confirm(t('tracking.cancelMessage'))) return;
     setCancelling(id);
     try {
-      await api.post(`/rides/${id}/cancel`, { reason: 'Annulé par le passager' });
+      await api.post(`/rides/${id}/cancel`, { reason: t('tracking.cancelConfirm') });
       loadData();
-      toast.show('Course annulée', 'success');
-    } catch (e) { toast.show(e.message || 'Erreur', 'error'); }
+      toast.show(t('myRides.rideCancelled'), 'success');
+    } catch (e) { toast.show(e.message || t('common.error'), 'error'); }
     setCancelling(null);
   };
 
@@ -69,8 +71,8 @@ export default function MyRidesPage() {
     <div className="min-h-[100dvh] bg-gray-50 pb-24">
       {/* Header */}
       <div className="bg-gradient-to-r from-brand-500 to-emerald-500 px-5 pt-8 pb-6">
-        <h1 className="text-white text-xl font-bold">Mes courses</h1>
-        <p className="text-white/70 text-xs mt-0.5">Gérez vos trajets en temps réel</p>
+        <h1 className="text-white text-xl font-bold">{t('myRides.title')}</h1>
+        <p className="text-white/70 text-xs mt-0.5">{t('myRides.subtitle')}</p>
       </div>
 
       <div className="px-4 -mt-3">
@@ -88,14 +90,14 @@ export default function MyRidesPage() {
             <div className="w-20 h-20 bg-brand-50 rounded-full mx-auto flex items-center justify-center mb-5">
               <Navigation size={32} className="text-brand-400" />
             </div>
-            <h3 className="font-bold text-gray-800 text-lg">Aucune course active</h3>
-            <p className="text-gray-400 text-sm mt-1 mb-6">Commandez un trajet pour commencer</p>
+            <h3 className="font-bold text-gray-800 text-lg">{t('myRides.noActiveRide')}</h3>
+            <p className="text-gray-400 text-sm mt-1 mb-6">{t('myRides.orderRide')}</p>
             <motion.button
               whileTap={{ scale: 0.97 }}
               onClick={() => navigate('/')}
               className="bg-gradient-to-r from-brand-500 to-emerald-500 text-white font-bold px-8 py-3.5 rounded-2xl shadow-sm mx-auto"
             >
-              Commander un trajet
+              {t('myRides.orderRide')}
             </motion.button>
           </motion.div>
         ) : (
@@ -129,7 +131,7 @@ export default function MyRidesPage() {
                         <div className="w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-red-100" />
                       </div>
                       <div className="flex-1 space-y-2">
-                        <p className="text-sm font-medium text-gray-800 line-clamp-1">{activeRequest.pickup_address || 'Ma position'}</p>
+                        <p className="text-sm font-medium text-gray-800 line-clamp-1">{activeRequest.pickup_address || t('request.myPosition')}</p>
                         <p className="text-sm font-medium text-gray-800 line-clamp-1">{activeRequest.dropoff_address}</p>
                       </div>
                     </div>
@@ -141,7 +143,7 @@ export default function MyRidesPage() {
                         onClick={() => navigate(`/offers/${activeRequest.id}`)}
                         className="flex-1 bg-gradient-to-r from-brand-500 to-emerald-500 text-white font-bold py-3 rounded-2xl text-sm flex items-center justify-center gap-1.5 shadow-sm"
                       >
-                        {activeRequest.status === 'offers_received' ? 'Voir les offres' : 'Suivre'}
+                        {activeRequest.status === 'offers_received' ? t('request.seeOffers') : t('myRides.follow')}
                         <ChevronRight size={14} />
                       </motion.button>
                       <motion.button
@@ -219,7 +221,7 @@ export default function MyRidesPage() {
                         }}
                         className="flex-1 bg-gradient-to-r from-brand-500 to-emerald-500 text-white font-bold py-3 rounded-2xl text-sm flex items-center justify-center gap-1.5 shadow-sm"
                       >
-                        {ride.status === 'completed' ? '💰 Payer' : '📍 Suivre le trajet'}
+                        {ride.status === 'completed' ? `💰 ${t('tracking.pay')}` : `📍 ${t('myRides.trackRide')}`}
                       </motion.button>
                       {canCancel && (
                         <motion.button

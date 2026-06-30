@@ -14,10 +14,12 @@ import Button from '../../components/ui/Button';
 import DriverNav from '../../components/layout/DriverNav';
 import DailyProgress from '../../components/driver/DailyProgress';
 import NotifBell from '../../components/driver/NotifBell';
+import { useTranslation } from '../../i18n/useTranslation';
 
 export default function DriverHomePage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [isOnline, setIsOnline] = useState(false);
   const [profile, setProfile] = useState(null);
   const [credit, setCredit] = useState(null);
@@ -30,7 +32,7 @@ export default function DriverHomePage() {
   const [showCounter, setShowCounter] = useState({});
   const [sendingOffer, setSendingOffer] = useState(null);
   const [sentOffers, setSentOffers] = useState(new Set());
-  const seenRequestsRef = useRef(new Set()); // IDs déjà vus (pour ne pas re-sonner)
+  const seenRequestsRef = useRef(new Set());
 
   // WebSocket refs
   const requestsWsRef = useRef(null);
@@ -46,7 +48,6 @@ export default function DriverHomePage() {
     checkActiveRide();
   }, []);
 
-  // Polling pour détecter une course active (toujours actif, pas seulement quand en ligne)
   const activeRideRef = useRef(null);
   useEffect(() => {
     activeRideRef.current = setInterval(checkActiveRide, 3000);
@@ -58,8 +59,6 @@ export default function DriverHomePage() {
       const data = await api.get('/rides/history?status=active');
       if (data?.results?.length > 0) {
         const ride = data.results[0];
-        // Vérifier que c'est bien une course où on est le chauffeur
-        // (pas une course en tant que passager pour les admins)
         console.log('[Driver] Active ride detected:', ride.id, ride.status);
         navigate(`/driver/ride/${ride.id}`);
       }
@@ -68,22 +67,18 @@ export default function DriverHomePage() {
     }
   };
 
-  // Nettoyage WebSocket au démontage
   useEffect(() => {
     return () => {
       closeWebSockets();
     };
   }, []);
 
-  // Gestion WebSocket selon état en ligne
-  // Polling REST des demandes (fallback quand WebSocket non dispo)
   const pollRef = useRef(null);
 
   useEffect(() => {
     if (isOnline) {
       connectRequestsWs();
       connectLocationWs();
-      // Polling REST toutes les 5s en parallèle (fallback)
       pollNearbyRequests();
       pollRef.current = setInterval(pollNearbyRequests, 5000);
     } else {
@@ -106,7 +101,6 @@ export default function DriverHomePage() {
             .filter(r => !existingIds.has(r.id) && !sentOffers.has(r.id))
             .map(r => ({ ...r, _shownAt: r._shownAt || Date.now() }));
           if (newRequests.length === 0) return prev;
-          // Son + notification uniquement pour les VRAIS nouveaux (jamais vus)
           newRequests.forEach(r => {
             if (!seenRequestsRef.current.has(r.id)) {
               seenRequestsRef.current.add(r.id);
@@ -122,7 +116,6 @@ export default function DriverHomePage() {
     } catch {}
   };
 
-  // Countdown : retirer les demandes expirées ou > 60s d'affichage
   useEffect(() => {
     if (rideRequests.length === 0) return;
     const interval = setInterval(() => {
@@ -133,7 +126,6 @@ export default function DriverHomePage() {
           if (r._shownAt && (now - r._shownAt) > 60000) return false;
           return true;
         });
-        // Si des demandes ont été retirées, stopper le son
         if (filtered.length < prev.length) stopSound();
         return filtered;
       });
@@ -153,7 +145,6 @@ export default function DriverHomePage() {
     try { setCredit(await api.get('/commissions/balance')); } catch {}
   };
 
-  // Envoi GPS via REST (fallback quand WebSocket non dispo)
   const geoRestRef = useRef(null);
 
   useEffect(() => {
@@ -195,14 +186,13 @@ export default function DriverHomePage() {
   const toggleOnline = async () => {
     setToggling(true); setError('');
     try {
-      if (!isOnline) await requestPermission(); // Demander permission notif quand le chauffeur passe en ligne
+      if (!isOnline) await requestPermission();
       await api.post(isOnline ? '/drivers/go-offline' : '/drivers/go-online');
       setIsOnline(!isOnline);
     } catch (e) { setError(e.message); }
     setToggling(false);
   };
 
-  // === WebSocket : Demandes de course ===
   const connectRequestsWs = useCallback(() => {
     if (requestsWsRef.current) return;
     const token = localStorage.getItem('mb_access');
@@ -222,7 +212,6 @@ export default function DriverHomePage() {
             return [data.ride_request, ...prev];
           });
         }
-        // Quand une offre est acceptée, rediriger vers la course
         if (data.type === 'ride_status_changed' && data.ride) {
           navigate(`/driver/ride/${data.ride.id}`);
         }
@@ -231,7 +220,6 @@ export default function DriverHomePage() {
 
     ws.onclose = () => {
       requestsWsRef.current = null;
-      // Reconnexion auto après 3s si toujours en ligne
       setTimeout(() => {
         if (isOnline && !requestsWsRef.current) connectRequestsWs();
       }, 3000);
@@ -240,7 +228,6 @@ export default function DriverHomePage() {
     requestsWsRef.current = ws;
   }, [isOnline, navigate]);
 
-  // === WebSocket : Envoi GPS ===
   const connectLocationWs = useCallback(() => {
     if (locationWsRef.current) return;
     const token = localStorage.getItem('mb_access');
@@ -251,7 +238,6 @@ export default function DriverHomePage() {
 
     ws.onopen = () => {
       console.log('[WS] Location connected');
-      // Démarrer le tracking GPS
       if (navigator.geolocation) {
         geoWatchRef.current = navigator.geolocation.watchPosition(
           (pos) => {
@@ -286,7 +272,7 @@ export default function DriverHomePage() {
 
   const closeWebSockets = () => {
     if (requestsWsRef.current) {
-      requestsWsRef.current.onclose = null; // Éviter la reconnexion auto
+      requestsWsRef.current.onclose = null;
       requestsWsRef.current.close();
       requestsWsRef.current = null;
     }
@@ -303,7 +289,7 @@ export default function DriverHomePage() {
 
   // === Envoyer une offre ===
   const sendOffer = async (requestId, price) => {
-    stopSound(); // Arrêter le son immédiatement
+    stopSound();
     setSendingOffer(requestId);
     try {
       await api.post('/rides/offers', {
@@ -314,19 +300,15 @@ export default function DriverHomePage() {
       setShowCounter(prev => ({ ...prev, [requestId]: false }));
       setTimeout(checkActiveRide, 2000);
     } catch (e) {
-      // La demande a été annulée ou a expiré → retirer de la liste
       setRideRequests(prev => prev.filter(r => r.id !== requestId));
-      // Message clair au chauffeur
       const msg = e.message || '';
       if (msg.includes('introuvable') || msg.includes('expirée')) {
-        // Toast ou feedback visuel au lieu d'un alert moche
         if (typeof window !== 'undefined') {
-          // Créer un toast temporaire
-          const toast = document.createElement('div');
-          toast.className = 'fixed top-4 left-4 right-4 z-[200] bg-amber-500 text-white px-4 py-3 rounded-2xl shadow-lg text-center text-sm font-semibold';
-          toast.textContent = '⚠️ Le passager a annulé cette demande';
-          document.body.appendChild(toast);
-          setTimeout(() => toast.remove(), 3000);
+          const toastEl = document.createElement('div');
+          toastEl.className = 'fixed top-4 left-4 right-4 z-[200] bg-amber-500 text-white px-4 py-3 rounded-2xl shadow-lg text-center text-sm font-semibold';
+          toastEl.textContent = `⚠️ ${t('driver.passengerCancelled')}`;
+          document.body.appendChild(toastEl);
+          setTimeout(() => toastEl.remove(), 3000);
         }
       } else {
         alert(e.message);
@@ -335,7 +317,6 @@ export default function DriverHomePage() {
     setSendingOffer(null);
   };
 
-  // Helper : temps restant pour le chauffeur (max 60s)
   const getDriverTimeLeft = (req) => {
     if (!req._shownAt) return '60s';
     const elapsed = Math.floor((Date.now() - req._shownAt) / 1000);
@@ -355,7 +336,7 @@ export default function DriverHomePage() {
         <div className="px-5 pt-6 pb-4">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="text-white/60 text-xs font-medium">Bonjour</p>
+              <p className="text-white/60 text-xs font-medium">{t('greeting.morning')}</p>
               <h1 className="text-white text-xl font-bold">{user?.first_name} 👋</h1>
             </div>
             <div className="flex items-center gap-2">
@@ -368,7 +349,7 @@ export default function DriverHomePage() {
                 <Wallet size={16} className="text-gold" />
                 <div className="text-left">
                   <p className="text-white text-sm font-bold">{credit?.balance || 0} F</p>
-                  <p className="text-white/50 text-[9px]">Crédit</p>
+                  <p className="text-white/50 text-[9px]">{t('driver.credit')}</p>
                 </div>
               </motion.button>
             </div>
@@ -381,10 +362,10 @@ export default function DriverHomePage() {
               className="flex items-center justify-center gap-2 mb-3 bg-white/10 rounded-xl py-2"
             >
               <Timer size={14} className="text-green-300" />
-              <span className="text-white/80 text-xs">En ligne depuis</span>
+              <span className="text-white/80 text-xs">{t('driver.onlineSince')}</span>
               <span className="text-white font-mono font-bold text-sm">{stats.onlineTimer}</span>
               {!gpsOk && (
-                <span className="text-yellow-300 text-[10px] ml-2">⚠ GPS en attente</span>
+                <span className="text-yellow-300 text-[10px] ml-2">⚠ {t('passenger.gpsWaiting')}</span>
               )}
             </motion.div>
           )}
@@ -408,14 +389,14 @@ export default function DriverHomePage() {
                   <>
                     <Power size={26} className="text-white" />
                     <span className="text-white text-[9px] font-bold mt-1 tracking-wider">
-                      {isOnline ? 'EN LIGNE' : 'HORS LIGNE'}
+                      {isOnline ? t('driver.online') : t('driver.offline')}
                     </span>
                   </>
                 )}
               </div>
             </motion.button>
             <p className="text-white/50 text-xs mt-3">
-              {isOnline ? 'Vous recevez des demandes' : 'Appuyez pour recevoir des courses'}
+              {isOnline ? t('driver.receivingRequests') : t('driver.goOnline')}
             </p>
           </div>
         </div>
@@ -433,7 +414,7 @@ export default function DriverHomePage() {
               >
                 {stats.todayEarnings.toLocaleString()} F
               </motion.p>
-              <p className="text-white/40 text-[10px]">Gains du jour</p>
+              <p className="text-white/40 text-[10px]">{t('driver.earnings')}</p>
             </motion.div>
 
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
@@ -442,7 +423,7 @@ export default function DriverHomePage() {
             >
               <Car size={16} className="mx-auto text-blue-400" />
               <p className="text-white font-bold text-lg mt-1">{stats.todayCount}</p>
-              <p className="text-white/40 text-[10px]">Courses</p>
+              <p className="text-white/40 text-[10px]">{t('driver.ridesCount')}</p>
             </motion.div>
 
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
@@ -453,7 +434,7 @@ export default function DriverHomePage() {
               <p className="text-white font-bold text-lg mt-1">
                 {profile ? Number(profile.average_rating).toFixed(1) : '—'}
               </p>
-              <p className="text-white/40 text-[10px]">Note</p>
+              <p className="text-white/40 text-[10px]">{t('driver.ratingLabel')}</p>
             </motion.div>
           </div>
         </div>
@@ -480,10 +461,10 @@ export default function DriverHomePage() {
               <AlertCircle size={20} className="text-yellow-600" />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-semibold text-yellow-800">Crédit insuffisant</p>
-              <p className="text-xs text-yellow-600">Rechargez pour recevoir des courses</p>
+              <p className="text-sm font-semibold text-yellow-800">{t('driver.credit')}</p>
+              <p className="text-xs text-yellow-600">{t('driver.recharge')}</p>
             </div>
-            <Button size="sm" variant="gold" onClick={() => navigate('/driver/credit')}>Recharger</Button>
+            <Button size="sm" variant="gold" onClick={() => navigate('/driver/credit')}>{t('driver.recharge')}</Button>
           </motion.div>
         )}
 
@@ -497,7 +478,7 @@ export default function DriverHomePage() {
         {isOnline && (
           <div>
             <h3 className="font-semibold text-gray-800 mb-3">
-              Demandes en cours
+              {t('driver.pendingRequests')}
               {rideRequests.length > 0 && (
                 <span className="ml-2 bg-brand-500 text-white text-xs px-2 py-0.5 rounded-full">
                   {rideRequests.length}
@@ -506,18 +487,16 @@ export default function DriverHomePage() {
             </h3>
 
             {rideRequests.length === 0 ? (
-              /* Spinner quand aucune demande */
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                 className="bg-white rounded-2xl p-10 shadow-soft text-center"
               >
                 <motion.div animate={{ rotate: 360 }} transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
                   className="w-14 h-14 border-2 border-brand-200 border-t-brand-500 rounded-full mx-auto"
                 />
-                <p className="text-gray-700 font-medium mt-5">En recherche de courses...</p>
-                <p className="text-gray-400 text-sm mt-1">Les demandes proches apparaîtront ici</p>
+                <p className="text-gray-700 font-medium mt-5">{t('driver.searchingRides')}</p>
+                <p className="text-gray-400 text-sm mt-1">{t('driver.nearbyRequests')}</p>
               </motion.div>
             ) : (
-              /* Liste des demandes */
               <AnimatePresence>
                 <div className="space-y-3">
                   {rideRequests.map((req) => {
@@ -559,13 +538,13 @@ export default function DriverHomePage() {
                               <div className="flex items-center gap-2 mt-0.5">
                                 <span className="text-xs text-gray-400">
                                   {req.distance_to_pickup_m
-                                    ? `${(req.distance_to_pickup_m / 1000).toFixed(1)} km de vous`
+                                    ? `${(req.distance_to_pickup_m / 1000).toFixed(1)} km ${t('driver.fromYou')}`
                                     : `${((req.estimated_distance_m || 0) / 1000).toFixed(1)} km`
                                   }
                                 </span>
                                 {req.luggage_type && req.luggage_type !== 'none' && (
                                   <span className="text-xs bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded-full font-medium">
-                                    {{ small: '🎒 Sac', suitcase: '🧳 Valise', large: '📦 Gros' }[req.luggage_type]}
+                                    {{ small: `🎒 ${t('request.luggage.small')}`, suitcase: `🧳 ${t('request.luggage.suitcase')}`, large: `📦 ${t('request.luggage.large')}` }[req.luggage_type]}
                                   </span>
                                 )}
                               </div>
@@ -573,7 +552,7 @@ export default function DriverHomePage() {
                           </div>
                           <div className="text-right">
                             <p className="text-2xl font-black text-brand-600">{req.proposed_price}</p>
-                            <p className="text-[10px] text-gray-400 font-medium">F CFA</p>
+                            <p className="text-[10px] text-gray-400 font-medium">{t('common.fcfa')}</p>
                           </div>
                         </div>
 
@@ -586,7 +565,7 @@ export default function DriverHomePage() {
                               <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
                             </div>
                             <div className="flex-1 space-y-2">
-                              <p className="text-sm text-gray-700 line-clamp-1">{req.pickup_address || 'Position du passager'}</p>
+                              <p className="text-sm text-gray-700 line-clamp-1">{req.pickup_address || t('request.myPosition')}</p>
                               <p className="text-sm text-gray-700 line-clamp-1">{req.dropoff_address}</p>
                             </div>
                           </div>
@@ -602,7 +581,7 @@ export default function DriverHomePage() {
                           </div>
                           {req.suggested_price !== req.proposed_price && (
                             <span className="text-[10px] text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full">
-                              Prix suggéré : {req.suggested_price} F
+                              {t('driver.suggestedPrice')} : {req.suggested_price} F
                             </span>
                           )}
                         </div>
@@ -616,7 +595,7 @@ export default function DriverHomePage() {
                               className="flex items-center justify-center gap-2 py-3 bg-green-50 rounded-2xl"
                             >
                               <CheckCircle size={18} className="text-green-600" />
-                              <span className="text-sm font-bold text-green-700">Offre envoyée — en attente</span>
+                              <span className="text-sm font-bold text-green-700">{t('driver.offerSent')}</span>
                             </motion.div>
                           ) : (
                             <div className="space-y-2">
@@ -633,7 +612,7 @@ export default function DriverHomePage() {
                                 ) : (
                                   <>
                                     <Send size={16} />
-                                    Accepter — {req.proposed_price} F
+                                    {t('driver.acceptPrice')} — {req.proposed_price} F
                                   </>
                                 )}
                               </motion.button>
@@ -649,7 +628,7 @@ export default function DriverHomePage() {
                                 }`}
                               >
                                 <TrendingUp size={14} />
-                                {isCounterOpen ? 'Fermer' : 'Proposer un autre prix'}
+                                {isCounterOpen ? t('common.close') : t('driver.proposeOtherPrice')}
                               </motion.button>
 
                               {/* Contre-offre input */}
@@ -665,7 +644,7 @@ export default function DriverHomePage() {
                                       <div className="flex-1 relative">
                                         <input
                                           type="number"
-                                          placeholder="Votre prix"
+                                          placeholder={t('driver.yourPrice')}
                                           value={counterPrices[req.id] || ''}
                                           onChange={e => setCounterPrices(p => ({ ...p, [req.id]: e.target.value }))}
                                           className="w-full px-4 py-3 border-2 border-gray-200 rounded-2xl text-center font-bold text-xl
@@ -678,12 +657,12 @@ export default function DriverHomePage() {
                                         disabled={isSending}
                                         onClick={() => {
                                           const price = parseInt(counterPrices[req.id]);
-                                          if (!price || price < 100) return alert('Prix invalide');
+                                          if (!price || price < 100) return alert(t('driver.priceInvalid'));
                                           sendOffer(req.id, price);
                                         }}
                                         className="bg-brand-500 text-white font-bold px-5 py-3 rounded-2xl hover:bg-brand-600 transition disabled:opacity-50"
                                       >
-                                        {isSending ? '...' : 'Envoyer'}
+                                        {isSending ? '...' : t('common.send')}
                                       </motion.button>
                                     </div>
                                   </motion.div>
@@ -706,11 +685,11 @@ export default function DriverHomePage() {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
             className="space-y-3 pt-1"
           >
-            <h3 className="font-semibold text-gray-800">Raccourcis</h3>
+            <h3 className="font-semibold text-gray-800">{t('common.home')}</h3>
             {[
-              { icon: Wallet, label: 'Recharger mon crédit', desc: `Solde : ${credit?.balance || 0} F CFA`, to: '/driver/credit', color: 'bg-blue-50 text-blue-600' },
-              { icon: Clock, label: 'Voir mon historique', desc: `${stats.weeklyRides} courses cette semaine`, to: '/driver/history', color: 'bg-purple-50 text-purple-600' },
-              { icon: Star, label: 'Mon profil', desc: `Note : ${profile ? Number(profile.average_rating).toFixed(1) : '—'}/5`, to: '/driver/profile', color: 'bg-yellow-50 text-yellow-600' },
+              { icon: Wallet, label: t('driver.recharge'), desc: `${t('driver.currentBalance')} : ${credit?.balance || 0} ${t('common.fcfa')}`, to: '/driver/credit', color: 'bg-blue-50 text-blue-600' },
+              { icon: Clock, label: t('common.history'), desc: `${stats.weeklyRides} ${t('driver.ridesCount')}`, to: '/driver/history', color: 'bg-purple-50 text-purple-600' },
+              { icon: Star, label: t('common.profile'), desc: `${t('driver.ratingLabel')} : ${profile ? Number(profile.average_rating).toFixed(1) : '—'}/5`, to: '/driver/profile', color: 'bg-yellow-50 text-yellow-600' },
             ].map((item, i) => (
               <motion.button key={item.to} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.4 + i * 0.1 }}

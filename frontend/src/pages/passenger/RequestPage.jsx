@@ -9,6 +9,7 @@ import { useToast } from '../../components/ui/Toast';
 import { useCountryConfig } from '../../hooks/useCountryConfig';
 import { useGeolocation } from '../../hooks/useGeolocation';
 import L from 'leaflet';
+import { useTranslation } from '../../i18n/useTranslation';
 
 const pickupIcon = L.divIcon({
   className: '',
@@ -24,7 +25,6 @@ const dropoffIcon = L.divIcon({
 
 async function searchAddress(query, countryCode = 'gw', centerLat = null, centerLng = null) {
   if (query.length < 3) return [];
-  // Construire les params avec viewbox pour biaisage géographique
   const params = new URLSearchParams({
     format: 'json',
     q: query,
@@ -33,11 +33,10 @@ async function searchAddress(query, countryCode = 'gw', centerLat = null, center
     'accept-language': 'fr',
     addressdetails: '1',
   });
-  // Viewbox : zone de ~50km autour du centre du pays pour prioriser les résultats locaux
   if (centerLat && centerLng) {
-    const delta = 0.5; // ~50km
+    const delta = 0.5;
     params.set('viewbox', `${centerLng - delta},${centerLat + delta},${centerLng + delta},${centerLat - delta}`);
-    params.set('bounded', '0'); // Préférer la zone mais autoriser hors zone
+    params.set('bounded', '0');
   }
   const res = await fetch(
     `https://nominatim.openstreetmap.org/search?${params}`,
@@ -90,6 +89,7 @@ export default function RequestPage() {
   const location = useLocation();
   const toast = useToast();
   const country = useCountryConfig();
+  const { t } = useTranslation();
   const { vehicleType: initialType = 'moto', userPos: stateUserPos, presetDropoff, presetDropoffAddress, preferredDriver } = location.state || {};
   const geo = useGeolocation({ watch: true, defaultLat: country.default_lat, defaultLng: country.default_lng });
 
@@ -100,17 +100,15 @@ export default function RequestPage() {
   const [pickup, setPickup] = useState(stateUserPos || geo.position);
   const [pickupFromGeo, setPickupFromGeo] = useState(true);
 
-  // Suivre la position GPS pour le pickup si pas modifié manuellement
   useEffect(() => {
     if (pickupFromGeo && geo.isTracking) {
       setPickup(geo.position);
     }
   }, [geo.position, pickupFromGeo, geo.isTracking]);
-  const [pickupAddress, setPickupAddress] = useState('Ma position');
+  const [pickupAddress, setPickupAddress] = useState(t('request.myPosition'));
   const [dropoff, setDropoff] = useState(presetDropoff || null);
   const [dropoffAddress, setDropoffAddress] = useState(presetDropoffAddress || '');
 
-  // Si on a une adresse preset mais pas de coords, géocoder automatiquement
   useEffect(() => {
     if (presetDropoffAddress && !presetDropoff) {
       searchAddress(presetDropoffAddress, country.country_code, country.default_lat, country.default_lng)
@@ -133,7 +131,6 @@ export default function RequestPage() {
   const [luggageType, setLuggageType] = useState('none');
   const [routeCoords, setRouteCoords] = useState(null);
 
-  // Vérifier s'il y a une demande en cours au chargement
   useEffect(() => {
     checkActiveRequest();
   }, []);
@@ -153,9 +150,9 @@ export default function RequestPage() {
     try {
       await api.post(`/rides/requests/${activeRequest.id}/cancel`);
       setActiveRequest(null);
-      toast.show('Demande annulée', 'success');
+      toast.show(t('request.requestCancelled'), 'success');
     } catch (e) {
-      toast.show(e.message || 'Erreur', 'error');
+      toast.show(e.message || t('common.error'), 'error');
     }
     setCancellingRequest(false);
   };
@@ -171,7 +168,6 @@ export default function RequestPage() {
 
   const recents = getRecentDestinations();
 
-  // Recherche avec debounce
   useEffect(() => {
     if (searchQuery.length < 3) { setSearchResults([]); return; }
     clearTimeout(debounceRef.current);
@@ -237,7 +233,7 @@ export default function RequestPage() {
     if (estimate && val >= estimate.min_price && val <= estimate.max_price) {
       setPrice(val);
     } else if (estimate) {
-      toast.show(`Prix entre ${estimate.min_price} et ${estimate.max_price} F`, 'error');
+      toast.show(`${t('request.proposePrice')} ${estimate.min_price} — ${estimate.max_price} F`, 'error');
     }
     setEditingPrice(false);
   };
@@ -260,7 +256,7 @@ export default function RequestPage() {
       navigator.vibrate?.(20);
       navigate(`/offers/${data.id}`);
     } catch (e) {
-      toast.show(e.message || 'Erreur', 'error');
+      toast.show(e.message || t('common.error'), 'error');
       setLoading(false);
     }
   };
@@ -284,7 +280,7 @@ export default function RequestPage() {
                 type="text"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                placeholder={searchMode === 'pickup' ? 'Rechercher le point de départ...' : 'Rechercher la destination...'}
+                placeholder={searchMode === 'pickup' ? t('request.searchPickup') : t('request.searchDropoff')}
                 className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-10 py-3 text-sm
                            focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
               />
@@ -310,8 +306,8 @@ export default function RequestPage() {
           {!searching && searchQuery.length >= 3 && searchResults.length === 0 && (
             <div className="text-center py-12">
               <MapPin size={32} className="mx-auto text-gray-300 mb-3" />
-              <p className="text-gray-500 text-sm">Aucun résultat</p>
-              <p className="text-gray-400 text-xs mt-1">Essayez un autre nom ou touchez la carte</p>
+              <p className="text-gray-500 text-sm">{t('request.noResults')}</p>
+              <p className="text-gray-400 text-xs mt-1">{t('request.tryOther')}</p>
             </div>
           )}
 
@@ -346,7 +342,7 @@ export default function RequestPage() {
             <div className="px-5 pt-4">
               {recents.length > 0 && searchMode === 'dropoff' && (
                 <>
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Récents</p>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">{t('passenger.recent')}</p>
                   {recents.slice(0, 3).map((r, i) => (
                     <button
                       key={i}
@@ -365,7 +361,7 @@ export default function RequestPage() {
                   <div className="border-t my-3" />
                 </>
               )}
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Suggestions</p>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">{t('request.suggestions')}</p>
               {[
                 { name: `Aéroport ${country.country_name.split('-')[0]}`, query: `aéroport ${country.country_name}` },
                 { name: 'Marché central', query: `marché ${country.country_name}` },
@@ -403,25 +399,25 @@ export default function RequestPage() {
             <button onClick={() => setSearchMode('pickup')}
               className="w-full flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2.5 text-left hover:bg-gray-100 transition">
               <div className="w-2.5 h-2.5 bg-brand-500 rounded-full flex-shrink-0" />
-              <span className="text-sm text-gray-700 truncate flex-1">{pickupAddress || 'Point de départ'}</span>
+              <span className="text-sm text-gray-700 truncate flex-1">{pickupAddress || t('request.searchPickup')}</span>
               <Search size={14} className="text-gray-400" />
             </button>
             <button onClick={() => setSearchMode('dropoff')}
               className="w-full flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2.5 text-left hover:bg-gray-100 transition">
               <div className="w-2.5 h-2.5 bg-red-500 rounded-full flex-shrink-0" />
               <span className={`text-sm truncate flex-1 ${dropoffAddress ? 'text-gray-700' : 'text-gray-400'}`}>
-                {dropoffAddress || 'Où allez-vous ?'}
+                {dropoffAddress || t('passenger.whereAreYouGoing')}
               </span>
               <Search size={14} className="text-gray-400" />
             </button>
           </div>
           <div className="flex flex-col bg-gray-100 rounded-xl p-1 gap-1">
-            {['moto', 'car'].map(t => (
-              <button key={t} onClick={() => setVehicleType(t)}
+            {['moto', 'car'].map(t_type => (
+              <button key={t_type} onClick={() => setVehicleType(t_type)}
                 className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  vehicleType === t ? 'bg-white shadow-sm text-brand-600' : 'text-gray-500'
+                  vehicleType === t_type ? 'bg-white shadow-sm text-brand-600' : 'text-gray-500'
                 }`}>
-                {t === 'moto' ? '🏍️' : '🚗'}
+                {t_type === 'moto' ? '🏍️' : '🚗'}
               </button>
             ))}
           </div>
@@ -446,7 +442,7 @@ export default function RequestPage() {
             className="absolute top-3 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-sm px-4 py-2.5 rounded-2xl shadow-card z-10">
             <p className="text-sm text-gray-600 flex items-center gap-2">
               <MapPin size={14} className="text-red-500" />
-              Recherchez ou touchez la carte
+              {t('passenger.touchToChoose')}
             </p>
           </motion.div>
         )}
@@ -472,11 +468,11 @@ export default function RequestPage() {
             {/* Distance + prix suggéré */}
             <div className="flex items-center gap-4 mb-4">
               <div className="flex-1 bg-gray-50 rounded-xl px-3 py-2 text-center">
-                <p className="text-xs text-gray-400">Distance</p>
+                <p className="text-xs text-gray-400">{t('request.distance')}</p>
                 <p className="font-bold text-gray-800">{estimate.distance_km} km</p>
               </div>
               <div className="flex-1 bg-brand-50 rounded-xl px-3 py-2 text-center">
-                <p className="text-xs text-brand-600">Prix suggéré</p>
+                <p className="text-xs text-brand-600">{t('request.suggestedPrice')}</p>
                 <p className="font-bold text-brand-700">{estimate.suggested_price} F</p>
               </div>
             </div>
@@ -485,7 +481,7 @@ export default function RequestPage() {
             <div className="flex gap-2 mb-3 justify-center">
               {[
                 { label: 'Min', value: estimate.min_price },
-                { label: 'Suggéré', value: estimate.suggested_price },
+                { label: t('request.suggestedPrice'), value: estimate.suggested_price },
                 { label: 'Max', value: estimate.max_price },
               ].map(chip => (
                 <button
@@ -504,7 +500,7 @@ export default function RequestPage() {
 
             {/* Sélecteur de prix */}
             <div className="mb-4">
-              <p className="text-sm font-medium text-gray-600 mb-3 text-center">Proposez votre prix</p>
+              <p className="text-sm font-medium text-gray-600 mb-3 text-center">{t('request.proposePrice')}</p>
               <div className="flex items-center justify-center gap-4">
                 <motion.button whileTap={{ scale: 0.85 }} onClick={() => adjustPrice(-1)}
                   disabled={price <= estimate.min_price}
@@ -535,7 +531,7 @@ export default function RequestPage() {
                       {price}
                     </motion.p>
                   )}
-                  <p className="text-sm text-gray-400">F CFA</p>
+                  <p className="text-sm text-gray-400">{t('common.fcfa')}</p>
                 </div>
 
                 <motion.button whileTap={{ scale: 0.85 }} onClick={() => adjustPrice(1)}
@@ -545,7 +541,7 @@ export default function RequestPage() {
                 </motion.button>
               </div>
               <p className="text-xs text-gray-400 text-center mt-1">
-                {estimate.min_price} — {estimate.max_price} F · Touchez le prix pour saisir directement
+                {estimate.min_price} — {estimate.max_price} F · {t('request.touchToEdit')}
               </p>
             </div>
 
@@ -553,20 +549,20 @@ export default function RequestPage() {
             <div className="mb-3">
               <div className="flex gap-1.5 justify-center">
                 {[
-                  { id: 'none', icon: '—', label: 'Aucun' },
-                  { id: 'small', icon: '🎒', label: 'Sac' },
-                  { id: 'suitcase', icon: '🧳', label: 'Valise' },
-                  { id: 'large', icon: '📦', label: 'Gros' },
+                  { id: 'none', icon: '—', label: t('request.luggage.none') },
+                  { id: 'small', icon: '🎒', label: t('request.luggage.small') },
+                  { id: 'suitcase', icon: '🧳', label: t('request.luggage.suitcase') },
+                  { id: 'large', icon: '📦', label: t('request.luggage.large') },
                 ].map(l => (
                   <button
                     key={l.id}
                     onClick={() => {
                       if (l.id === 'large' && vehicleType === 'moto') {
-                        setError('Gros bagage incompatible avec une moto');
+                        setError(t('request.luggage.motoBlocked'));
                         return;
                       }
                       if (l.id === 'suitcase' && vehicleType === 'moto') {
-                        setError('⚠️ Une valise est difficile à transporter en moto');
+                        setError(t('request.luggage.motoWarning'));
                       }
                       setLuggageType(l.id);
                     }}
@@ -588,7 +584,7 @@ export default function RequestPage() {
             {activeRequest ? (
               <div className="space-y-2">
                 <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-center">
-                  <p className="text-sm text-amber-800 font-medium">Vous avez une demande en cours</p>
+                  <p className="text-sm text-amber-800 font-medium">{t('request.activeRequestExists')}</p>
                   <p className="text-xs text-amber-600 mt-0.5">
                     {activeRequest.pickup_address} → {activeRequest.dropoff_address} · {activeRequest.proposed_price} F
                   </p>
@@ -598,14 +594,14 @@ export default function RequestPage() {
                     onClick={() => navigate(`/offers/${activeRequest.id}`)}
                     className="flex-1 bg-brand-500 text-white py-3 rounded-xl font-semibold text-sm hover:bg-brand-600 transition"
                   >
-                    Voir les offres
+                    {t('request.seeOffers')}
                   </button>
                   <button
                     onClick={cancelActiveRequest}
                     disabled={cancellingRequest}
                     className="px-4 py-3 bg-red-50 text-red-600 rounded-xl font-semibold text-sm hover:bg-red-100 transition disabled:opacity-50"
                   >
-                    {cancellingRequest ? '...' : 'Annuler'}
+                    {cancellingRequest ? '...' : t('common.cancel')}
                   </button>
                 </div>
               </div>
@@ -615,12 +611,12 @@ export default function RequestPage() {
                   <div className="flex items-center gap-2 bg-brand-50 border border-brand-200 rounded-xl px-3 py-2 mb-2">
                     <span className="text-sm">🎯</span>
                     <p className="text-xs text-brand-700 font-medium">
-                      Demande envoyée à <span className="font-bold">{preferredDriver.name}</span>
+                      {t('request.targetedRequest')} <span className="font-bold">{preferredDriver.name}</span>
                     </p>
                   </div>
                 )}
                 <Button onClick={sendRequest} loading={loading} icon={Send}>
-                  {preferredDriver ? `Demander à ${preferredDriver.name} — ${price} F` : `Envoyer la demande — ${price} F`}
+                  {preferredDriver ? `${t('request.requestFor')} ${preferredDriver.name} — ${price} F` : `${t('request.sendRequest')} — ${price} F`}
                 </Button>
               </>
             )}

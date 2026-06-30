@@ -10,6 +10,7 @@ import { useToast } from '../../components/ui/Toast';
 import StatusPill from '../../components/ui/StatusPill';
 import AnimatedDriverMarker from '../../components/map/AnimatedDriverMarker';
 import L from 'leaflet';
+import { useTranslation } from '../../i18n/useTranslation';
 
 const pickupIcon = L.divIcon({
   className: '',
@@ -51,6 +52,7 @@ export default function TrackingPage() {
   const { rideId } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
+  const { t } = useTranslation();
   const [ride, setRide] = useState(null);
   const [driverPos, setDriverPos] = useState(null);
   const [routeCoords, setRouteCoords] = useState(null);
@@ -61,7 +63,7 @@ export default function TrackingPage() {
 
   useEffect(() => {
     loadRide();
-    const interval = setInterval(loadRide, 3000); // 3s pour un suivi plus fluide
+    const interval = setInterval(loadRide, 3000);
     return () => clearInterval(interval);
   }, []);
 
@@ -69,22 +71,18 @@ export default function TrackingPage() {
     try {
       const data = await api.get(`/rides/${rideId}`);
       setRide(data);
-      // Mettre à jour la position du chauffeur si disponible
       if (data.driver_lat && data.driver_lng) {
         setDriverPos([data.driver_lat, data.driver_lng]);
       }
-      // Rediriger vers la notation dès que la course est payée
       if (data.status === 'paid') {
         navigate(`/rate/${rideId}`, { replace: true });
       }
-      // Si annulée, retour accueil
       if (data.status === 'cancelled') {
         navigate('/', { replace: true });
       }
     } catch {}
   };
 
-  // Charger la route — recalculer quand le chauffeur bouge (passenger_onboard)
   const lastRouteUpdateRef = useRef(0);
 
   useEffect(() => {
@@ -93,8 +91,6 @@ export default function TrackingPage() {
     const dropoffCoords = ride.dropoff_lat ? [ride.dropoff_lat, ride.dropoff_lng] : null;
 
     if (ride.status === 'passenger_onboard' && driverPos && dropoffCoords) {
-      // Recalculer la route depuis la position actuelle du chauffeur → destination
-      // Limiter à 1 recalcul toutes les 15s pour ne pas spammer OSRM
       const now = Date.now();
       if (now - lastRouteUpdateRef.current > 15000) {
         lastRouteUpdateRef.current = now;
@@ -103,7 +99,6 @@ export default function TrackingPage() {
         });
       }
     } else if (pickupCoords && dropoffCoords && !routeCoords) {
-      // Route initiale pickup → dropoff
       fetchRoute(pickupCoords, dropoffCoords).then(coords => {
         if (coords) setRouteCoords(coords);
       });
@@ -114,10 +109,10 @@ export default function TrackingPage() {
     setSosLoading(true);
     try {
       await api.post(`/rides/${rideId}/sos`);
-      toast.show('SOS envoyé ! Restez en sécurité.', 'success', 5000);
+      toast.show(t('tracking.sosSent'), 'success', 5000);
       setShowSos(false);
     } catch (e) {
-      toast.show(e.message || 'Erreur SOS', 'error');
+      toast.show(e.message || t('tracking.sos'), 'error');
     }
     setSosLoading(false);
   };
@@ -137,10 +132,10 @@ export default function TrackingPage() {
   const cancelRide = async () => {
     setCancelLoading(true);
     try {
-      await api.post(`/rides/${rideId}/cancel`, { reason: 'Annulé par le passager' });
+      await api.post(`/rides/${rideId}/cancel`, { reason: t('tracking.cancelConfirm') });
       navigate('/');
     } catch (e) {
-      toast.show(e.message || 'Erreur', 'error');
+      toast.show(e.message || t('common.error'), 'error');
       setCancelLoading(false);
       setShowCancel(false);
     }
@@ -150,12 +145,12 @@ export default function TrackingPage() {
     return (
       <div className="h-[100dvh] flex flex-col items-center justify-center bg-white gap-3">
         <div className="w-10 h-10 border-3 border-brand-500 border-t-transparent rounded-full animate-spin" />
-        <p className="text-sm text-gray-400">Chargement de la course...</p>
+        <p className="text-sm text-gray-400">{t('common.loading')}</p>
       </div>
     );
   }
 
-  // Calcul ETA (vitesse moyenne 20 km/h en ville)
+  // Calcul ETA
   const calcEta = () => {
     if (!driverPos) return null;
     const target = ['driver_assigned', 'driver_en_route'].includes(ride.status)
@@ -164,30 +159,28 @@ export default function TrackingPage() {
         ? (ride.dropoff_lat ? [ride.dropoff_lat, ride.dropoff_lng] : null)
         : null;
     if (!target) return null;
-    // Haversine simplifié
     const R = 6371000;
     const dLat = (target[0] - driverPos[0]) * Math.PI / 180;
     const dLng = (target[1] - driverPos[1]) * Math.PI / 180;
     const a = Math.sin(dLat/2)**2 + Math.cos(driverPos[0]*Math.PI/180) * Math.cos(target[0]*Math.PI/180) * Math.sin(dLng/2)**2;
     const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    const minutes = Math.max(1, Math.round(dist / (20000/60))); // 20km/h
+    const minutes = Math.max(1, Math.round(dist / (20000/60)));
     return minutes;
   };
 
   const etaMin = calcEta();
   const etaText = etaMin ? (etaMin <= 1 ? '~1 min' : `~${etaMin} min`) : null;
 
-  // Utiliser le type réel du véhicule du chauffeur
   const actualVehicleType = ride.driver_vehicle?.type || ride.vehicle_type;
   const vehicleEmoji = actualVehicleType === 'car' ? '🚗' : '🏍️';
 
   const statusMessages = {
-    driver_assigned: { emoji: '🚀', text: 'Chauffeur assigné', sub: etaText ? `Arrivée estimée : ${etaText}` : 'Il va bientôt partir' },
-    driver_en_route: { emoji: vehicleEmoji, text: 'En route vers vous', sub: etaText ? `Arrive dans ${etaText}` : 'Il arrive bientôt !' },
-    driver_arrived:  { emoji: '📍', text: 'Il est arrivé !', sub: 'Rejoignez votre chauffeur' },
-    passenger_onboard: { emoji: vehicleEmoji, text: 'En course', sub: etaText ? `Arrivée dans ${etaText}` : 'Profitez du trajet' },
-    completed:       { emoji: '🎉', text: 'Vous êtes arrivé !', sub: 'Procédez au paiement' },
-    paid:            { emoji: '✅', text: 'Course payée', sub: 'Notez votre chauffeur' },
+    driver_assigned: { emoji: '🚀', text: t('tracking.driverAssigned'), sub: etaText ? `${t('tracking.estimatedArrival')} : ${etaText}` : t('tracking.driverAssignedSub') },
+    driver_en_route: { emoji: vehicleEmoji, text: t('tracking.enRoute'), sub: etaText ? `${t('tracking.arrivesIn')} ${etaText}` : t('tracking.enRouteSub') },
+    driver_arrived:  { emoji: '📍', text: t('tracking.arrived'), sub: t('tracking.arrivedSub') },
+    passenger_onboard: { emoji: vehicleEmoji, text: t('tracking.onboard'), sub: etaText ? `${t('tracking.arrivalIn')} ${etaText}` : t('tracking.onboardSub') },
+    completed:       { emoji: '🎉', text: t('tracking.completed'), sub: t('tracking.completedSub') },
+    paid:            { emoji: '✅', text: t('tracking.paid'), sub: t('tracking.paidSub') },
   };
   const statusInfo = statusMessages[ride.status] || { emoji: '⏳', text: ride.status, sub: '' };
 
@@ -227,7 +220,7 @@ export default function TrackingPage() {
           className="absolute top-4 left-4 z-10 bg-white rounded-2xl shadow-card flex items-center gap-2 px-3 py-2.5"
         >
           <ArrowLeft size={16} className="text-gray-700" />
-          <span className="text-sm font-medium text-gray-700">Accueil</span>
+          <span className="text-sm font-medium text-gray-700">{t('tracking.rideHome')}</span>
         </button>
       </div>
 
@@ -275,17 +268,17 @@ export default function TrackingPage() {
         {ride.status === 'completed' ? (
           <div className="space-y-2">
             <Button onClick={() => navigate(`/payment/${rideId}`)}>
-              Payer {ride.agreed_price} F CFA
+              {t('tracking.pay')} {ride.agreed_price} {t('common.fcfa')}
             </Button>
-            <p className="text-xs text-gray-400 text-center">Le chauffeur attend votre paiement</p>
+            <p className="text-xs text-gray-400 text-center">{t('tracking.driverWaiting')}</p>
           </div>
         ) : ride.status === 'paid' ? (
           <div className="space-y-3">
             <div className="flex items-center justify-center gap-2 py-3 bg-green-50 rounded-2xl">
-              <span className="text-green-600 font-bold text-sm">✅ Course payée</span>
+              <span className="text-green-600 font-bold text-sm">✅ {t('tracking.paid')}</span>
             </div>
             <Button onClick={() => navigate(`/rate/${rideId}`)}>
-              Noter le chauffeur
+              {t('tracking.rateDriver')}
             </Button>
           </div>
         ) : (
@@ -296,7 +289,7 @@ export default function TrackingPage() {
               className="flex flex-col items-center gap-1 py-3 bg-gray-50 rounded-2xl hover:bg-gray-100 transition"
             >
               <Phone size={20} className="text-brand-500" />
-              <span className="text-xs text-gray-600">Appeler</span>
+              <span className="text-xs text-gray-600">{t('tracking.call')}</span>
             </motion.button>
             <motion.button
               whileTap={{ scale: 0.9 }}
@@ -304,7 +297,7 @@ export default function TrackingPage() {
               className="flex flex-col items-center gap-1 py-3 bg-gray-50 rounded-2xl hover:bg-gray-100 transition"
             >
               <Share2 size={20} className="text-blue-500" />
-              <span className="text-xs text-gray-600">Partager</span>
+              <span className="text-xs text-gray-600">{t('tracking.share')}</span>
             </motion.button>
             <motion.button
               whileTap={{ scale: 0.9 }}
@@ -312,7 +305,7 @@ export default function TrackingPage() {
               className="flex flex-col items-center gap-1 py-3 bg-red-50 rounded-2xl hover:bg-red-100 transition"
             >
               <AlertTriangle size={20} className="text-red-500" />
-              <span className="text-xs text-red-600 font-semibold">SOS</span>
+              <span className="text-xs text-red-600 font-semibold">{t('tracking.sos')}</span>
             </motion.button>
           </div>
         )}
@@ -322,7 +315,7 @@ export default function TrackingPage() {
             onClick={() => setShowCancel(true)}
             className="w-full mt-3 py-2.5 text-red-500 text-sm font-medium rounded-xl hover:bg-red-50 transition"
           >
-            Annuler la course
+            {t('tracking.cancelRide')}
           </button>
         )}
       </motion.div>
@@ -330,9 +323,9 @@ export default function TrackingPage() {
       {/* Modales */}
       <ConfirmModal
         open={showSos}
-        title="Appel d'urgence"
-        message="Les services de sécurité seront alertés et pourront voir votre position en temps réel."
-        confirmLabel="Envoyer SOS"
+        title={t('tracking.sosTitle')}
+        message={t('tracking.sosMessage')}
+        confirmLabel={t('tracking.sosSend')}
         variant="danger"
         loading={sosLoading}
         onConfirm={triggerSos}
@@ -340,9 +333,9 @@ export default function TrackingPage() {
       />
       <ConfirmModal
         open={showCancel}
-        title="Annuler la course ?"
-        message="Des frais de 500 F CFA peuvent s'appliquer si le chauffeur est déjà en route."
-        confirmLabel="Annuler la course"
+        title={t('tracking.cancelTitle')}
+        message={t('tracking.cancelMessage')}
+        confirmLabel={t('tracking.cancelConfirm')}
         variant="warning"
         loading={cancelLoading}
         onConfirm={cancelRide}

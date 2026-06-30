@@ -5,38 +5,40 @@ import { ArrowLeft, RefreshCw, Receipt, X } from 'lucide-react';
 import api from '../../api/client';
 import { useAuth } from '../../hooks/useAuth';
 import RideReceipt from '../../components/ui/RideReceipt';
-
-const statusLabels = {
-  paid: { text: 'Payée', color: 'bg-green-100 text-green-700' },
-  completed: { text: 'Terminée', color: 'bg-blue-100 text-blue-700' },
-  cancelled: { text: 'Annulée', color: 'bg-red-100 text-red-700' },
-};
-
-const FILTERS = [
-  { id: 'all', label: 'Toutes' },
-  { id: 'done', label: 'Terminées' },
-  { id: 'cancelled', label: 'Annulées' },
-];
-
-function groupByMonth(rides) {
-  const groups = {};
-  rides.forEach(r => {
-    const d = new Date(r.created_at);
-    const key = `${d.getFullYear()}-${d.getMonth()}`;
-    const label = d.toLocaleDateString('fr', { month: 'long', year: 'numeric' });
-    if (!groups[key]) groups[key] = { label, rides: [] };
-    groups[key].rides.push(r);
-  });
-  return Object.values(groups);
-}
+import { useTranslation } from '../../i18n/useTranslation';
 
 export default function HistoryPage() {
+  const { t, lang } = useTranslation();
   const [rides, setRides] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [receiptRide, setReceiptRide] = useState(null);
   const navigate = useNavigate();
   const { isDriver } = useAuth();
+
+  const statusLabels = {
+    paid: { text: t('historyPage.statusPaid'), color: 'bg-green-100 text-green-700' },
+    completed: { text: t('historyPage.statusCompleted'), color: 'bg-blue-100 text-blue-700' },
+    cancelled: { text: t('historyPage.statusCancelled'), color: 'bg-red-100 text-red-700' },
+  };
+
+  const FILTERS = [
+    { id: 'all', label: t('historyPage.all') },
+    { id: 'done', label: t('historyPage.completed') },
+    { id: 'cancelled', label: t('historyPage.cancelled') },
+  ];
+
+  function groupByMonth(rides) {
+    const groups = {};
+    rides.forEach(r => {
+      const d = new Date(r.created_at);
+      const key = `${d.getFullYear()}-${d.getMonth()}`;
+      const label = d.toLocaleDateString(lang === 'pt' ? 'pt' : 'fr', { month: 'long', year: 'numeric' });
+      if (!groups[key]) groups[key] = { label, rides: [] };
+      groups[key].rides.push(r);
+    });
+    return Object.values(groups);
+  }
 
   useEffect(() => {
     api.get('/rides/history').then(data => {
@@ -69,14 +71,14 @@ export default function HistoryPage() {
     <div className="min-h-[100dvh] bg-gray-50 pb-24">
       {/* Header */}
       <div className="bg-gradient-to-r from-brand-500 to-emerald-500 px-5 pt-8 pb-6">
-        <h1 className="text-white text-xl font-bold">Historique</h1>
+        <h1 className="text-white text-xl font-bold">{t('historyPage.title')}</h1>
         <div className="flex gap-4 mt-3">
           <div className="bg-white/15 backdrop-blur-sm rounded-xl px-4 py-2 flex-1 text-center">
-            <p className="text-white/70 text-[10px]">Courses</p>
+            <p className="text-white/70 text-[10px]">{t('historyPage.totalRides')}</p>
             <p className="text-white font-bold text-lg">{totalRides}</p>
           </div>
           <div className="bg-white/15 backdrop-blur-sm rounded-xl px-4 py-2 flex-1 text-center">
-            <p className="text-white/70 text-[10px]">Total dépensé</p>
+            <p className="text-white/70 text-[10px]">{t('historyPage.totalSpent')}</p>
             <p className="text-white font-bold text-lg">{totalSpent.toLocaleString()} F</p>
           </div>
         </div>
@@ -117,7 +119,7 @@ export default function HistoryPage() {
         ) : filtered.length === 0 ? (
           <div className="text-center py-16">
             <p className="text-4xl mb-4">🏍️</p>
-            <p className="text-gray-500">Aucune course{filter !== 'all' ? ' dans cette catégorie' : ''}</p>
+            <p className="text-gray-500">{t('historyPage.noRides')}{filter !== 'all' ? ` ${t('historyPage.inThisCategory')}` : ''}</p>
           </div>
         ) : (
           groups.map((group) => (
@@ -129,7 +131,7 @@ export default function HistoryPage() {
                 {group.rides.map((ride, i) => {
                   const status = statusLabels[ride.status] || { text: ride.status, color: 'bg-gray-100 text-gray-600' };
                   const canRebook = !isDriver && (ride.status === 'paid' || ride.status === 'completed');
-                  const dateStr = new Date(ride.created_at).toLocaleDateString('fr', {
+                  const dateStr = new Date(ride.created_at).toLocaleDateString(lang === 'pt' ? 'pt' : 'fr', {
                     day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
                   });
 
@@ -161,9 +163,9 @@ export default function HistoryPage() {
                         {/* Trajet compact */}
                         <div className="flex items-center gap-2 text-xs text-gray-500 mb-3">
                           <span className="w-1.5 h-1.5 bg-brand-500 rounded-full flex-shrink-0" />
-                          <span className="truncate">{ride.pickup_address || 'Départ'}</span>
+                          <span className="truncate">{ride.pickup_address || t('receipt.departure')}</span>
                           <span className="text-gray-300">→</span>
-                          <span className="truncate">{ride.dropoff_address || 'Arrivée'}</span>
+                          <span className="truncate">{ride.dropoff_address || t('receipt.arrival')}</span>
                           <span className="w-1.5 h-1.5 bg-red-500 rounded-full flex-shrink-0" />
                         </div>
 
@@ -174,13 +176,13 @@ export default function HistoryPage() {
                               onClick={() => setReceiptRide(ride)}
                               className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-gray-50 rounded-xl text-xs font-semibold text-gray-600 hover:bg-gray-100 transition"
                             >
-                              <Receipt size={12} /> Reçu
+                              <Receipt size={12} /> {t('historyPage.receipt')}
                             </button>
                             <button
                               onClick={() => rebook(ride)}
                               className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-brand-50 rounded-xl text-xs font-semibold text-brand-600 hover:bg-brand-100 transition"
                             >
-                              <RefreshCw size={12} /> Refaire
+                              <RefreshCw size={12} /> {t('historyPage.rebook')}
                             </button>
                           </div>
                         )}

@@ -11,6 +11,7 @@ import Button from '../../components/ui/Button';
 import ConfirmModal from '../../components/ui/ConfirmModal';
 import { useToast } from '../../components/ui/Toast';
 import L from 'leaflet';
+import { useTranslation } from '../../i18n/useTranslation';
 
 const pickupIcon = L.divIcon({
   className: '',
@@ -24,30 +25,6 @@ const dropoffIcon = L.divIcon({
   iconSize: [32, 32], iconAnchor: [16, 16],
 });
 
-// Étapes de la course avec bouton d'action
-const STATUS_STEPS = [
-  { from: 'driver_assigned', to: 'driver_en_route', label: 'Je suis en route', emoji: '🚀', color: 'bg-blue-500 hover:bg-blue-600' },
-  { from: 'driver_en_route', to: 'driver_arrived', label: 'Je suis arrivé', emoji: '📍', color: 'bg-yellow-500 hover:bg-yellow-600' },
-  { from: 'driver_arrived', to: 'passenger_onboard', label: 'Passager à bord', emoji: '👤', color: 'bg-brand-500 hover:bg-brand-600' },
-  { from: 'passenger_onboard', to: 'completed', label: 'Course terminée', emoji: '🏁', color: 'bg-green-500 hover:bg-green-600' },
-];
-
-const STATUS_INFO = {
-  driver_assigned: { emoji: '🚀', text: 'Course assignée', sub: 'Dirigez-vous vers le passager' },
-  driver_en_route: { emoji: '🏍️', text: 'En route', sub: 'Rendez-vous au point de prise en charge' },
-  driver_arrived: { emoji: '📍', text: 'Arrivé', sub: 'En attente du passager' },
-  passenger_onboard: { emoji: '🛣️', text: 'En course', sub: 'En route vers la destination' },
-  completed: { emoji: '🎉', text: 'Course terminée', sub: 'En attente du paiement' },
-  paid: { emoji: '✅', text: 'Course payée', sub: 'Commission déduite de votre crédit' },
-  cancelled: { emoji: '❌', text: 'Course annulée', sub: '' },
-};
-
-// Statuts où le bouton Annuler est visible
-const CANCELLABLE_STATUSES = ['driver_assigned', 'driver_en_route', 'driver_arrived'];
-
-// Statuts où le bouton Naviguer est visible
-const NAVIGABLE_STATUSES = ['driver_assigned', 'driver_en_route', 'driver_arrived', 'passenger_onboard'];
-
 /**
  * Ouvre l'app de navigation (Waze, Google Maps, ou plan par défaut)
  */
@@ -55,12 +32,9 @@ function openNavigation(lat, lng) {
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
   const isAndroid = /Android/.test(navigator.userAgent);
 
-  // Essayer Waze d'abord (deep link)
   const wazeUrl = `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
-  // Google Maps comme fallback
   const gmapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
 
-  // Sur mobile, tenter Waze. Si pas installé, ouvre le navigateur sur waze.com qui redirige
   if (isAndroid || isIOS) {
     window.open(wazeUrl, '_blank');
   } else {
@@ -68,9 +42,16 @@ function openNavigation(lat, lng) {
   }
 }
 
+// Statuts où le bouton Annuler est visible
+const CANCELLABLE_STATUSES = ['driver_assigned', 'driver_en_route', 'driver_arrived'];
+
+// Statuts où le bouton Naviguer est visible
+const NAVIGABLE_STATUSES = ['driver_assigned', 'driver_en_route', 'driver_arrived', 'passenger_onboard'];
+
 export default function DriverRidePage() {
   const { rideId } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [ride, setRide] = useState(null);
   const [updating, setUpdating] = useState(false);
   const [cancelling, setCancelling] = useState(false);
@@ -79,6 +60,24 @@ export default function DriverRidePage() {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const toast = useToast();
 
+  // Étapes de la course avec bouton d'action
+  const STATUS_STEPS = [
+    { from: 'driver_assigned', to: 'driver_en_route', label: t('driver.btnEnRoute'), emoji: '🚀', color: 'bg-blue-500 hover:bg-blue-600' },
+    { from: 'driver_en_route', to: 'driver_arrived', label: t('driver.btnArrived'), emoji: '📍', color: 'bg-yellow-500 hover:bg-yellow-600' },
+    { from: 'driver_arrived', to: 'passenger_onboard', label: t('driver.btnOnboard'), emoji: '👤', color: 'bg-brand-500 hover:bg-brand-600' },
+    { from: 'passenger_onboard', to: 'completed', label: t('driver.btnCompleted'), emoji: '🏁', color: 'bg-green-500 hover:bg-green-600' },
+  ];
+
+  const STATUS_INFO = {
+    driver_assigned: { emoji: '🚀', text: t('driver.rideAssigned'), sub: t('driver.rideAssignedSub') },
+    driver_en_route: { emoji: '🏍️', text: t('driver.enRoute'), sub: t('driver.enRouteSub') },
+    driver_arrived: { emoji: '📍', text: t('driver.arrivedStatus'), sub: t('driver.arrivedSub') },
+    passenger_onboard: { emoji: '🛣️', text: t('driver.onboard'), sub: t('driver.onboardSub') },
+    completed: { emoji: '🎉', text: t('driver.rideCompleted'), sub: t('driver.waitingPayment') },
+    paid: { emoji: '✅', text: t('driver.ridePaid'), sub: t('driver.ridePaidSub') },
+    cancelled: { emoji: '❌', text: t('driver.cancelRide'), sub: '' },
+  };
+
   // Polling ride + envoi GPS continu
   const geoWatchRef = useRef(null);
 
@@ -86,7 +85,6 @@ export default function DriverRidePage() {
     loadRide();
     const interval = setInterval(loadRide, 3000);
 
-    // Envoyer la position GPS en continu pendant la course
     geoWatchRef.current = navigator.geolocation?.watchPosition(
       (pos) => {
         api.post('/drivers/location', {
@@ -138,7 +136,7 @@ export default function DriverRidePage() {
       await api.post('/payments/confirm-cash', { ride_id: rideId });
       navigate(`/rate/${rideId}`);
     } catch (e) {
-      toast.show(e.message || 'Erreur', 'error');
+      toast.show(e.message || t('common.error'), 'error');
       setConfirmingPayment(false);
       setShowPaymentModal(false);
     }
@@ -147,16 +145,15 @@ export default function DriverRidePage() {
   const cancelRide = async () => {
     setCancelling(true);
     try {
-      await api.post(`/rides/${rideId}/cancel`, { reason: 'Annulé par le chauffeur' });
+      await api.post(`/rides/${rideId}/cancel`, { reason: t('driver.cancelRide') });
       navigate('/driver');
     } catch (e) {
-      toast.show(e.message || 'Erreur', 'error');
+      toast.show(e.message || t('common.error'), 'error');
       setCancelling(false);
       setShowCancelModal(false);
     }
   };
 
-  // Destination pour la navigation (pickup ou dropoff selon le statut)
   const getNavDestination = () => {
     if (!ride) return null;
     if (ride.status === 'passenger_onboard') {
@@ -179,7 +176,6 @@ export default function DriverRidePage() {
   const showCancel = CANCELLABLE_STATUSES.includes(ride.status);
   const showNav = NAVIGABLE_STATUSES.includes(ride.status) && navDest;
 
-  // Déterminer le centre de la carte
   const mapCenter = ride.status === 'passenger_onboard'
     ? [ride.dropoff_lat || 11.8636, ride.dropoff_lng || -15.5977]
     : [ride.pickup_lat || 11.8636, ride.pickup_lng || -15.5977];
@@ -206,7 +202,7 @@ export default function DriverRidePage() {
           >
             <Navigation size={16} />
             <span className="text-sm font-semibold">
-              {ride.status === 'passenger_onboard' ? 'Naviguer destination' : 'Naviguer pickup'}
+              {ride.status === 'passenger_onboard' ? t('driver.navigateDestination') : t('driver.navigatePickup')}
             </span>
           </motion.button>
         )}
@@ -279,26 +275,26 @@ export default function DriverRidePage() {
               className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-green-50 rounded-xl hover:bg-green-100 transition"
             >
               <Phone size={16} className="text-green-600" />
-              <span className="text-xs font-semibold text-green-700">Appeler</span>
+              <span className="text-xs font-semibold text-green-700">{t('driver.callPassenger')}</span>
             </motion.button>
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={() => {
                 const phone = ride.passenger_phone.replace('+', '');
-                window.open(`https://wa.me/${phone}?text=Bonjour, je suis votre chauffeur MoveBissau. J'arrive bientôt !`);
+                window.open(`https://wa.me/${phone}?text=${encodeURIComponent(t('driver.whatsappMsg'))}`);
               }}
               className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-emerald-50 rounded-xl hover:bg-emerald-100 transition"
             >
               <MessageCircle size={16} className="text-emerald-600" />
-              <span className="text-xs font-semibold text-emerald-700">WhatsApp</span>
+              <span className="text-xs font-semibold text-emerald-700">{t('driver.whatsapp')}</span>
             </motion.button>
             <motion.button
               whileTap={{ scale: 0.9 }}
-              onClick={() => window.open(`sms:${ride.passenger_phone}?body=Bonjour, je suis votre chauffeur MoveBissau.`)}
+              onClick={() => window.open(`sms:${ride.passenger_phone}?body=${encodeURIComponent(t('driver.smsMsg'))}`)}
               className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-blue-50 rounded-xl hover:bg-blue-100 transition"
             >
               <MessageCircle size={16} className="text-blue-600" />
-              <span className="text-xs font-semibold text-blue-700">SMS</span>
+              <span className="text-xs font-semibold text-blue-700">{t('driver.sms')}</span>
             </motion.button>
           </div>
         )}
@@ -330,7 +326,7 @@ export default function DriverRidePage() {
                 className="w-full py-3 rounded-2xl bg-blue-50 text-blue-600 font-semibold text-sm flex items-center justify-center gap-2 hover:bg-blue-100 transition"
               >
                 <Navigation size={16} />
-                Ouvrir dans Waze / Google Maps
+                {t('driver.openNavigation')}
               </motion.button>
             )}
           </div>
@@ -346,7 +342,7 @@ export default function DriverRidePage() {
             ) : (
               <>
                 <Banknote size={22} />
-                Confirmer le paiement — {ride.agreed_price} F
+                {t('driver.confirmPayment')} — {ride.agreed_price} F
               </>
             )}
           </motion.button>
@@ -354,7 +350,7 @@ export default function DriverRidePage() {
           <div className="space-y-3">
             <div className="flex items-center justify-center gap-2 py-4 bg-green-50 rounded-2xl">
               <CheckCircle size={22} className="text-green-600" />
-              <span className="font-bold text-green-700">Course payée — commission déduite</span>
+              <span className="font-bold text-green-700">{t('driver.paidCommission')}</span>
             </div>
             <motion.button
               whileTap={{ scale: 0.97 }}
@@ -362,19 +358,19 @@ export default function DriverRidePage() {
               className="w-full py-3 rounded-2xl bg-gray-100 text-gray-700 font-semibold text-sm flex items-center justify-center gap-2 hover:bg-gray-200 transition"
             >
               <Home size={16} />
-              Retour à l'accueil
+              {t('driver.backHome')}
             </motion.button>
           </div>
         ) : null}
 
-        {/* Annuler — uniquement pendant les étapes annulables */}
+        {/* Annuler */}
         {showCancel && (
           <button
             onClick={() => setShowCancelModal(true)}
             disabled={cancelling}
             className="w-full mt-3 py-2.5 text-red-500 text-sm font-medium rounded-xl hover:bg-red-50 transition"
           >
-            {cancelling ? 'Annulation...' : 'Annuler la course'}
+            {cancelling ? '...' : t('driver.cancelRide')}
           </button>
         )}
       </motion.div>
@@ -382,9 +378,9 @@ export default function DriverRidePage() {
       {/* Modal confirmation paiement */}
       <ConfirmModal
         open={showPaymentModal}
-        title="💰 Confirmer le paiement"
-        message={`Le passager vous a remis ${ride?.agreed_price} F CFA en espèces ?`}
-        confirmLabel={confirmingPayment ? 'Confirmation...' : `Oui, j'ai reçu ${ride?.agreed_price} F`}
+        title={t('driver.confirmPaymentTitle')}
+        message={`${t('driver.confirmPaymentMsg')} ${ride?.agreed_price} F CFA ${t('driver.confirmPaymentMsgEnd')}`}
+        confirmLabel={confirmingPayment ? '...' : `${t('driver.yesReceived')} ${ride?.agreed_price} F`}
         variant="success"
         loading={confirmingPayment}
         onConfirm={confirmCashPayment}
@@ -394,9 +390,9 @@ export default function DriverRidePage() {
       {/* Modal annulation */}
       <ConfirmModal
         open={showCancelModal}
-        title="Annuler la course ?"
-        message="Des frais de 500 F CFA seront déduits de votre crédit commission."
-        confirmLabel={cancelling ? 'Annulation...' : 'Annuler la course'}
+        title={t('driver.cancelRideTitle')}
+        message={t('driver.cancelRideMsg')}
+        confirmLabel={cancelling ? '...' : t('driver.cancelRide')}
         variant="danger"
         loading={cancelling}
         onConfirm={cancelRide}

@@ -8,27 +8,29 @@ import Input from '../../components/ui/Input';
 import RideReceipt from '../../components/ui/RideReceipt';
 import { useToast } from '../../components/ui/Toast';
 import { useAuth } from '../../hooks/useAuth';
-
-const methods = [
-  { id: 'cash', label: 'Espèces', desc: 'Payez directement au chauffeur', icon: '💵', color: 'bg-green-50 border-green-200' },
-  { id: 'orange_money', label: 'Orange Money', desc: 'Via votre compte Orange', icon: '🟠', color: 'bg-orange-50 border-orange-200' },
-  { id: 'moov_money', label: 'Moov Money', desc: 'Via votre compte Moov', icon: '🔵', color: 'bg-blue-50 border-blue-200' },
-];
+import { useTranslation } from '../../i18n/useTranslation';
 
 export default function PaymentPage() {
   const { rideId } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [ride, setRide] = useState(null);
   const [method, setMethod] = useState(() => localStorage.getItem('mb_pay_method') || 'cash');
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState('pay'); // 'pay' | 'receipt'
 
+  const methods = [
+    { id: 'cash', label: t('payment.cash'), desc: t('payment.cashDesc'), icon: '💵', color: 'bg-green-50 border-green-200' },
+    { id: 'orange_money', label: t('payment.orangeMoney'), desc: t('payment.orangeDesc'), icon: '🟠', color: 'bg-orange-50 border-orange-200' },
+    { id: 'moov_money', label: t('payment.moovMoney'), desc: t('payment.moovDesc'), icon: '🔵', color: 'bg-blue-50 border-blue-200' },
+  ];
+
   // Code promo
   const [promoCode, setPromoCode] = useState('');
-  const [promoResult, setPromoResult] = useState(null); // { valid, discount_amount, new_price }
+  const [promoResult, setPromoResult] = useState(null);
   const [promoLoading, setPromoLoading] = useState(false);
   const [promoError, setPromoError] = useState('');
 
@@ -48,13 +50,12 @@ export default function PaymentPage() {
           payment_method: method,
           phone,
         });
-        // Recharger la course pour avoir les données de paiement à jour
         const updated = await api.get(`/rides/${rideId}`);
         setRide(updated);
         setStep('receipt');
       }
     } catch (e) {
-      toast.show(e.message || 'Erreur de paiement', 'error');
+      toast.show(e.message || t('common.error'), 'error');
       setLoading(false);
     }
   };
@@ -82,7 +83,7 @@ export default function PaymentPage() {
             transition={{ delay: 0.2 }}
             className="text-xl font-bold text-gray-800 mb-1"
           >
-            {method === 'cash' ? 'Payez le chauffeur' : 'Paiement réussi !'}
+            {method === 'cash' ? t('payment.payDriver') : `${t('payment.paymentInitiated')}`}
           </motion.h2>
           <motion.p
             initial={{ opacity: 0 }}
@@ -91,8 +92,8 @@ export default function PaymentPage() {
             className="text-sm text-gray-500 mb-6 text-center"
           >
             {method === 'cash'
-              ? 'Remettez le montant en espèces à votre chauffeur'
-              : 'Confirmez le paiement sur votre téléphone'
+              ? t('payment.payDriverSub')
+              : t('payment.confirmOnPhone')
             }
           </motion.p>
 
@@ -111,13 +112,13 @@ export default function PaymentPage() {
         <div className="px-5 pb-8 space-y-3">
           <Button onClick={() => navigate(`/rate/${rideId}`)}>
             <Star size={18} />
-            Noter le chauffeur
+            {t('tracking.rateDriver')}
           </Button>
           <button
             onClick={() => navigate('/')}
             className="w-full py-3 text-gray-400 text-sm font-medium hover:text-gray-600 transition"
           >
-            Passer et revenir à l'accueil
+            {t('payment.skipAndHome')}
           </button>
         </div>
       </div>
@@ -132,7 +133,7 @@ export default function PaymentPage() {
         <button onClick={() => navigate(-1)} className="p-2 -ml-2 rounded-xl hover:bg-gray-100">
           <ArrowLeft size={22} className="text-gray-700" />
         </button>
-        <h2 className="text-lg font-bold">Paiement</h2>
+        <h2 className="text-lg font-bold">{t('payment.title')}</h2>
       </div>
 
       <div className="px-5 pb-10">
@@ -142,9 +143,9 @@ export default function PaymentPage() {
           animate={{ opacity: 1, y: 0 }}
           className="bg-brand-50 rounded-3xl p-6 text-center mb-6"
         >
-          <p className="text-sm text-brand-600">Montant à payer</p>
+          <p className="text-sm text-brand-600">{t('payment.amountToPay')}</p>
           <p className="text-4xl font-extrabold text-brand-700 mt-1">
-            {ride?.agreed_price || '—'} <span className="text-lg">F CFA</span>
+            {ride?.agreed_price || '—'} <span className="text-lg">{t('common.fcfa')}</span>
           </p>
           <p className="text-xs text-brand-500 mt-1">
             {ride?.pickup_address} → {ride?.dropoff_address}
@@ -153,13 +154,13 @@ export default function PaymentPage() {
 
         {/* Code promo */}
         <div className="mb-5">
-          <p className="text-sm font-semibold text-gray-700 mb-2">Code promo</p>
+          <p className="text-sm font-semibold text-gray-700 mb-2">{t('payment.promoCode')}</p>
           <div className="flex gap-2">
             <input
               type="text"
               value={promoCode}
               onChange={e => { setPromoCode(e.target.value.toUpperCase()); setPromoError(''); setPromoResult(null); }}
-              placeholder="Entrez votre code"
+              placeholder={t('payment.promoPlaceholder')}
               className="flex-1 px-4 py-3 border border-gray-200 rounded-xl text-sm font-mono uppercase tracking-wider
                          focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
             />
@@ -175,14 +176,14 @@ export default function PaymentPage() {
                   });
                   setPromoResult(res);
                 } catch (e) {
-                  setPromoError(e.message || 'Code invalide');
+                  setPromoError(e.message || t('payment.promoInvalid'));
                   setPromoResult(null);
                 }
                 setPromoLoading(false);
               }}
               className="px-5 py-3 bg-brand-500 text-white font-semibold rounded-xl text-sm hover:bg-brand-600 transition disabled:opacity-40"
             >
-              {promoLoading ? '...' : 'Appliquer'}
+              {promoLoading ? '...' : t('payment.promoApply')}
             </motion.button>
           </div>
           {promoError && <p className="text-xs text-red-500 mt-1.5">{promoError}</p>}
@@ -194,14 +195,14 @@ export default function PaymentPage() {
             >
               <span className="text-green-600 text-sm">🎉</span>
               <p className="text-xs text-green-700 font-medium">
-                -{promoResult.discount_amount} F appliqué ! Nouveau prix : <span className="font-bold">{promoResult.new_price} F</span>
+                -{promoResult.discount_amount} F {t('payment.promoApplied')} <span className="font-bold">{promoResult.new_price} F</span>
               </p>
             </motion.div>
           )}
         </div>
 
         {/* Choix méthode */}
-        <p className="text-sm font-semibold text-gray-700 mb-3">Mode de paiement</p>
+        <p className="text-sm font-semibold text-gray-700 mb-3">{t('payment.paymentMethod')}</p>
         <div className="space-y-2 mb-6">
           {methods.map((m, i) => (
             <motion.button
@@ -240,7 +241,7 @@ export default function PaymentPage() {
             className="mb-6"
           >
             <Input
-              label="Numéro de téléphone"
+              label={t('payment.phoneNumber')}
               icon={Smartphone}
               type="tel"
               value={phone}
@@ -256,8 +257,8 @@ export default function PaymentPage() {
           disabled={method !== 'cash' && phone.length < 8}
         >
           {method === 'cash'
-            ? `Payer en espèces — ${ride?.agreed_price || 0} F`
-            : `Payer via ${methods.find(m => m.id === method)?.label}`
+            ? `${t('payment.payCash')} — ${ride?.agreed_price || 0} F`
+            : `${t('payment.payVia')} ${methods.find(m => m.id === method)?.label}`
           }
         </Button>
       </div>
