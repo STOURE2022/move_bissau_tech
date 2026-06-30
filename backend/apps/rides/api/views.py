@@ -408,12 +408,16 @@ class RideOfferCreateView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        # Vérifier que le chauffeur n'a pas déjà fait une offre
-        if RideOffer.objects.filter(ride_request=ride_request, driver=driver).exists():
+        # Vérifier que le chauffeur n'a pas déjà une offre active (pending/accepted)
+        existing = RideOffer.objects.filter(ride_request=ride_request, driver=driver)
+        active_offer = existing.filter(status__in=['pending', 'accepted']).exists()
+        if active_offer:
             return Response(
                 {'error': 'Vous avez déjà fait une offre sur cette demande.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
+        # Supprimer les offres rejetées/expirées pour permettre une nouvelle
+        existing.filter(status__in=['rejected', 'expired', 'withdrawn']).delete()
 
         try:
             # Valider le prix de l'offre
