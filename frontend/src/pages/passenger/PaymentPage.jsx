@@ -8,6 +8,7 @@ import Input from '../../components/ui/Input';
 import RideReceipt from '../../components/ui/RideReceipt';
 import { useToast } from '../../components/ui/Toast';
 import { useAuth } from '../../hooks/useAuth';
+import { useCountryConfig } from '../../hooks/useCountryConfig';
 import { useTranslation } from '../../i18n/useTranslation';
 
 export default function PaymentPage() {
@@ -15,6 +16,7 @@ export default function PaymentPage() {
   const navigate = useNavigate();
   const toast = useToast();
   const { user } = useAuth();
+  const country = useCountryConfig();
   const { t } = useTranslation();
   const [ride, setRide] = useState(null);
   const [method, setMethod] = useState(() => localStorage.getItem('mb_pay_method') || 'cash');
@@ -22,11 +24,14 @@ export default function PaymentPage() {
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState('pay'); // 'pay' | 'receipt'
 
-  const methods = [
-    { id: 'cash', label: t('payment.cash'), desc: t('payment.cashDesc'), icon: '💵', color: 'bg-green-50 border-green-200' },
-    { id: 'orange_money', label: t('payment.orangeMoney'), desc: t('payment.orangeDesc'), icon: '🟠', color: 'bg-orange-50 border-orange-200' },
-    { id: 'moov_money', label: t('payment.moovMoney'), desc: t('payment.moovDesc'), icon: '🔵', color: 'bg-blue-50 border-blue-200' },
+  const pm = country.payment_methods || {};
+  const allMethods = [
+    { id: 'cash', label: t('payment.cash'), desc: t('payment.cashDesc'), icon: '💵', color: 'bg-green-50 border-green-200', visible: pm.cash !== false },
+    { id: 'orange_money', label: 'Orange Money', desc: t('payment.orangeDesc'), icon: '🟠', color: 'bg-orange-50 border-orange-200', visible: pm.orange_money !== false },
+    { id: 'moov_money', label: 'Moov Money', desc: t('payment.moovDesc'), icon: '🔵', color: 'bg-blue-50 border-blue-200', visible: pm.moov_money !== false },
+    { id: 'wave', label: 'Wave', desc: 'Via votre compte Wave', icon: '🌊', color: 'bg-cyan-50 border-cyan-200', visible: pm.wave === true },
   ];
+  const methods = allMethods.filter(m => m.visible);
 
   // Code promo
   const [promoCode, setPromoCode] = useState('');

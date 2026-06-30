@@ -67,6 +67,20 @@ class PublicCountryConfigView(APIView):
             'default_zoom': int(get_config('default_zoom', 15)),
             'currency': get_config('currency', 'XOF'),
             'currency_symbol': get_config('currency_symbol', 'F CFA'),
+            # Numéros SOS
+            'sos_numbers': {
+                'police': get_config('sos_police', '117'),
+                'pompiers': get_config('sos_pompiers', '118'),
+                'gendarmerie': get_config('sos_gendarmerie', '113'),
+                'samu': get_config('sos_samu', '119'),
+            },
+            # Moyens de paiement visibles
+            'payment_methods': {
+                'cash': get_config('payment_cash_visible', True),
+                'orange_money': get_config('payment_orange_money_visible', True),
+                'moov_money': get_config('payment_moov_money_visible', True),
+                'wave': get_config('payment_wave_visible', False),
+            },
         })
 
 

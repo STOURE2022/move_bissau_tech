@@ -24,6 +24,18 @@ class Command(BaseCommand):
             ('currency', 'XOF', "Code devise (XOF, EUR, etc.)", 'country'),
             ('currency_symbol', 'F CFA', "Symbole devise affiché", 'country'),
 
+            # === Numéros SOS ===
+            ('sos_police', '117', "Numéro de la police", 'sos'),
+            ('sos_pompiers', '118', "Numéro des pompiers", 'sos'),
+            ('sos_gendarmerie', '113', "Numéro de la gendarmerie", 'sos'),
+            ('sos_samu', '119', "Numéro du SAMU / urgences médicales", 'sos'),
+
+            # === Moyens de paiement visibles ===
+            ('payment_cash_visible', True, "Afficher le paiement en espèces", 'payment'),
+            ('payment_orange_money_visible', True, "Afficher Orange Money", 'payment'),
+            ('payment_moov_money_visible', True, "Afficher Moov Money", 'payment'),
+            ('payment_wave_visible', False, "Afficher Wave", 'payment'),
+
             # === Annulation ===
             ('cancellation_fee', 500, "Frais d'annulation fixe (XOF)", 'cancellation'),
             ('cancellation_debt_expiry_days', 30, "Jours avant expiration dette annulation", 'cancellation'),
