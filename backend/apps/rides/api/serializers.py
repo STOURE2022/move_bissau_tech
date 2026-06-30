@@ -23,6 +23,7 @@ class RideRequestCreateSerializer(serializers.Serializer):
     dropoff_address = serializers.CharField(max_length=500, required=False, default='')
     proposed_price = serializers.IntegerField(min_value=1)
     vehicle_type = serializers.ChoiceField(choices=['moto', 'car'])
+    luggage_type = serializers.ChoiceField(choices=['none', 'small', 'suitcase', 'large'], default='none', required=False)
     preferred_driver_id = serializers.UUIDField(required=False, allow_null=True)
 
 
@@ -94,7 +95,7 @@ class RideRequestSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'pickup_address', 'dropoff_address',
             'estimated_distance_m', 'suggested_price', 'proposed_price',
-            'vehicle_type', 'status', 'notified_count',
+            'vehicle_type', 'luggage_type', 'status', 'notified_count',
             'offers_count', 'offers',
             'expires_at', 'created_at',
         ]

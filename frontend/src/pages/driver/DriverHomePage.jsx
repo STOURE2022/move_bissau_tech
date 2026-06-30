@@ -547,8 +547,12 @@ export default function DriverHomePage() {
                         {/* En-tête */}
                         <div className="flex items-center justify-between px-5 pt-4 pb-2">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-brand-50 rounded-2xl flex items-center justify-center">
-                              <span className="text-lg">{req.vehicle_type === 'moto' ? '🏍️' : '🚗'}</span>
+                            <div className="w-10 h-10 bg-brand-50 rounded-2xl flex items-center justify-center overflow-hidden">
+                              {req.passenger_avatar ? (
+                                <img src={req.passenger_avatar} alt="" className="w-full h-full object-cover" />
+                              ) : (
+                                <span className="text-lg">{req.vehicle_type === 'moto' ? '🏍️' : '🚗'}</span>
+                              )}
                             </div>
                             <div>
                               <p className="font-bold text-gray-800">{req.passenger_name}</p>
@@ -559,6 +563,11 @@ export default function DriverHomePage() {
                                     : `${((req.estimated_distance_m || 0) / 1000).toFixed(1)} km`
                                   }
                                 </span>
+                                {req.luggage_type && req.luggage_type !== 'none' && (
+                                  <span className="text-xs bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded-full font-medium">
+                                    {{ small: '🎒 Sac', suitcase: '🧳 Valise', large: '📦 Gros' }[req.luggage_type]}
+                                  </span>
+                                )}
                               </div>
                             </div>
                           </div>

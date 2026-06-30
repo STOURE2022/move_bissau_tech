@@ -130,6 +130,7 @@ export default function RequestPage() {
   const [priceInput, setPriceInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [luggageType, setLuggageType] = useState('none');
   const [routeCoords, setRouteCoords] = useState(null);
 
   // Vérifier s'il y a une demande en cours au chargement
@@ -252,6 +253,7 @@ export default function RequestPage() {
         dropoff_address: dropoffAddress,
         proposed_price: price,
         vehicle_type: vehicleType,
+        luggage_type: luggageType,
       };
       if (preferredDriver?.id) requestData.preferred_driver_id = preferredDriver.id;
       const data = await api.post('/rides/requests', requestData);
@@ -545,6 +547,40 @@ export default function RequestPage() {
               <p className="text-xs text-gray-400 text-center mt-1">
                 {estimate.min_price} — {estimate.max_price} F · Touchez le prix pour saisir directement
               </p>
+            </div>
+
+            {/* Sélecteur bagages */}
+            <div className="mb-3">
+              <div className="flex gap-1.5 justify-center">
+                {[
+                  { id: 'none', icon: '—', label: 'Aucun' },
+                  { id: 'small', icon: '🎒', label: 'Sac' },
+                  { id: 'suitcase', icon: '🧳', label: 'Valise' },
+                  { id: 'large', icon: '📦', label: 'Gros' },
+                ].map(l => (
+                  <button
+                    key={l.id}
+                    onClick={() => {
+                      if (l.id === 'large' && vehicleType === 'moto') {
+                        setError('Gros bagage incompatible avec une moto');
+                        return;
+                      }
+                      if (l.id === 'suitcase' && vehicleType === 'moto') {
+                        setError('⚠️ Une valise est difficile à transporter en moto');
+                      }
+                      setLuggageType(l.id);
+                    }}
+                    className={`flex flex-col items-center px-3 py-2 rounded-xl text-xs transition-all ${
+                      luggageType === l.id
+                        ? 'bg-brand-500 text-white shadow-sm'
+                        : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                    } ${l.id === 'large' && vehicleType === 'moto' ? 'opacity-30' : ''}`}
+                  >
+                    <span className="text-base">{l.icon}</span>
+                    <span className="font-medium mt-0.5">{l.label}</span>
+                  </button>
+                ))}
+              </div>
             </div>
 
             {error && <p className="text-red-500 text-sm text-center mb-2">{error}</p>}

@@ -55,6 +55,14 @@ class RideRequest(BaseModel):
     # Préférences
     vehicle_type = models.CharField(max_length=10, choices=VEHICLE_TYPE_CHOICES)
 
+    LUGGAGE_CHOICES = [
+        ('none', 'Aucun bagage'),
+        ('small', 'Petit sac'),
+        ('suitcase', 'Valise'),
+        ('large', 'Gros bagage'),
+    ]
+    luggage_type = models.CharField(max_length=10, choices=LUGGAGE_CHOICES, default='none')
+
     # Matching
     search_radius_m = models.PositiveIntegerField(
         verbose_name="Rayon de recherche (m)"

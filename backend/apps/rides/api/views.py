@@ -92,11 +92,19 @@ class NearbyRideRequestsView(APIView):
             return Response([])
 
         # Demandes en cours non expirées
+        # Exclure uniquement les demandes où le chauffeur a une offre pending ou accepted
+        # (pas rejected — le chauffeur peut revoir une demande après rejet)
+        from apps.rides.models import RideOffer as RO
+        already_offered_ids = RO.objects.filter(
+            driver=driver,
+            status__in=['pending', 'accepted'],
+        ).values_list('ride_request_id', flat=True)
+
         requests_qs = RideRequest.objects.filter(
             status__in=['pending', 'offers_received'],
             expires_at__gt=timezone.now(),
         ).exclude(
-            offers__driver=driver,
+            id__in=already_offered_ids,
         ).select_related('passenger')
 
         # Filtre géographique seulement si le chauffeur a une position GPS
@@ -131,8 +139,10 @@ class NearbyRideRequestsView(APIView):
                 'proposed_price': r.proposed_price,
                 'suggested_price': r.suggested_price,
                 'vehicle_type': r.vehicle_type,
+                'luggage_type': getattr(r, 'luggage_type', 'none'),
                 'estimated_distance_m': r.estimated_distance_m,
                 'passenger_name': f"{r.passenger.first_name} {r.passenger.last_name[0]}.",
+                'passenger_avatar': r.passenger.avatar_url or '',
                 'expires_at': r.expires_at.isoformat(),
                 'distance_to_pickup_m': int(distance_m),
             })
@@ -201,6 +211,7 @@ class RideRequestCreateView(APIView):
             suggested_price=suggested_price,
             proposed_price=data['proposed_price'],
             vehicle_type=data['vehicle_type'],
+            luggage_type=data.get('luggage_type', 'none'),
             search_radius_m=search_radius,
             max_drivers_notified=max_drivers,
             expires_at=timezone.now() + timezone.timedelta(seconds=ttl),
