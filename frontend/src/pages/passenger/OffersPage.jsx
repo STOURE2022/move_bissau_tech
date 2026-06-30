@@ -339,6 +339,8 @@ export default function OffersPage() {
                 const dist = ((offer.driver_distance_m || 0) / 1000).toFixed(1);
                 const isCounter = offer.is_counter_offer;
                 const priceDiff = offer.offered_price - (request?.proposed_price || 0);
+                const vehicleMismatch = request?.vehicle_type && offer.driver_vehicle_type !== request.vehicle_type;
+                const canReject = isCounter || vehicleMismatch;
 
                 return (
                   <motion.div
@@ -348,20 +350,42 @@ export default function OffersPage() {
                     transition={{ delay: i * 0.1, type: 'spring', damping: 20 }}
                     className="bg-white rounded-3xl shadow-md border border-gray-100 overflow-hidden"
                   >
-                    {/* Badge statut offre */}
-                    {isCounter ? (
-                      <div className="bg-amber-50 px-4 py-1.5 flex items-center gap-2">
-                        <TrendingUp size={12} className="text-amber-600" />
-                        <span className="text-xs font-semibold text-amber-700">
-                          Contre-offre ({priceDiff > 0 ? '+' : ''}{priceDiff} F)
+                    {/* Badges statut */}
+                    <div className="flex flex-wrap gap-0">
+                      {isCounter ? (
+                        <div className="bg-amber-50 px-4 py-1.5 flex items-center gap-2 flex-1">
+                          <TrendingUp size={12} className="text-amber-600" />
+                          <span className="text-xs font-semibold text-amber-700">
+                            Contre-offre ({priceDiff > 0 ? '+' : ''}{priceDiff} F)
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="bg-green-50 px-4 py-1.5 flex items-center gap-2 flex-1">
+                          <span className="text-xs">✅</span>
+                          <span className="text-xs font-semibold text-green-700">
+                            A accepté votre prix
+                          </span>
+                        </div>
+                      )}
+                      {/* Badge type véhicule */}
+                      <div className={`px-3 py-1.5 flex items-center gap-1.5 ${
+                        vehicleMismatch ? 'bg-orange-50' : 'bg-gray-50'
+                      }`}>
+                        <span className="text-sm">{offer.driver_vehicle_type === 'moto' ? '🏍️' : '🚗'}</span>
+                        <span className={`text-[10px] font-bold ${vehicleMismatch ? 'text-orange-600' : 'text-gray-500'}`}>
+                          {offer.driver_vehicle_type === 'moto' ? 'Moto' : 'Voiture'}
                         </span>
                       </div>
-                    ) : (
-                      <div className="bg-green-50 px-4 py-1.5 flex items-center gap-2">
-                        <span className="text-xs">✅</span>
-                        <span className="text-xs font-semibold text-green-700">
-                          A accepté votre prix
-                        </span>
+                    </div>
+
+                    {/* Avertissement véhicule différent */}
+                    {vehicleMismatch && (
+                      <div className="bg-orange-50 border-t border-orange-100 px-4 py-2 flex items-center gap-2">
+                        <span className="text-orange-500 text-sm">⚠️</span>
+                        <p className="text-[11px] text-orange-700">
+                          Vous avez demandé {request.vehicle_type === 'car' ? 'une voiture' : 'une moto'},
+                          ce chauffeur est en <strong>{offer.driver_vehicle_type === 'moto' ? 'moto' : 'voiture'}</strong>
+                        </p>
                       </div>
                     )}
 
@@ -430,8 +454,8 @@ export default function OffersPage() {
                             <>✓ Choisir ce chauffeur</>
                           )}
                         </motion.button>
-                        {/* Refuser uniquement les contre-offres, pas quand le chauffeur accepte notre prix */}
-                        {isCounter && (
+                        {/* Refuser si contre-offre OU véhicule différent */}
+                        {canReject && (
                           <motion.button
                             whileTap={{ scale: 0.95 }}
                             onClick={async () => {
