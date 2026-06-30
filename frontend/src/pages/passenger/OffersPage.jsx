@@ -348,12 +348,19 @@ export default function OffersPage() {
                     transition={{ delay: i * 0.1, type: 'spring', damping: 20 }}
                     className="bg-white rounded-3xl shadow-md border border-gray-100 overflow-hidden"
                   >
-                    {/* Badge contre-offre */}
-                    {isCounter && (
+                    {/* Badge statut offre */}
+                    {isCounter ? (
                       <div className="bg-amber-50 px-4 py-1.5 flex items-center gap-2">
                         <TrendingUp size={12} className="text-amber-600" />
                         <span className="text-xs font-semibold text-amber-700">
                           Contre-offre ({priceDiff > 0 ? '+' : ''}{priceDiff} F)
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="bg-green-50 px-4 py-1.5 flex items-center gap-2">
+                        <span className="text-xs">✅</span>
+                        <span className="text-xs font-semibold text-green-700">
+                          A accepté votre prix
                         </span>
                       </div>
                     )}
@@ -413,23 +420,27 @@ export default function OffersPage() {
                         >
                           {accepting === offer.id ? (
                             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          ) : (
+                          ) : isCounter ? (
                             <>✓ Accepter — {offer.offered_price} F</>
+                          ) : (
+                            <>✓ Choisir ce chauffeur</>
                           )}
                         </motion.button>
-                        <motion.button
-                          whileTap={{ scale: 0.95 }}
-                          onClick={async () => {
-                            // Refuser l'offre en base + retirer de la liste
-                            setOffers(prev => prev.filter(o => o.id !== offer.id));
-                            try {
-                              await api.post(`/rides/requests/${requestId}/reject-offer`, { offer_id: offer.id });
-                            } catch {}
-                          }}
-                          className="px-4 py-3.5 border-2 border-red-200 text-red-500 rounded-2xl hover:bg-red-50 transition font-semibold text-sm"
-                        >
-                          ✗
-                        </motion.button>
+                        {/* Refuser uniquement les contre-offres, pas quand le chauffeur accepte notre prix */}
+                        {isCounter && (
+                          <motion.button
+                            whileTap={{ scale: 0.95 }}
+                            onClick={async () => {
+                              setOffers(prev => prev.filter(o => o.id !== offer.id));
+                              try {
+                                await api.post(`/rides/requests/${requestId}/reject-offer`, { offer_id: offer.id });
+                              } catch {}
+                            }}
+                            className="px-4 py-3.5 border-2 border-red-200 text-red-500 rounded-2xl hover:bg-red-50 transition font-semibold text-sm"
+                          >
+                            ✗
+                          </motion.button>
+                        )}
                       </div>
                     </div>
                   </motion.div>
