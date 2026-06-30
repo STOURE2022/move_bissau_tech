@@ -1,17 +1,19 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Home, Wallet, Clock, User } from 'lucide-react';
-
-const tabs = [
-  { path: '/driver', icon: Home, label: 'Accueil' },
-  { path: '/driver/credit', icon: Wallet, label: 'Crédit' },
-  { path: '/driver/history', icon: Clock, label: 'Historique' },
-  { path: '/driver/profile', icon: User, label: 'Profil' },
-];
+import { useTranslation } from '../../i18n/useTranslation';
 
 export default function DriverNav() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = useTranslation();
+
+  const tabs = [
+    { path: '/driver', icon: Home, label: t('nav.home') },
+    { path: '/driver/credit', icon: Wallet, label: t('nav.credit') },
+    { path: '/driver/history', icon: Clock, label: t('nav.history') },
+    { path: '/driver/profile', icon: User, label: t('nav.profile') },
+  ];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 max-w-[480px] mx-auto bg-white border-t border-gray-100 z-50 px-2 pb-[env(safe-area-inset-bottom)]">

@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { MapPin, Clock, Route, User, Car, Receipt, Download } from 'lucide-react';
+import { useTranslation } from '../../i18n/useTranslation';
 
 /**
  * Reçu de course — affiché après paiement et dans l'historique.

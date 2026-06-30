@@ -1,17 +1,19 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Home, MapPin, Clock, User } from 'lucide-react';
 import { motion } from 'framer-motion';
-
-const NAV_ITEMS = [
-  { path: '/', icon: Home, label: 'Accueil' },
-  { path: '/my-rides', icon: MapPin, label: 'Courses' },
-  { path: '/history', icon: Clock, label: 'Historique' },
-  { path: '/profile', icon: User, label: 'Profil' },
-];
+import { useTranslation } from '../../i18n/useTranslation';
 
 export default function PassengerNav() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
+
+  const NAV_ITEMS = [
+    { path: '/', icon: Home, label: t('nav.home') },
+    { path: '/my-rides', icon: MapPin, label: t('nav.rides') },
+    { path: '/history', icon: Clock, label: t('nav.history') },
+    { path: '/profile', icon: User, label: t('nav.profile') },
+  ];
 
   const hiddenPaths = ['/request', '/offers', '/tracking', '/payment', '/rate', '/welcome', '/login', '/register', '/forgot', '/otp', '/complete', '/driver'];
   if (hiddenPaths.some(p => location.pathname.startsWith(p))) return null;
