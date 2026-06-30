@@ -256,6 +256,11 @@ export default function PassengerProfilePage() {
           <span className="font-semibold">{t('common.logout', 'Déconnexion')}</span>
         </motion.button>
 
+        {/* Version */}
+        <p className="text-center text-[10px] text-gray-300 mt-4">
+          MoveBissau v1.0.0
+        </p>
+
         <div className="h-6" />
       </div>
     </div>

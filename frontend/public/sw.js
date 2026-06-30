@@ -1,14 +1,35 @@
-// Service Worker MoveBissau — notifications + cache
-const CACHE_NAME = 'movebissau-v1';
+// Service Worker MoveBissau — notifications + mise à jour
+const CACHE_NAME = 'movebissau-v2';
 
-// Install
+// Install — nouveau SW prêt
 self.addEventListener('install', (e) => {
-  self.skipWaiting();
+  // Ne pas skipWaiting automatiquement — attendre que l'utilisateur accepte la MAJ
+  e.waitUntil(
+    caches.open(CACHE_NAME).then(() => {
+      console.log('[SW] Nouvelle version installée');
+    })
+  );
 });
 
-// Activate
+// Activate — nettoyer les anciens caches
 self.addEventListener('activate', (e) => {
-  e.waitUntil(self.clients.claim());
+  e.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(
+        keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
+      )
+    ).then(() => {
+      console.log('[SW] Anciens caches supprimés');
+      return self.clients.claim();
+    })
+  );
+});
+
+// Message du client — "skipWaiting" pour activer la nouvelle version
+self.addEventListener('message', (e) => {
+  if (e.data === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 // Push notification reçue
@@ -17,8 +38,8 @@ self.addEventListener('push', (e) => {
   const title = data.title || 'MoveBissau';
   const options = {
     body: data.body || '',
-    icon: '/icon-192.png',
-    badge: '/icon-192.png',
+    icon: '/icon-192.svg',
+    badge: '/icon-192.svg',
     vibrate: [200, 100, 200],
     data: data.url || '/',
     actions: data.actions || [],
@@ -34,7 +55,6 @@ self.addEventListener('notificationclick', (e) => {
   const url = e.notification.data || '/';
   e.waitUntil(
     self.clients.matchAll({ type: 'window' }).then((clients) => {
-      // Focus sur un onglet existant ou ouvrir un nouveau
       for (const client of clients) {
         if (client.url.includes(self.location.origin) && 'focus' in client) {
           client.navigate(url);

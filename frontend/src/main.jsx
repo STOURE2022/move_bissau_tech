@@ -6,6 +6,7 @@ import { AuthProvider } from './hooks/useAuth';
 import { CountryProvider } from './hooks/useCountryConfig';
 import { ToastProvider } from './components/ui/Toast';
 import OfflineBanner from './components/ui/OfflineBanner';
+import UpdateBanner from './components/ui/UpdateBanner';
 import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
@@ -14,6 +15,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       <CountryProvider>
       <AuthProvider>
         <ToastProvider>
+          <UpdateBanner />
           <OfflineBanner />
           <App />
         </ToastProvider>
