@@ -122,7 +122,7 @@ export default function DriverHistoryPage() {
               >
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-lg">{ride.vehicle_type === 'moto' ? '🏍️' : '🚗'}</span>
+                    <span className="text-lg">{(ride.driver_vehicle?.type || ride.vehicle_type) === 'car' ? '🚗' : '🏍️'}</span>
                     <span className="font-bold text-gray-800">{ride.agreed_price} F</span>
                   </div>
                   <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${status.color}`}>

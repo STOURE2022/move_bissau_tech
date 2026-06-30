@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker } from 'react-leaflet';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Phone, Navigation, MapPin, AlertTriangle, X,
   ArrowLeft, ArrowRight, CheckCircle, User, Banknote, Home, MessageCircle
@@ -12,6 +12,7 @@ import ConfirmModal from '../../components/ui/ConfirmModal';
 import { useToast } from '../../components/ui/Toast';
 import L from 'leaflet';
 import { useTranslation } from '../../i18n/useTranslation';
+import { useCountryConfig } from '../../hooks/useCountryConfig';
 
 const pickupIcon = L.divIcon({
   className: '',
@@ -52,12 +53,14 @@ export default function DriverRidePage() {
   const { rideId } = useParams();
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const country = useCountryConfig();
   const [ride, setRide] = useState(null);
   const [updating, setUpdating] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [confirmingPayment, setConfirmingPayment] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showSos, setShowSos] = useState(false);
   const toast = useToast();
 
   // Type réel du véhicule du chauffeur
@@ -307,6 +310,18 @@ export default function DriverRidePage() {
           </div>
         )}
 
+        {/* SOS chauffeur */}
+        {['driver_assigned', 'driver_en_route', 'driver_arrived', 'passenger_onboard'].includes(ride.status) && (
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowSos(true)}
+            className="w-full mb-3 py-2.5 bg-red-50 text-red-600 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 hover:bg-red-100 transition"
+          >
+            <AlertTriangle size={16} />
+            SOS
+          </motion.button>
+        )}
+
         {/* Bouton d'action principal */}
         {nextStep ? (
           <div className="space-y-2">
@@ -382,6 +397,50 @@ export default function DriverRidePage() {
           </button>
         )}
       </motion.div>
+
+      {/* Modal SOS */}
+      <AnimatePresence>
+        {showSos && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center px-5">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowSos(false)} />
+            <motion.div initial={{ opacity: 0, scale: 0.85 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.85 }}
+              className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6">
+              <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <AlertTriangle size={32} className="text-red-500" />
+              </div>
+              <h3 className="text-lg font-bold text-center text-gray-800 mb-2">{t('tracking.sosTitle')}</h3>
+              <p className="text-sm text-gray-500 text-center mb-4">{t('tracking.sosMessage')}</p>
+
+              {country.sos_numbers && (
+                <div className="space-y-2 mb-5">
+                  {[
+                    { key: 'police', icon: '🚔', label: 'Police' },
+                    { key: 'pompiers', icon: '🚒', label: 'Pompiers' },
+                    { key: 'gendarmerie', icon: '🛡️', label: 'Gendarmerie' },
+                    { key: 'samu', icon: '🚑', label: 'SAMU' },
+                  ].filter(s => country.sos_numbers[s.key]).map(s => (
+                    <a
+                      key={s.key}
+                      href={`tel:${country.sos_numbers[s.key]}`}
+                      className="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition"
+                    >
+                      <span className="text-lg">{s.icon}</span>
+                      <span className="flex-1 font-semibold text-sm text-gray-800">{s.label}</span>
+                      <span className="text-sm font-mono text-brand-600">{country.sos_numbers[s.key]}</span>
+                    </a>
+                  ))}
+                </div>
+              )}
+
+              <button onClick={() => setShowSos(false)}
+                className="w-full py-3.5 rounded-2xl border-2 border-gray-200 font-semibold text-gray-600 hover:bg-gray-50">
+                {t('common.cancel')}
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Modal confirmation paiement */}
       <ConfirmModal

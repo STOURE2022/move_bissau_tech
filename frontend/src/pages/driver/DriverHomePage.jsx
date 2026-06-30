@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Power, Wallet, Star, Car, Clock, AlertCircle,
+  Power, Wallet, Star, Car, Clock, AlertCircle, AlertTriangle,
   ChevronRight, Timer, TrendingUp, MapPin, Navigation,
   Send, X, CheckCircle
 } from 'lucide-react';
@@ -15,11 +15,14 @@ import DriverNav from '../../components/layout/DriverNav';
 import DailyProgress from '../../components/driver/DailyProgress';
 import NotifBell from '../../components/driver/NotifBell';
 import { useTranslation } from '../../i18n/useTranslation';
+import { useCountryConfig } from '../../hooks/useCountryConfig';
 
 export default function DriverHomePage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const country = useCountryConfig();
+  const [showSos, setShowSos] = useState(false);
   const [isOnline, setIsOnline] = useState(false);
   const [profile, setProfile] = useState(null);
   const [credit, setCredit] = useState(null);
@@ -393,6 +396,13 @@ export default function DriverHomePage() {
               <h1 className="text-white text-xl font-bold">{user?.first_name} 👋</h1>
             </div>
             <div className="flex items-center gap-2">
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setShowSos(true)}
+                className="w-10 h-10 bg-red-500/80 backdrop-blur-sm rounded-2xl flex items-center justify-center border border-red-400/30"
+              >
+                <AlertTriangle size={18} className="text-white" />
+              </motion.button>
               <NotifBell />
               <motion.button
                 whileTap={{ scale: 0.95 }}
@@ -787,6 +797,50 @@ export default function DriverHomePage() {
           </motion.div>
         )}
       </div>
+
+      {/* Modal SOS */}
+      <AnimatePresence>
+        {showSos && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center px-5">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowSos(false)} />
+            <motion.div initial={{ opacity: 0, scale: 0.85 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.85 }}
+              className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6">
+              <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <AlertTriangle size={32} className="text-red-500" />
+              </div>
+              <h3 className="text-lg font-bold text-center text-gray-800 mb-2">{t('tracking.sosTitle')}</h3>
+              <p className="text-sm text-gray-500 text-center mb-4">{t('tracking.sosMessage')}</p>
+
+              {country.sos_numbers && (
+                <div className="space-y-2 mb-5">
+                  {[
+                    { key: 'police', icon: '🚔', label: 'Police' },
+                    { key: 'pompiers', icon: '🚒', label: 'Pompiers' },
+                    { key: 'gendarmerie', icon: '🛡️', label: 'Gendarmerie' },
+                    { key: 'samu', icon: '🚑', label: 'SAMU' },
+                  ].filter(s => country.sos_numbers[s.key]).map(s => (
+                    <a
+                      key={s.key}
+                      href={`tel:${country.sos_numbers[s.key]}`}
+                      className="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition"
+                    >
+                      <span className="text-lg">{s.icon}</span>
+                      <span className="flex-1 font-semibold text-sm text-gray-800">{s.label}</span>
+                      <span className="text-sm font-mono text-brand-600">{country.sos_numbers[s.key]}</span>
+                    </a>
+                  ))}
+                </div>
+              )}
+
+              <button onClick={() => setShowSos(false)}
+                className="w-full py-3.5 rounded-2xl border-2 border-gray-200 font-semibold text-gray-600 hover:bg-gray-50">
+                {t('common.cancel')}
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       <DriverNav />
     </div>
