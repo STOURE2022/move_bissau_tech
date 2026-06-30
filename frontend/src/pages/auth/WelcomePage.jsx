@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import {
   ChevronRight, ChevronDown, Shield, Zap, MapPin,
-  DollarSign, Star, Users, Phone, ArrowRight, Settings
+  DollarSign, Star, Users, Phone, ArrowRight, Settings, Globe
 } from 'lucide-react';
+import { useTranslation } from '../../i18n/useTranslation';
+import { getLang } from '../../i18n/useTranslation';
 
 // Image de fond du hero — charge une photo avec fallback CSS
 function HeroBackground() {
@@ -90,48 +92,66 @@ function AnimatedCounter({ end, suffix = '', duration = 2000 }) {
   return <span ref={ref}>{count.toLocaleString()}{suffix}</span>;
 }
 
-const FEATURES = [
-  {
-    icon: DollarSign,
-    title: 'Vous fixez le prix',
-    desc: 'Proposez votre tarif. Les chauffeurs vous envoient leurs offres. Vous choisissez.',
-    color: 'from-green-400 to-emerald-500',
-    iconBg: 'bg-green-500',
-  },
-  {
-    icon: Zap,
-    title: 'Réponse en 2 min',
-    desc: 'Des chauffeurs proches reçoivent votre demande instantanément par notification.',
-    color: 'from-yellow-400 to-orange-500',
-    iconBg: 'bg-yellow-500',
-  },
-  {
-    icon: Shield,
-    title: 'Trajet sécurisé',
-    desc: 'Chauffeurs vérifiés, partage de trajet en direct et bouton SOS intégré.',
-    color: 'from-blue-400 to-indigo-500',
-    iconBg: 'bg-blue-500',
-  },
-  {
-    icon: Phone,
-    title: 'Paiement flexible',
-    desc: 'Payez en espèces, Orange Money ou Moov Money. Comme vous voulez.',
-    color: 'from-purple-400 to-pink-500',
-    iconBg: 'bg-purple-500',
-  },
-];
+// FEATURES et STEPS sont générés dynamiquement dans le composant pour la traduction
 
-const STEPS = [
-  { num: '1', title: 'Entrez votre destination', desc: 'Recherchez ou touchez la carte', emoji: '📍' },
-  { num: '2', title: 'Proposez votre prix', desc: 'Vous décidez combien payer', emoji: '💰' },
-  { num: '3', title: 'Choisissez votre chauffeur', desc: 'Comparez les offres reçues', emoji: '🏍️' },
-  { num: '4', title: 'Profitez du trajet', desc: 'Suivez en temps réel', emoji: '🛣️' },
-];
+function LanguageSwitcher() {
+  const [lang, setLangState] = useState(getLang());
+
+  const switchLang = (newLang) => {
+    setLangState(newLang);
+    // Sauver dans localStorage pour que useTranslation le détecte
+    try {
+      const user = JSON.parse(localStorage.getItem('mb_user') || '{}');
+      user.preferred_lang = newLang;
+      localStorage.setItem('mb_user', JSON.stringify(user));
+    } catch {
+      localStorage.setItem('mb_user', JSON.stringify({ preferred_lang: newLang }));
+    }
+    // Recharger la page pour appliquer
+    window.location.reload();
+  };
+
+  return (
+    <div className="flex items-center gap-1 bg-white/10 backdrop-blur-sm rounded-full p-1">
+      <button
+        onClick={() => switchLang('fr')}
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
+          lang === 'fr' ? 'bg-white text-brand-600 shadow-sm' : 'text-white/70 hover:text-white'
+        }`}
+      >
+        🇫🇷 FR
+      </button>
+      <button
+        onClick={() => switchLang('pt')}
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
+          lang === 'pt' ? 'bg-white text-brand-600 shadow-sm' : 'text-white/70 hover:text-white'
+        }`}
+      >
+        🇵🇹 PT
+      </button>
+    </div>
+  );
+}
 
 export default function WelcomePage() {
   const navigate = useNavigate();
   const containerRef = useRef(null);
   const { scrollYProgress } = useScroll({ target: containerRef });
+  const { t } = useTranslation();
+
+  const FEATURES = [
+    { icon: DollarSign, title: t('welcome.feat1Title'), desc: t('welcome.feat1Desc'), color: 'from-green-400 to-emerald-500', iconBg: 'bg-green-500' },
+    { icon: Zap, title: t('welcome.feat2Title'), desc: t('welcome.feat2Desc'), color: 'from-yellow-400 to-orange-500', iconBg: 'bg-yellow-500' },
+    { icon: Shield, title: t('welcome.feat3Title'), desc: t('welcome.feat3Desc'), color: 'from-blue-400 to-indigo-500', iconBg: 'bg-blue-500' },
+    { icon: Phone, title: t('welcome.feat4Title'), desc: t('welcome.feat4Desc'), color: 'from-purple-400 to-pink-500', iconBg: 'bg-purple-500' },
+  ];
+
+  const STEPS = [
+    { num: '1', title: t('welcome.step1Title'), desc: t('welcome.step1Desc'), emoji: '📍' },
+    { num: '2', title: t('welcome.step2Title'), desc: t('welcome.step2Desc'), emoji: '💰' },
+    { num: '3', title: t('welcome.step3Title'), desc: t('welcome.step3Desc'), emoji: '🏍️' },
+    { num: '4', title: t('welcome.step4Title'), desc: t('welcome.step4Desc'), emoji: '🛣️' },
+  ];
 
   // Parallax pour le hero
   const heroY = useTransform(scrollYProgress, [0, 0.2], [0, -60]);
@@ -156,6 +176,11 @@ export default function WelcomePage() {
       {/* HERO — Plein écran, immersif avec photo */}
       {/* ============================================ */}
       <section className="relative h-[100dvh] flex flex-col overflow-hidden">
+        {/* Sélecteur de langue en haut à droite */}
+        <div className="absolute top-4 right-4 z-30">
+          <LanguageSwitcher />
+        </div>
+
         {/* Fond immersif : photo + overlay + mesh gradient */}
         <div className="absolute inset-0">
           {/* Photo de fond (chargée depuis le réseau, avec fallback) */}
@@ -205,8 +230,8 @@ export default function WelcomePage() {
             transition={{ delay: 0.4 }}
             className="text-white text-4xl font-extrabold text-center leading-tight"
           >
-            Déplacez-vous<br />
-            <span className="text-yellow-300">à votre prix</span>
+            {t('welcome.heroTitle1')}<br />
+            <span className="text-yellow-300">{t('welcome.heroTitle2')}</span>
           </motion.h1>
 
           <motion.p
@@ -215,8 +240,8 @@ export default function WelcomePage() {
             transition={{ delay: 0.6 }}
             className="text-brand-100 text-center mt-4 text-base max-w-xs leading-relaxed"
           >
-            La première app de transport à Bissau où
-            <strong className="text-white"> vous décidez du tarif</strong>.
+            {t('welcome.heroSubtitle')}
+            <strong className="text-white">{t('welcome.heroHighlight')}</strong>.
           </motion.p>
 
           {/* CTA principal */}
@@ -229,7 +254,7 @@ export default function WelcomePage() {
             className="mt-8 bg-white text-brand-600 font-bold text-lg px-8 py-4 rounded-2xl shadow-elevated
                        flex items-center gap-2 hover:shadow-xl transition-shadow"
           >
-            Commencer
+            {t('welcome.start')}
             <ChevronRight size={20} />
           </motion.button>
 
@@ -239,7 +264,7 @@ export default function WelcomePage() {
             transition={{ delay: 1.2 }}
             className="text-brand-200 text-xs mt-4"
           >
-            Gratuit — inscription en 30 secondes
+            {t('welcome.freeSignup')}
           </motion.p>
         </motion.div>
 
@@ -250,7 +275,7 @@ export default function WelcomePage() {
           transition={{ delay: 1.5 }}
           className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1"
         >
-          <span className="text-white/50 text-xs">Découvrir</span>
+          <span className="text-white/50 text-xs">{t('welcome.discover')}</span>
           <motion.div
             animate={{ y: [0, 6, 0] }}
             transition={{ duration: 1.5, repeat: Infinity }}
@@ -270,8 +295,8 @@ export default function WelcomePage() {
           viewport={{ once: true, margin: '-50px' }}
           className="text-center mb-8"
         >
-          <h2 className="text-2xl font-extrabold text-gray-800">Comment ça marche ?</h2>
-          <p className="text-gray-500 text-sm mt-2">Simple comme 1-2-3-4</p>
+          <h2 className="text-2xl font-extrabold text-gray-800">{t('welcome.howItWorks')}</h2>
+          <p className="text-gray-500 text-sm mt-2">{t('welcome.simple')}</p>
         </motion.div>
 
         <div className="space-y-4">
@@ -311,8 +336,8 @@ export default function WelcomePage() {
           viewport={{ once: true, margin: '-50px' }}
           className="text-center mb-8"
         >
-          <h2 className="text-2xl font-extrabold text-gray-800">Pourquoi MoveBissau ?</h2>
-          <p className="text-gray-500 text-sm mt-2">Ce qui nous rend différent</p>
+          <h2 className="text-2xl font-extrabold text-gray-800">{t('welcome.whyUs')}</h2>
+          <p className="text-gray-500 text-sm mt-2">{t('welcome.whyUsSub')}</p>
         </motion.div>
 
         <div className="space-y-4">
@@ -352,14 +377,14 @@ export default function WelcomePage() {
           viewport={{ once: true }}
           className="text-center mb-8"
         >
-          <h2 className="text-2xl font-extrabold">Bissau nous fait confiance</h2>
+          <h2 className="text-2xl font-extrabold">{t('welcome.trustTitle')}</h2>
         </motion.div>
 
         <div className="grid grid-cols-3 gap-3">
           {[
-            { value: 500, suffix: '+', label: 'Courses', icon: '🏍️' },
-            { value: 120, suffix: '+', label: 'Chauffeurs', icon: '👨‍✈️' },
-            { value: 98, suffix: '%', label: 'Satisfaction', icon: '⭐' },
+            { value: 500, suffix: '+', label: t('welcome.statRides'), icon: '🏍️' },
+            { value: 120, suffix: '+', label: t('welcome.statDrivers'), icon: '👨‍✈️' },
+            { value: 98, suffix: '%', label: t('welcome.statSatisfaction'), icon: '⭐' },
           ].map((stat, i) => (
             <motion.div
               key={stat.label}
@@ -389,8 +414,8 @@ export default function WelcomePage() {
           viewport={{ once: true }}
           className="text-center mb-6"
         >
-          <h2 className="text-2xl font-extrabold text-gray-800">Prêt à commencer ?</h2>
-          <p className="text-gray-500 text-sm mt-2">Choisissez votre aventure</p>
+          <h2 className="text-2xl font-extrabold text-gray-800">{t('welcome.readyTitle')}</h2>
+          <p className="text-gray-500 text-sm mt-2">{t('welcome.readySub')}</p>
         </motion.div>
 
         <div className="space-y-3">
@@ -405,8 +430,8 @@ export default function WelcomePage() {
           >
             <span className="text-4xl">🧑</span>
             <div className="flex-1">
-              <p className="font-bold text-lg">Je suis passager</p>
-              <p className="text-white/70 text-sm">Commander une course maintenant</p>
+              <p className="font-bold text-lg">{t('welcome.iAmPassenger')}</p>
+              <p className="text-white/70 text-sm">{t('welcome.passengerSub')}</p>
             </div>
             <ArrowRight size={22} className="text-white/70" />
           </motion.button>
@@ -422,8 +447,8 @@ export default function WelcomePage() {
           >
             <span className="text-4xl">🏍️</span>
             <div className="flex-1">
-              <p className="font-bold text-lg">Je suis chauffeur</p>
-              <p className="text-white/70 text-sm">Gagner de l'argent avec mon véhicule</p>
+              <p className="font-bold text-lg">{t('welcome.iAmDriver')}</p>
+              <p className="text-white/70 text-sm">{t('welcome.driverSub')}</p>
             </div>
             <ArrowRight size={22} className="text-white/70" />
           </motion.button>
@@ -441,7 +466,7 @@ export default function WelcomePage() {
           <span className="font-bold text-gray-800">MoveBissau</span>
         </div>
         <p className="text-xs text-gray-400">
-          Votre transport, votre prix
+          {t('welcome.slogan')}
         </p>
         <a
           href="/admin/"
@@ -450,11 +475,11 @@ export default function WelcomePage() {
                      hover:bg-gray-700 transition-colors shadow-sm"
         >
           <Settings size={13} />
-          Espace Admin
+          {t('welcome.adminBtn')}
         </a>
 
         <p className="text-[10px] text-gray-300 mt-4">
-          Made with ❤️ in Bissau
+          {t('welcome.madeIn')}
         </p>
       </footer>
 
@@ -474,7 +499,7 @@ export default function WelcomePage() {
             className="w-full bg-brand-500 hover:bg-brand-600 text-white font-bold text-base py-4 rounded-2xl shadow-elevated
                        flex items-center justify-center gap-2 transition-colors"
           >
-            S'inscrire gratuitement
+            {t('welcome.freeSignupBtn')}
             <ChevronRight size={18} />
           </motion.button>
         </motion.div>
