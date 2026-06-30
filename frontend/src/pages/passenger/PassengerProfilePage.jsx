@@ -27,11 +27,12 @@ export default function PassengerProfilePage() {
     navigate('/welcome');
   };
 
-  const changeLang = async (lang) => {
+  const changeLang = async (newLang) => {
     try {
-      await api.patch('/auth/users/me/language', { preferred_lang: lang });
+      await api.patch('/auth/users/me/language', { preferred_lang: newLang });
+      localStorage.setItem('mb_lang', newLang);
       refreshUser();
-      toast.show(t('profilePage.langUpdated', 'Langue mise à jour'), 'success');
+      window.location.reload();
     } catch {}
   };
 
@@ -203,7 +204,7 @@ export default function PassengerProfilePage() {
               <div className="flex-1">
                 <p className="text-xs text-gray-400">{t('profilePage.language', 'Langue')}</p>
                 <p className="text-sm font-medium text-gray-800">
-                  {user?.preferred_lang === 'fr' ? 'Français' : user?.preferred_lang === 'pt' ? 'Português' : 'Kriol'}
+                  {user?.preferred_lang === 'pt' ? 'Português' : 'Français'}
                 </p>
               </div>
             </div>
@@ -222,7 +223,6 @@ export default function PassengerProfilePage() {
             {[
               { code: 'fr', label: 'Français', flag: '🇫🇷' },
               { code: 'pt', label: 'Português', flag: '🇵🇹' },
-              { code: 'gcr', label: 'Kriol', flag: '🇬🇼' },
             ].map(l => (
               <button
                 key={l.code}

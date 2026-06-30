@@ -44,9 +44,11 @@ export default function DriverProfilePage() {
     navigate('/welcome');
   };
 
-  const changeLang = async (lang) => {
-    await api.patch('/auth/users/me/language', { preferred_lang: lang });
+  const changeLang = async (newLang) => {
+    await api.patch('/auth/users/me/language', { preferred_lang: newLang });
+    localStorage.setItem('mb_lang', newLang);
     refreshUser();
+    window.location.reload();
   };
 
   if (loading) {
@@ -209,7 +211,7 @@ export default function DriverProfilePage() {
               <div className="bg-white rounded-2xl shadow-soft overflow-hidden divide-y divide-gray-50">
                 {[
                   { icon: Phone, label: t('profilePage.phone', 'Téléphone'), value: user?.phone },
-                  { icon: Globe, label: t('profilePage.language', 'Langue'), value: user?.preferred_lang === 'fr' ? 'Français' : user?.preferred_lang === 'pt' ? 'Português' : 'Kriol' },
+                  { icon: Globe, label: t('profilePage.language', 'Langue'), value: user?.preferred_lang === 'pt' ? 'Português' : 'Français' },
                   { icon: Car, label: t('driver.vehicleType', 'Type véhicule'), value: profile?.vehicle_type === 'moto' ? '🏍️ Moto-taxi' : '🚗 Voiture' },
                   { icon: Shield, label: t('driver.status', 'Statut'), value: verificationLabel[profile?.verification_status] },
                   { icon: FileText, label: t('driver.license', 'Permis'), value: profile?.license_number || t('driver.notProvided', 'Non renseigné') },
@@ -233,7 +235,6 @@ export default function DriverProfilePage() {
                   {[
                     { code: 'fr', label: 'Français', flag: '🇫🇷' },
                     { code: 'pt', label: 'Português', flag: '🇵🇹' },
-                    { code: 'gcr', label: 'Kriol', flag: '🇬🇼' },
                   ].map(l => (
                     <button
                       key={l.code}
