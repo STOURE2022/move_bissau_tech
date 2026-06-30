@@ -14,6 +14,7 @@ import PassengersPage from './pages/PassengersPage'
 import RefundsPage from './pages/RefundsPage'
 import WithdrawalsPage from './pages/WithdrawalsPage'
 import FinancePage from './pages/FinancePage'
+import DriversOnlinePage from './pages/DriversOnlinePage'
 
 export default function App() {
   const [isAuth, setIsAuth] = useState(api.isAuthenticated)
@@ -40,6 +41,7 @@ export default function App() {
         <Route path="/drivers" element={<DriversPage />} />
         <Route path="/rides" element={<RidesPage />} />
         <Route path="/rides/live" element={<RidesLivePage />} />
+        <Route path="/drivers/online" element={<DriversOnlinePage />} />
         <Route path="/incidents" element={<IncidentsPage />} />
         <Route path="/config" element={<ConfigPage />} />
         <Route path="/providers" element={<ProvidersPage />} />

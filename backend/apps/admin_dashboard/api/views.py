@@ -101,6 +101,39 @@ class SystemConfigUpdateView(APIView):
 
 # === Chauffeurs ===
 
+class DriversOnlineAdminView(APIView):
+    """GET /api/admin/drivers/online — Chauffeurs actuellement en ligne."""
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+        drivers = Driver.objects.filter(
+            is_online=True,
+            user__is_active=True,
+            user__is_banned=False,
+        ).select_related('user')
+
+        results = []
+        for d in drivers:
+            vehicle = d.vehicles.filter(is_active=True).first()
+            results.append({
+                'id': str(d.id),
+                'name': f"{d.user.first_name} {d.user.last_name}",
+                'phone': d.user.phone,
+                'avatar': d.user.avatar_url or '',
+                'vehicle_type': d.vehicle_type,
+                'vehicle_info': f"{vehicle.brand} {vehicle.model} - {vehicle.color}" if vehicle else '',
+                'plate': vehicle.plate_number if vehicle else '',
+                'rating': float(d.average_rating),
+                'total_rides': d.total_rides,
+                'is_verified': d.is_verified,
+                'lat': d.current_location.y if d.current_location else None,
+                'lng': d.current_location.x if d.current_location else None,
+                'last_update': d.location_updated_at.isoformat() if d.location_updated_at else None,
+            })
+
+        return Response(results)
+
+
 class DriverListAdminView(APIView):
     """GET /api/admin/drivers — Liste des chauffeurs."""
     permission_classes = [IsAuthenticated, IsAdmin]

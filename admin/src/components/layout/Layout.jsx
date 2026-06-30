@@ -16,6 +16,7 @@ const navSections = [
       { to: '/drivers', icon: UserCheck, label: 'Chauffeurs', badge: 'pending' },
       { to: '/rides', icon: Car, label: 'Courses' },
       { to: '/rides/live', icon: MapPin, label: 'Temps réel' },
+      { to: '/drivers/online', icon: MapPin, label: 'Chauffeurs live' },
     ]
   },
   {
@@ -42,6 +43,7 @@ const pageNames = {
   '/drivers': 'Gestion des chauffeurs',
   '/rides': 'Historique des courses',
   '/rides/live': 'Suivi en temps réel',
+  '/drivers/online': 'Chauffeurs en ligne',
   '/incidents': 'Gestion des incidents',
   '/config': 'Configuration système',
   '/providers': 'Providers paiement & SMS',

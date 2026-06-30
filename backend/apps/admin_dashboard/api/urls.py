@@ -20,6 +20,7 @@ urlpatterns = [
     path('users/<uuid:user_id>/reset-password', admin_reset_password_view, name='admin-reset-password'),
 
     # Chauffeurs
+    path('drivers/online', views.DriversOnlineAdminView.as_view(), name='admin-drivers-online'),
     path('drivers', views.DriverListAdminView.as_view(), name='admin-drivers'),
     path('drivers/<uuid:driver_id>/verify', views.DriverVerifyAdminView.as_view(), name='admin-driver-verify'),
     path('drivers/<uuid:driver_id>/suspend', views.DriverSuspendAdminView.as_view(), name='admin-driver-suspend'),
