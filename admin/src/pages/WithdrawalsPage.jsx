@@ -57,7 +57,10 @@ export default function WithdrawalsPage() {
       const body = type === 'reject' ? { note: confirmNote } : {}
       await api.post(`/admin/withdrawals/${withdrawalId}/${type}`, body)
       await loadWithdrawals()
-      setSelected(null)
+      // Mettre à jour le retrait sélectionné avec les nouvelles données
+      const updated = await api.get('/admin/withdrawals')
+      const refreshed = updated.find(w => w.id === withdrawalId)
+      setSelected(refreshed || null)
       setConfirmModal(null)
     } catch (e) {
       alert(e.message)

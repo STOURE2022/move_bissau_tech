@@ -470,6 +470,12 @@ class WithdrawalActionAdminView(APIView):
                 w = complete_withdrawal(w)
             else:
                 return Response({'error': 'Action invalide'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Sauvegarder la note admin si fournie
+            if note and w:
+                w.admin_note = note
+                w.save(update_fields=['admin_note'])
+
             return Response(WithdrawalAdminSerializer(w).data)
         except ValueError as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
