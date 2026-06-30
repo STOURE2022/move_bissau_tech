@@ -55,9 +55,13 @@ export default function FinancePage() {
     }
     setExporting(true)
     try {
-      const response = await api.get(`/admin/finance/export?start=${exportStart}&end=${exportEnd}`, { raw: true })
-      // Handle CSV download
-      const blob = response instanceof Blob ? response : new Blob([response], { type: 'text/csv' })
+      // Télécharger le CSV directement via fetch (pas via api.get qui parse en JSON)
+      const token = localStorage.getItem('access_token')
+      const res = await fetch(`/api/admin/finance/export?start=${exportStart}&end=${exportEnd}`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      })
+      if (!res.ok) throw new Error('Erreur export')
+      const blob = await res.blob()
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
@@ -65,7 +69,7 @@ export default function FinancePage() {
       a.click()
       window.URL.revokeObjectURL(url)
     } catch (e) {
-      alert(e.message || 'Erreur lors de l\'export')
+      alert(e.message || "Erreur lors de l'export")
     }
     setExporting(false)
   }
