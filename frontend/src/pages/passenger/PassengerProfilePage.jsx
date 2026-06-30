@@ -71,7 +71,7 @@ export default function PassengerProfilePage() {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-gray-50">
+    <div className="min-h-[100dvh] bg-gray-50 pb-24">
       {/* Header */}
       <div className="bg-gradient-to-br from-brand-500 to-brand-600 px-5 pt-5 pb-10">
         <div className="flex items-center gap-3 mb-6">
