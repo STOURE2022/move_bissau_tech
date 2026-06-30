@@ -217,4 +217,5 @@ def export_financial_csv(start_date, end_date):
             f"→ {w.phone}",
         ])
 
-    return output.getvalue()
+    # Ajouter BOM UTF-8 pour que Excel affiche correctement les accents
+    return '\ufeff' + output.getvalue()
