@@ -1,5 +1,12 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Info, AlertCircle } from 'lucide-react';
+
+const defaultIcons = {
+  danger: AlertTriangle,
+  warning: AlertCircle,
+  info: Info,
+  success: CheckCircle,
+};
 
 export default function ConfirmModal({
   open,
@@ -7,7 +14,7 @@ export default function ConfirmModal({
   message,
   confirmLabel = 'Confirmer',
   cancelLabel = 'Annuler',
-  variant = 'danger', // 'danger' | 'warning' | 'info'
+  variant = 'danger',
   icon: CustomIcon,
   loading = false,
   onConfirm,
@@ -20,48 +27,48 @@ export default function ConfirmModal({
     success: { iconBg: 'bg-green-50', iconColor: 'text-green-500', btnColor: 'bg-green-500 hover:bg-green-600' },
   };
   const v = variants[variant] || variants.danger;
-  const Icon = CustomIcon || AlertTriangle;
+  const Icon = CustomIcon || defaultIcons[variant] || AlertTriangle;
 
   return (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-[90] flex items-center justify-center px-6">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center px-6">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             onClick={onCancel}
           />
 
           {/* Modale */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            initial={{ opacity: 0, scale: 0.85, y: 30 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="relative bg-white rounded-3xl shadow-elevated w-full max-w-sm p-6 text-center"
+            exit={{ opacity: 0, scale: 0.85, y: 30 }}
+            transition={{ type: 'spring', damping: 22, stiffness: 300 }}
+            className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 text-center"
           >
-            <div className={`w-14 h-14 ${v.iconBg} rounded-2xl flex items-center justify-center mx-auto mb-4`}>
-              <Icon size={28} className={v.iconColor} />
+            <div className={`w-16 h-16 ${v.iconBg} rounded-2xl flex items-center justify-center mx-auto mb-4`}>
+              <Icon size={32} className={v.iconColor} />
             </div>
 
             <h3 className="text-lg font-bold text-gray-800 mb-2">{title}</h3>
-            <p className="text-sm text-gray-500 mb-6">{message}</p>
+            <p className="text-sm text-gray-500 mb-6 leading-relaxed">{message}</p>
 
             <div className="flex gap-3">
               <button
                 onClick={onCancel}
                 disabled={loading}
-                className="flex-1 py-3 rounded-2xl border-2 border-gray-200 font-semibold text-gray-600 hover:bg-gray-50 transition"
+                className="flex-1 py-3.5 rounded-2xl border-2 border-gray-200 font-semibold text-gray-600 hover:bg-gray-50 transition disabled:opacity-50"
               >
                 {cancelLabel}
               </button>
               <button
                 onClick={onConfirm}
                 disabled={loading}
-                className={`flex-1 py-3 rounded-2xl font-semibold text-white transition ${v.btnColor}`}
+                className={`flex-1 py-3.5 rounded-2xl font-semibold text-white transition shadow-sm disabled:opacity-50 ${v.btnColor}`}
               >
                 {loading ? (
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto" />
