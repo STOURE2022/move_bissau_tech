@@ -177,11 +177,15 @@ export default function TrackingPage() {
   const etaMin = calcEta();
   const etaText = etaMin ? (etaMin <= 1 ? '~1 min' : `~${etaMin} min`) : null;
 
+  // Utiliser le type réel du véhicule du chauffeur
+  const actualVehicleType = ride.driver_vehicle?.type || ride.vehicle_type;
+  const vehicleEmoji = actualVehicleType === 'car' ? '🚗' : '🏍️';
+
   const statusMessages = {
     driver_assigned: { emoji: '🚀', text: 'Chauffeur assigné', sub: etaText ? `Arrivée estimée : ${etaText}` : 'Il va bientôt partir' },
-    driver_en_route: { emoji: '🏍️', text: 'En route vers vous', sub: etaText ? `Arrive dans ${etaText}` : 'Il arrive bientôt !' },
+    driver_en_route: { emoji: vehicleEmoji, text: 'En route vers vous', sub: etaText ? `Arrive dans ${etaText}` : 'Il arrive bientôt !' },
     driver_arrived:  { emoji: '📍', text: 'Il est arrivé !', sub: 'Rejoignez votre chauffeur' },
-    passenger_onboard: { emoji: '🛣️', text: 'En course', sub: etaText ? `Arrivée dans ${etaText}` : 'Profitez du trajet' },
+    passenger_onboard: { emoji: vehicleEmoji, text: 'En course', sub: etaText ? `Arrivée dans ${etaText}` : 'Profitez du trajet' },
     completed:       { emoji: '🎉', text: 'Vous êtes arrivé !', sub: 'Procédez au paiement' },
     paid:            { emoji: '✅', text: 'Course payée', sub: 'Notez votre chauffeur' },
   };
@@ -206,7 +210,7 @@ export default function TrackingPage() {
           {driverPos && (
             <AnimatedDriverMarker
               position={driverPos}
-              vehicleType={ride.vehicle_type}
+              vehicleType={ride.driver_vehicle?.type || ride.vehicle_type}
               followCamera={['driver_en_route', 'passenger_onboard'].includes(ride.status)}
             />
           )}
