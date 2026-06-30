@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import api from '../../api/client';
 import Button from '../../components/ui/Button';
+import ConfirmModal from '../../components/ui/ConfirmModal';
+import { useToast } from '../../components/ui/Toast';
 import L from 'leaflet';
 
 const pickupIcon = L.divIcon({
@@ -73,6 +75,9 @@ export default function DriverRidePage() {
   const [updating, setUpdating] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [confirmingPayment, setConfirmingPayment] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const toast = useToast();
 
   // Polling ride + envoi GPS continu
   const geoWatchRef = useRef(null);
@@ -128,27 +133,26 @@ export default function DriverRidePage() {
   };
 
   const confirmCashPayment = async () => {
-    if (!confirm(`Confirmer la réception de ${ride.agreed_price} F CFA en espèces ?`)) return;
     setConfirmingPayment(true);
     try {
       await api.post('/payments/confirm-cash', { ride_id: rideId });
-      // Redirection immédiate vers la notation puis accueil
       navigate(`/rate/${rideId}`);
     } catch (e) {
-      alert(e.message);
+      toast.show(e.message || 'Erreur', 'error');
       setConfirmingPayment(false);
+      setShowPaymentModal(false);
     }
   };
 
   const cancelRide = async () => {
-    if (!confirm('Annuler la course ? Des frais de 500 F CFA seront déduits de votre crédit.')) return;
     setCancelling(true);
     try {
       await api.post(`/rides/${rideId}/cancel`, { reason: 'Annulé par le chauffeur' });
       navigate('/driver');
     } catch (e) {
-      alert(e.message);
+      toast.show(e.message || 'Erreur', 'error');
       setCancelling(false);
+      setShowCancelModal(false);
     }
   };
 
@@ -333,7 +337,7 @@ export default function DriverRidePage() {
         ) : ride.status === 'completed' ? (
           <motion.button
             whileTap={{ scale: 0.97 }}
-            onClick={confirmCashPayment}
+            onClick={() => setShowPaymentModal(true)}
             disabled={confirmingPayment}
             className="w-full py-4 rounded-2xl text-white font-bold text-base flex items-center justify-center gap-3 bg-green-500 hover:bg-green-600 transition-colors"
           >
@@ -366,7 +370,7 @@ export default function DriverRidePage() {
         {/* Annuler — uniquement pendant les étapes annulables */}
         {showCancel && (
           <button
-            onClick={cancelRide}
+            onClick={() => setShowCancelModal(true)}
             disabled={cancelling}
             className="w-full mt-3 py-2.5 text-red-500 text-sm font-medium rounded-xl hover:bg-red-50 transition"
           >
@@ -374,6 +378,30 @@ export default function DriverRidePage() {
           </button>
         )}
       </motion.div>
+
+      {/* Modal confirmation paiement */}
+      <ConfirmModal
+        open={showPaymentModal}
+        title="💰 Confirmer le paiement"
+        message={`Le passager vous a remis ${ride?.agreed_price} F CFA en espèces ?`}
+        confirmLabel={confirmingPayment ? 'Confirmation...' : `Oui, j'ai reçu ${ride?.agreed_price} F`}
+        variant="success"
+        loading={confirmingPayment}
+        onConfirm={confirmCashPayment}
+        onCancel={() => setShowPaymentModal(false)}
+      />
+
+      {/* Modal annulation */}
+      <ConfirmModal
+        open={showCancelModal}
+        title="Annuler la course ?"
+        message="Des frais de 500 F CFA seront déduits de votre crédit commission."
+        confirmLabel={cancelling ? 'Annulation...' : 'Annuler la course'}
+        variant="danger"
+        loading={cancelling}
+        onConfirm={cancelRide}
+        onCancel={() => setShowCancelModal(false)}
+      />
     </div>
   );
 }
