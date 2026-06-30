@@ -186,8 +186,8 @@ export default function DriverRidePage() {
 
   return (
     <div className="h-[100dvh] flex flex-col bg-gray-50 overflow-hidden">
-      {/* Carte */}
-      <div className="h-[40vh] relative flex-shrink-0">
+      {/* Carte — réduite quand la course est terminée/payée */}
+      <div className={`${['completed', 'paid'].includes(ride?.status) ? 'h-[25vh]' : 'h-[40vh]'} relative flex-shrink-0 transition-all duration-500`}>
         <button
           onClick={() => navigate('/driver')}
           className="absolute top-4 left-4 z-10 w-10 h-10 bg-white rounded-2xl shadow-card flex items-center justify-center"
