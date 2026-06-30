@@ -1,17 +1,53 @@
 import { useEffect, useState } from 'react'
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import { RefreshCw } from 'lucide-react'
 import api from '../api/client'
 import StatusBadge from '../components/ui/StatusBadge'
+import L from 'leaflet'
+
+// Icônes pour la carte
+const driverIcon = (type) => L.divIcon({
+  className: '',
+  html: `<div style="width:32px;height:32px;background:#1B8A4E;border:2px solid white;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center"><span style="font-size:14px">${type === 'car' ? '🚗' : '🏍️'}</span></div>`,
+  iconSize: [32, 32], iconAnchor: [16, 16],
+})
+
+const pickupIcon = L.divIcon({
+  className: '',
+  html: `<div style="width:10px;height:10px;background:#22c55e;border:2px solid white;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.3)"></div>`,
+  iconSize: [10, 10], iconAnchor: [5, 5],
+})
+
+const dropoffIcon = L.divIcon({
+  className: '',
+  html: `<div style="width:10px;height:10px;background:#ef4444;border:2px solid white;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.3)"></div>`,
+  iconSize: [10, 10], iconAnchor: [5, 5],
+})
+
+// Composant pour recentrer la carte
+function MapUpdater({ center }) {
+  const map = useMap()
+  useEffect(() => {
+    if (center) map.setView(center, map.getZoom(), { animate: true })
+  }, [center?.[0], center?.[1]])
+  return null
+}
 
 export default function RidesLivePage() {
   const [rides, setRides] = useState([])
   const [loading, setLoading] = useState(true)
+  const [config, setConfig] = useState(null)
 
   useEffect(() => {
+    // Charger la config pays pour le centre de la carte
+    api.get('/admin/config').then(configs => {
+      const lat = configs.find(c => c.key === 'default_lat')?.value || 11.8636
+      const lng = configs.find(c => c.key === 'default_lng')?.value || -15.5977
+      setConfig({ lat: parseFloat(lat), lng: parseFloat(lng) })
+    }).catch(() => setConfig({ lat: 11.8636, lng: -15.5977 }))
+
     loadLive()
-    // Rafraîchir toutes les 10 secondes
-    const interval = setInterval(loadLive, 10000)
+    const interval = setInterval(loadLive, 5000) // 5s au lieu de 10s
     return () => clearInterval(interval)
   }, [])
 
@@ -22,6 +58,8 @@ export default function RidesLivePage() {
     } catch (e) { console.error(e) }
     setLoading(false)
   }
+
+  const mapCenter = config ? [config.lat, config.lng] : [11.8636, -15.5977]
 
   return (
     <div className="space-y-4">
@@ -44,15 +82,41 @@ export default function RidesLivePage() {
       {/* Carte */}
       <div className="bg-white rounded-xl shadow-sm border overflow-hidden" style={{ height: '400px' }}>
         <MapContainer
-          center={[11.8636, -15.5977]} // Centre de Bissau
+          center={mapCenter}
           zoom={13}
           style={{ height: '100%', width: '100%' }}
         >
           <TileLayer
-            url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; OpenStreetMap'
+            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+            attribution='&copy; OSM'
           />
-          {/* Les markers seraient positionnés avec les coordonnées GPS des courses */}
+          <MapUpdater center={mapCenter} />
+
+          {/* Marqueurs des courses actives */}
+          {rides.map(r => (
+            <span key={r.id}>
+              {/* Position chauffeur */}
+              {r.driver_lat && r.driver_lng && (
+                <Marker position={[r.driver_lat, r.driver_lng]} icon={driverIcon(r.vehicle_type)}>
+                  <Popup>
+                    <div className="text-sm">
+                      <p className="font-bold">{r.driver_name}</p>
+                      <p className="text-gray-500">{r.status} · {r.agreed_price} F</p>
+                      <p className="text-xs text-gray-400">{r.pickup_address} → {r.dropoff_address}</p>
+                    </div>
+                  </Popup>
+                </Marker>
+              )}
+              {/* Pickup */}
+              {r.pickup_lat && r.pickup_lng && (
+                <Marker position={[r.pickup_lat, r.pickup_lng]} icon={pickupIcon} />
+              )}
+              {/* Dropoff */}
+              {r.dropoff_lat && r.dropoff_lng && (
+                <Marker position={[r.dropoff_lat, r.dropoff_lng]} icon={dropoffIcon} />
+              )}
+            </span>
+          ))}
         </MapContainer>
       </div>
 
