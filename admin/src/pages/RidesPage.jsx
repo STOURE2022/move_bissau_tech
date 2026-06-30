@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import api from '../api/client'
 import StatusBadge from '../components/ui/StatusBadge'
+import RideReceipt from '../components/ui/RideReceipt'
 
 export default function RidesPage() {
   const [rides, setRides] = useState([])
   const [filter, setFilter] = useState('')
   const [loading, setLoading] = useState(true)
+  const [receiptRide, setReceiptRide] = useState(null)
 
   useEffect(() => { loadRides() }, [filter])
 
@@ -54,13 +56,14 @@ export default function RidesPage() {
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Véhicule</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Statut</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Date</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y">
               {loading ? (
-                <tr><td colSpan={9} className="text-center py-8 text-gray-400">Chargement...</td></tr>
+                <tr><td colSpan={10} className="text-center py-8 text-gray-400">Chargement...</td></tr>
               ) : rides.length === 0 ? (
-                <tr><td colSpan={9} className="text-center py-8 text-gray-400">Aucune course</td></tr>
+                <tr><td colSpan={10} className="text-center py-8 text-gray-400">Aucune course</td></tr>
               ) : rides.map(r => (
                 <tr key={r.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 text-xs text-gray-400 font-mono">{r.id?.slice(0, 8)}</td>
@@ -76,12 +79,25 @@ export default function RidesPage() {
                   <td className="px-4 py-3 text-xs text-gray-500">
                     {new Date(r.created_at).toLocaleDateString('fr')}
                   </td>
+                  <td className="px-4 py-3">
+                    {['paid', 'completed'].includes(r.status) && (
+                      <button
+                        onClick={() => setReceiptRide(r)}
+                        className="text-xs text-primary font-medium hover:underline"
+                      >
+                        📄 Reçu
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </div>
+      {receiptRide && (
+        <RideReceipt ride={receiptRide} onClose={() => setReceiptRide(null)} />
+      )}
     </div>
   )
 }

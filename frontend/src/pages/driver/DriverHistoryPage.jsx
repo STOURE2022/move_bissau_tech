@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { ArrowLeft, Calendar, TrendingUp, Car } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowLeft, Calendar, TrendingUp, Car, Receipt } from 'lucide-react';
 import api from '../../api/client';
 import { useDriverStats } from '../../hooks/useDriverStats';
 import DriverNav from '../../components/layout/DriverNav';
 import WeeklyChart from '../../components/driver/WeeklyChart';
+import RideReceipt from '../../components/ui/RideReceipt';
 import { useTranslation } from '../../i18n/useTranslation';
 
 export default function DriverHistoryPage() {
@@ -14,7 +15,20 @@ export default function DriverHistoryPage() {
   const [rides, setRides] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [receiptRide, setReceiptRide] = useState(null);
+  const [loadingReceipt, setLoadingReceipt] = useState(false);
   const stats = useDriverStats(false);
+
+  const openReceipt = async (ride) => {
+    setLoadingReceipt(ride.id);
+    try {
+      const full = await api.get(`/rides/${ride.id}`);
+      setReceiptRide(full);
+    } catch {
+      setReceiptRide(ride);
+    }
+    setLoadingReceipt(false);
+  };
 
   const statusConfig = {
     paid:      { text: t('historyPage.statusPaid', 'Payée'), color: 'bg-green-100 text-green-700' },
@@ -145,17 +159,45 @@ export default function DriverHistoryPage() {
                   <p className="text-[10px] text-gray-400">
                     {new Date(ride.created_at).toLocaleDateString('fr', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </p>
-                  {ride.commission_amount > 0 && (
-                    <p className="text-[10px] text-orange-500 font-medium">
-                      {t('driver.commission', 'Commission')} : {ride.commission_amount} F
-                    </p>
-                  )}
+                  <div className="flex items-center gap-3">
+                    {ride.commission_amount > 0 && (
+                      <p className="text-[10px] text-orange-500 font-medium">
+                        {t('driver.commission', 'Commission')} : {ride.commission_amount} F
+                      </p>
+                    )}
+                    {['paid', 'completed'].includes(ride.status) && (
+                      <button
+                        onClick={() => openReceipt(ride)}
+                        className="flex items-center gap-1 text-[10px] text-brand-500 font-semibold hover:text-brand-600"
+                      >
+                        <Receipt size={12} />
+                        {loadingReceipt === ride.id ? '...' : t('historyPage.receipt', 'Reçu')}
+                      </button>
+                    )}
+                  </div>
                 </div>
               </motion.div>
             );
           })
         )}
       </div>
+
+      {/* Modal reçu */}
+      <AnimatePresence>
+        {receiptRide && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+            onClick={() => setReceiptRide(null)}
+          >
+            <div onClick={e => e.stopPropagation()}>
+              <RideReceipt ride={receiptRide} onClose={() => setReceiptRide(null)} />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <DriverNav />
     </div>
