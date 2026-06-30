@@ -25,11 +25,13 @@ const dropoffIcon = L.divIcon({
 })
 
 // Composant pour recentrer la carte
-function MapUpdater({ center }) {
+function MapUpdater({ center, zoom }) {
   const map = useMap()
   useEffect(() => {
-    if (center) map.setView(center, map.getZoom(), { animate: true })
-  }, [center?.[0], center?.[1]])
+    if (center && center[0] && center[1]) {
+      map.setView(center, zoom || map.getZoom(), { animate: true, duration: 0.5 })
+    }
+  }, [center?.[0], center?.[1], zoom])
   return null
 }
 
@@ -37,6 +39,7 @@ export default function RidesLivePage() {
   const [rides, setRides] = useState([])
   const [loading, setLoading] = useState(true)
   const [config, setConfig] = useState(null)
+  const [focusRide, setFocusRide] = useState(null) // course sélectionnée pour zoom
 
   useEffect(() => {
     // Charger la config pays pour le centre de la carte
@@ -90,7 +93,13 @@ export default function RidesLivePage() {
             url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
             attribution='&copy; OSM'
           />
-          <MapUpdater center={mapCenter} />
+          <MapUpdater
+            center={focusRide
+              ? [focusRide.driver_lat || focusRide.pickup_lat, focusRide.driver_lng || focusRide.pickup_lng]
+              : mapCenter
+            }
+            zoom={focusRide ? 16 : undefined}
+          />
 
           {/* Marqueurs des courses actives */}
           {rides.map(r => (
@@ -140,7 +149,11 @@ export default function RidesLivePage() {
                   Aucune course en cours
                 </td></tr>
               ) : rides.map(r => (
-                <tr key={r.id} className="hover:bg-gray-50">
+                <tr
+                  key={r.id}
+                  onClick={() => setFocusRide(focusRide?.id === r.id ? null : r)}
+                  className={`hover:bg-gray-50 cursor-pointer transition ${focusRide?.id === r.id ? 'bg-brand-50 ring-1 ring-brand-200' : ''}`}
+                >
                   <td className="px-4 py-3 text-xs font-mono text-gray-400">{r.id?.slice(0, 8)}</td>
                   <td className="px-4 py-3 text-sm font-medium">{r.passenger_name}</td>
                   <td className="px-4 py-3 text-sm">{r.driver_name}</td>
