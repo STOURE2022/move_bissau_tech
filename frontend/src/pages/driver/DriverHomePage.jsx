@@ -32,8 +32,12 @@ export default function DriverHomePage() {
   const [showCounter, setShowCounter] = useState({});
   const [sendingOffer, setSendingOffer] = useState(null);
   const [sentOffers, setSentOffers] = useState(new Set());
-  const [rejectedOffers, setRejectedOffers] = useState(new Set()); // offres rejetées par le passager
+  const [rejectedOffers, setRejectedOffers] = useState(new Set());
+  const sentOffersRef = useRef(new Set()); // Ref pour que le polling lise toujours la valeur actuelle
   const seenRequestsRef = useRef(new Set());
+
+  // Synchroniser le ref avec le state
+  useEffect(() => { sentOffersRef.current = sentOffers; }, [sentOffers]);
 
   // WebSocket refs
   const requestsWsRef = useRef(null);
@@ -103,7 +107,7 @@ export default function DriverHomePage() {
         // Si une demande revient du backend alors qu'on avait envoyé une offre,
         // ça veut dire que l'offre a été rejetée
         data.forEach(r => {
-          if (sentOffers.has(r.id)) {
+          if (sentOffersRef.current.has(r.id)) {
             setSentOffers(prev => {
               const next = new Set(prev);
               next.delete(r.id);
@@ -140,13 +144,13 @@ export default function DriverHomePage() {
 
   // Vérifier le statut des offres envoyées (rejetées par le passager ?)
   const pollOfferStatuses = async () => {
-    if (sentOffers.size === 0) return;
+    if (sentOffersRef.current.size === 0) return;
     try {
       const data = await api.get('/rides/offers/my-pending');
       if (!Array.isArray(data)) return;
 
       data.forEach(offer => {
-        if (offer.status === 'rejected' && sentOffers.has(offer.ride_request_id)) {
+        if (offer.status === 'rejected' && sentOffersRef.current.has(offer.ride_request_id)) {
           // Offre rejetée ! Retirer de sentOffers + marquer comme rejetée
           setSentOffers(prev => {
             const next = new Set(prev);
