@@ -84,17 +84,31 @@ export default function TrackingPage() {
     } catch {}
   };
 
-  // Charger la route quand on a les coordonnées
+  // Charger la route — recalculer quand le chauffeur bouge (passenger_onboard)
+  const lastRouteUpdateRef = useRef(0);
+
   useEffect(() => {
     if (!ride) return;
     const pickupCoords = ride.pickup_lat ? [ride.pickup_lat, ride.pickup_lng] : null;
     const dropoffCoords = ride.dropoff_lat ? [ride.dropoff_lat, ride.dropoff_lng] : null;
-    if (pickupCoords && dropoffCoords) {
+
+    if (ride.status === 'passenger_onboard' && driverPos && dropoffCoords) {
+      // Recalculer la route depuis la position actuelle du chauffeur → destination
+      // Limiter à 1 recalcul toutes les 15s pour ne pas spammer OSRM
+      const now = Date.now();
+      if (now - lastRouteUpdateRef.current > 15000) {
+        lastRouteUpdateRef.current = now;
+        fetchRoute(driverPos, dropoffCoords).then(coords => {
+          if (coords) setRouteCoords(coords);
+        });
+      }
+    } else if (pickupCoords && dropoffCoords && !routeCoords) {
+      // Route initiale pickup → dropoff
       fetchRoute(pickupCoords, dropoffCoords).then(coords => {
         if (coords) setRouteCoords(coords);
       });
     }
-  }, [ride?.id]);
+  }, [ride?.id, ride?.status, driverPos?.[0]]);
 
   const triggerSos = async () => {
     setSosLoading(true);
@@ -199,7 +213,9 @@ export default function TrackingPage() {
           {routeCoords && (
             <Polyline positions={routeCoords} pathOptions={{ color: '#1B8A4E', weight: 4, opacity: 0.7, dashArray: '8 6' }} />
           )}
-          {bounds.length >= 2 && <FitBounds bounds={bounds} />}
+          {bounds.length >= 2 && !['driver_en_route', 'passenger_onboard'].includes(ride?.status) && (
+            <FitBounds bounds={bounds} />
+          )}
         </MapContainer>
 
         <button
