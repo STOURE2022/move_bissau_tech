@@ -67,9 +67,8 @@ def confirm_cash_payment(ride: Ride) -> Payment:
     Confirme un paiement en espèces.
     Le chauffeur confirme avoir reçu l'argent du passager.
     """
-    from core.config_service import get_config_float
-    commission_rate = get_config_float('commission_rate', 15.0)
-    commission_amount = int(ride.agreed_price * commission_rate / 100 + 0.99)
+    from apps.commissions.services.commission_service import calculate_commission
+    commission_rate, commission_amount = calculate_commission(ride.agreed_price)
     driver_amount = ride.agreed_price  # Le chauffeur garde tout le cash
 
     with transaction.atomic():
@@ -107,10 +106,11 @@ def initiate_mobile_payment(ride: Ride, payment_method: str, phone: str) -> Paym
     """
     provider = get_provider_instance(payment_method)
 
-    from core.config_service import get_config_float
-    commission_rate = get_config_float('commission_rate', 15.0)
-    commission_amount = int(ride.agreed_price * commission_rate / 100 + 0.99)
-    driver_amount = ride.agreed_price - commission_amount
+    from apps.commissions.services.commission_service import calculate_commission
+    commission_rate, commission_amount = calculate_commission(ride.agreed_price)
+    # Pour mobile money, le chauffeur reçoit le montant total
+    # La commission est déduite du crédit prépayé via deduct_commission() au callback
+    driver_amount = ride.agreed_price
 
     with transaction.atomic():
         payment = Payment.objects.create(

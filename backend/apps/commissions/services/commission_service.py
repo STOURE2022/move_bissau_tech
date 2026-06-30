@@ -77,18 +77,33 @@ def topup_credit(driver, amount: int, provider_name: str = '', provider_tx_id: s
     return tx
 
 
+def calculate_commission(agreed_price: int) -> tuple:
+    """
+    Calcule la commission pour un prix donné.
+    Retourne (commission_rate, commission_amount).
+    Fonction centralisée — utiliser partout au lieu de dupliquer la formule.
+    """
+    commission_rate = get_config_float('commission_rate', 15.0)
+    commission_amount = int(agreed_price * commission_rate / 100 + 0.99)
+    return commission_rate, commission_amount
+
+
 def deduct_commission(driver, ride, payment=None) -> CreditTransaction:
     """
     Déduit la commission d'une course du crédit du chauffeur.
     Appelé quand le paiement est confirmé.
-
-    La commission est calculée : agreed_price × commission_rate / 100
     """
-    commission_rate = get_config_float('commission_rate', 15.0)
-    commission_amount = int(ride.agreed_price * commission_rate / 100 + 0.99)
+    commission_rate, commission_amount = calculate_commission(ride.agreed_price)
 
     with transaction.atomic():
         credit = CommissionCredit.objects.select_for_update().get(driver=driver)
+
+        # Vérifier que le solde ne devient pas trop négatif
+        if credit.balance - commission_amount < -1000:
+            logger.warning(
+                f"Crédit chauffeur {driver.id} très bas : {credit.balance} - {commission_amount} = {credit.balance - commission_amount}. "
+                f"Déduction autorisée mais alerte levée."
+            )
 
         balance_before = credit.balance
         credit.balance -= commission_amount

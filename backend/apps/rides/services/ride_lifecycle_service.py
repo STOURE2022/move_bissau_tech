@@ -49,12 +49,9 @@ def accept_offer(ride_request: RideRequest, offer: RideOffer) -> Ride:
             id=offer.id
         ).update(status='rejected', updated_at=timezone.now())
 
-        # Calculer la commission
-        from core.config_service import get_config_float
-        commission_rate = get_config_float('commission_rate', 15.0)
-        commission_amount = int(
-            offer.offered_price * commission_rate / 100 + 0.99  # Arrondi supérieur
-        )
+        # Calculer la commission (fonction centralisée)
+        from apps.commissions.services.commission_service import calculate_commission
+        commission_rate, commission_amount = calculate_commission(offer.offered_price)
 
         # Créer la course
         ride = Ride.objects.create(
@@ -130,14 +127,16 @@ def cancel_ride(ride: Ride, cancelled_by: str, reason: str = '') -> Ride:
     now = timezone.now()
 
     with transaction.atomic():
+        # Sauvegarder le statut AVANT de le changer (pour appliquer les frais)
+        original_status = ride.status
+
         ride.status = 'cancelled'
         ride.cancelled_at = now
         ride.cancelled_by = cancelled_by
         ride.cancellation_reason = reason
 
-        # Déterminer si des frais s'appliquent
-        # Pas de frais si la course n'a pas encore été assignée
-        if ride.status in ('driver_assigned', 'driver_en_route', 'driver_arrived', 'passenger_onboard'):
+        # Frais d'annulation si la course avait déjà progressé
+        if original_status in ('driver_assigned', 'driver_en_route', 'driver_arrived', 'passenger_onboard'):
             ride.cancellation_fee = cancellation_fee
 
             if cancelled_by == 'driver':
