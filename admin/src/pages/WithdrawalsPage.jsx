@@ -152,6 +152,7 @@ export default function WithdrawalsPage() {
             <table className="w-full">
               <thead>
                 <tr className="bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <th className="text-left px-5 py-3">Référence</th>
                   <th className="text-left px-5 py-3">Chauffeur</th>
                   <th className="text-right px-5 py-3">Montant</th>
                   <th className="text-left px-5 py-3">Methode</th>
@@ -169,6 +170,9 @@ export default function WithdrawalsPage() {
                       onClick={() => setSelected(w)}
                       className={`cursor-pointer hover:bg-gray-50 transition ${selected?.id === w.id ? 'bg-green-50' : ''}`}
                     >
+                      <td className="px-5 py-3">
+                        <span className="text-xs font-mono font-bold text-brand-600 bg-brand-50 px-2 py-0.5 rounded">{w.reference}</span>
+                      </td>
                       <td className="px-5 py-3">
                         <div>
                           <p className="text-sm font-medium text-gray-800">{w.driver_name}</p>
@@ -224,8 +228,9 @@ export default function WithdrawalsPage() {
               </div>
             </div>
 
-            {/* Montant */}
+            {/* Référence + Montant */}
             <div className="bg-gray-50 rounded-xl p-4 mb-5 text-center">
+              <p className="text-xs font-mono font-bold text-brand-600 mb-2">{selected.reference}</p>
               <p className="text-xs text-gray-500 mb-1">Montant du retrait</p>
               <p className="text-2xl font-bold text-gray-900">{selected.amount} F</p>
             </div>
