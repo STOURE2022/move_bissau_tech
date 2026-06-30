@@ -202,10 +202,22 @@ class RideSerializer(serializers.ModelSerializer):
 
 class RideHistorySerializer(serializers.ModelSerializer):
     """Version simplifiée pour l'historique."""
+    driver_vehicle = serializers.SerializerMethodField()
+    commission_amount = serializers.DecimalField(max_digits=10, decimal_places=0, read_only=True)
+
     class Meta:
         model = Ride
         fields = [
             'id', 'pickup_address', 'dropoff_address',
             'agreed_price', 'vehicle_type', 'status',
+            'commission_amount', 'driver_vehicle',
             'completed_at', 'created_at',
         ]
+
+    def get_driver_vehicle(self, obj):
+        if not obj.driver:
+            return None
+        vehicle = obj.driver.vehicles.filter(is_active=True).first()
+        if vehicle:
+            return {'type': vehicle.vehicle_type}
+        return None
