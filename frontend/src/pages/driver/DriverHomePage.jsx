@@ -32,6 +32,7 @@ export default function DriverHomePage() {
   const [showCounter, setShowCounter] = useState({});
   const [sendingOffer, setSendingOffer] = useState(null);
   const [sentOffers, setSentOffers] = useState(new Set());
+  const [rejectedOffers, setRejectedOffers] = useState(new Set()); // offres rejetées par le passager
   const seenRequestsRef = useRef(new Set());
 
   // WebSocket refs
@@ -80,7 +81,11 @@ export default function DriverHomePage() {
       connectRequestsWs();
       connectLocationWs();
       pollNearbyRequests();
-      pollRef.current = setInterval(pollNearbyRequests, 5000);
+      pollOfferStatuses();
+      pollRef.current = setInterval(() => {
+        pollNearbyRequests();
+        pollOfferStatuses();
+      }, 5000);
     } else {
       closeWebSockets();
       clearInterval(pollRef.current);
@@ -113,6 +118,33 @@ export default function DriverHomePage() {
           return [...newRequests, ...prev];
         });
       }
+    } catch {}
+  };
+
+  // Vérifier le statut des offres envoyées (rejetées par le passager ?)
+  const pollOfferStatuses = async () => {
+    if (sentOffers.size === 0) return;
+    try {
+      const data = await api.get('/rides/offers/my-pending');
+      if (!Array.isArray(data)) return;
+
+      data.forEach(offer => {
+        if (offer.status === 'rejected' && sentOffers.has(offer.ride_request_id)) {
+          // Offre rejetée ! Retirer de sentOffers + marquer comme rejetée
+          setSentOffers(prev => {
+            const next = new Set(prev);
+            next.delete(offer.ride_request_id);
+            return next;
+          });
+          setRejectedOffers(prev => new Set([...prev, offer.ride_request_id]));
+
+          // Notification au chauffeur
+          notify(t('driver.offerRejected', 'Offre refusée'), {
+            body: t('driver.offerRejectedSub', 'Le passager a refusé votre offre. Vous pouvez en faire une nouvelle.'),
+            tag: `rejected-${offer.ride_request_id}`,
+          });
+        }
+      });
     } catch {}
   };
 
@@ -501,6 +533,7 @@ export default function DriverHomePage() {
                 <div className="space-y-3">
                   {rideRequests.map((req) => {
                     const alreadySent = sentOffers.has(req.id);
+                    const wasRejected = rejectedOffers.has(req.id);
                     const isSending = sendingOffer === req.id;
                     const isCounterOpen = showCounter[req.id];
 
@@ -597,6 +630,30 @@ export default function DriverHomePage() {
                               <CheckCircle size={18} className="text-green-600" />
                               <span className="text-sm font-bold text-green-700">{t('driver.offerSent')}</span>
                             </motion.div>
+                          ) : wasRejected ? (
+                            <div className="space-y-2">
+                              <motion.div
+                                initial={{ scale: 0.9 }}
+                                animate={{ scale: 1 }}
+                                className="flex items-center justify-center gap-2 py-2.5 bg-red-50 rounded-2xl"
+                              >
+                                <X size={16} className="text-red-500" />
+                                <span className="text-sm font-semibold text-red-600">{t('driver.offerRejected', 'Offre refusée')}</span>
+                              </motion.div>
+                              <motion.button
+                                whileTap={{ scale: 0.97 }}
+                                onClick={() => {
+                                  setRejectedOffers(prev => {
+                                    const next = new Set(prev);
+                                    next.delete(req.id);
+                                    return next;
+                                  });
+                                }}
+                                className="w-full py-2.5 bg-brand-50 text-brand-600 font-semibold text-sm rounded-2xl hover:bg-brand-100 transition"
+                              >
+                                {t('driver.proposeOtherPrice')}
+                              </motion.button>
+                            </div>
                           ) : (
                             <div className="space-y-2">
                               {/* Bouton accepter principal */}

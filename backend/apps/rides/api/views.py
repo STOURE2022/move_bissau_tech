@@ -479,6 +479,37 @@ class RideOfferCreateView(APIView):
         )
 
 
+class MyPendingOffersView(APIView):
+    """GET /api/rides/offers/my-pending — Statut des offres du chauffeur."""
+    permission_classes = [IsAuthenticated, IsDriver]
+
+    def get(self, request):
+        try:
+            driver = request.user.driver_profile
+        except Exception:
+            return Response([])
+
+        # Offres récentes du chauffeur (dernières 24h)
+        from datetime import timedelta
+        since = timezone.now() - timedelta(hours=24)
+
+        offers = RideOffer.objects.filter(
+            driver=driver,
+            created_at__gte=since,
+        ).select_related('ride_request').order_by('-created_at')[:20]
+
+        results = []
+        for o in offers:
+            results.append({
+                'id': str(o.id),
+                'ride_request_id': str(o.ride_request_id),
+                'offered_price': o.offered_price,
+                'status': o.status,  # pending, accepted, rejected, expired, withdrawn
+            })
+
+        return Response(results)
+
+
 class RideOfferWithdrawView(APIView):
     """DELETE /api/rides/offers/<id> — Chauffeur retire son offre."""
     permission_classes = [IsAuthenticated, IsDriver]

@@ -439,6 +439,8 @@ const translations = {
     welcomeSetup: { fr: 'Bienvenue !', pt: 'Bem-vindo!' },
     goalReached: { fr: 'Bravo !', pt: 'Parabéns!' },
     dailyGoal: { fr: 'Objectif du jour', pt: 'Meta do dia' },
+    offerRejected: { fr: 'Offre refusée', pt: 'Oferta recusada' },
+    offerRejectedSub: { fr: 'Le passager a refusé votre offre. Vous pouvez en faire une nouvelle.', pt: 'O passageiro recusou sua oferta. Você pode fazer uma nova.' },
   },
 
   // === HISTORIQUE ===

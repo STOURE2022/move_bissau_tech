@@ -21,6 +21,7 @@ urlpatterns = [
 
     # Offres chauffeur
     path('offers', views.RideOfferCreateView.as_view(), name='ride-offer-create'),
+    path('offers/my-pending', views.MyPendingOffersView.as_view(), name='my-pending-offers'),
     path('offers/<uuid:offer_id>', views.RideOfferWithdrawView.as_view(), name='ride-offer-withdraw'),
 
     # Courses
