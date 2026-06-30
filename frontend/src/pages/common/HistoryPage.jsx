@@ -148,7 +148,7 @@ export default function HistoryPage() {
                         <div className="flex items-center justify-between mb-2.5">
                           <div className="flex items-center gap-2.5">
                             <div className="w-9 h-9 bg-brand-50 rounded-xl flex items-center justify-center">
-                              <span className="text-base">{ride.vehicle_type === 'moto' ? '🏍️' : '🚗'}</span>
+                              <span className="text-base">{(ride.driver_vehicle?.type || ride.vehicle_type) === 'car' ? '🚗' : '🏍️'}</span>
                             </div>
                             <div>
                               <span className="font-bold text-gray-800">{ride.agreed_price} F</span>
