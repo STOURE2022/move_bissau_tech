@@ -100,10 +100,27 @@ export default function DriverHomePage() {
     try {
       const data = await api.get('/rides/requests/nearby');
       if (Array.isArray(data) && data.length > 0) {
+        // Si une demande revient du backend alors qu'on avait envoyé une offre,
+        // ça veut dire que l'offre a été rejetée
+        data.forEach(r => {
+          if (sentOffers.has(r.id)) {
+            setSentOffers(prev => {
+              const next = new Set(prev);
+              next.delete(r.id);
+              return next;
+            });
+            setRejectedOffers(prev => new Set([...prev, r.id]));
+            notify(t('driver.offerRejected', 'Offre refusée'), {
+              body: t('driver.offerRejectedSub', 'Le passager a refusé votre offre.'),
+              tag: `rejected-${r.id}`,
+            });
+          }
+        });
+
         setRideRequests(prev => {
           const existingIds = new Set(prev.map(r => r.id));
           const newRequests = data
-            .filter(r => !existingIds.has(r.id) && !sentOffers.has(r.id))
+            .filter(r => !existingIds.has(r.id))
             .map(r => ({ ...r, _shownAt: r._shownAt || Date.now() }));
           if (newRequests.length === 0) return prev;
           newRequests.forEach(r => {
