@@ -11,6 +11,7 @@ import api from '../../api/client';
 import { useAuth } from '../../hooks/useAuth';
 import { useCountryConfig } from '../../hooks/useCountryConfig';
 import { useGeolocation } from '../../hooks/useGeolocation';
+import { useTranslation } from '../../i18n/useTranslation';
 import BottomSheet from '../../components/ui/BottomSheet';
 import Onboarding from '../../components/ui/Onboarding';
 import L from 'leaflet';
@@ -99,13 +100,14 @@ export default function HomePage() {
   const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem('mb_onboarded'));
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { t } = useTranslation();
 
   // Favoris
   const [savedPlaces, setSavedPlacesState] = useState(getSavedPlaces());
   const [editingPlace, setEditingPlace] = useState(null); // 'home' | 'work' | null
   const [editValue, setEditValue] = useState('');
 
-  // Récents
+  // {t('passenger.recent')}
   const recents = getRecentDestinations();
 
   // Demande ou course en cours
@@ -246,7 +248,7 @@ export default function HomePage() {
             <div className="bg-white rounded-3xl shadow-elevated overflow-hidden border border-gray-100">
               {/* Header avec close */}
               <div className="flex items-center justify-between px-5 pt-4 pb-2">
-                <h3 className="font-bold text-gray-800">Chauffeur disponible</h3>
+                <h3 className="font-bold text-gray-800">{t('passenger.driverAvailable')}</h3>
                 <button
                   onClick={() => setSelectedDriver(null)}
                   className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition"
@@ -292,7 +294,7 @@ export default function HomePage() {
                   <div className="flex-1 bg-gray-50 rounded-xl px-3 py-2.5 text-center">
                     <p className="text-xs text-gray-400">Véhicule</p>
                     <p className="font-bold text-gray-800 text-sm">
-                      {selectedDriver.vehicle_type === 'moto' ? 'Moto' : 'Voiture'}
+                      {selectedDriver.vehicle_type === 'moto' ? 'Moto' : '{t('passenger.car')}'}
                     </p>
                   </div>
                   {selectedDriver.vehicle && (
@@ -325,7 +327,7 @@ export default function HomePage() {
                              flex items-center justify-center gap-2 hover:shadow-lg transition-shadow"
                 >
                   <Send size={18} />
-                  Demander ce chauffeur
+                  {t('passenger.requestThisDriver')}
                 </motion.button>
               </div>
             </div>
@@ -359,7 +361,7 @@ export default function HomePage() {
           </motion.button>
         )}
 
-        {/* Demande en cours */}
+        {/* {t('passenger.pendingRequest')} */}
         {activeRequest && (
           <motion.button
             initial={{ opacity: 0, y: -10 }}
@@ -372,7 +374,7 @@ export default function HomePage() {
               <Loader2 size={20} className="text-white animate-spin" />
             </div>
             <div className="flex-1 text-left">
-              <p className="font-bold text-sm">Demande en cours</p>
+              <p className="font-bold text-sm">{t('passenger.pendingRequest')}</p>
               <p className="text-white/80 text-xs truncate">
                 {activeRequest.dropoff_address || 'En attente de chauffeurs'} · {activeRequest.proposed_price} F
               </p>
@@ -381,7 +383,7 @@ export default function HomePage() {
           </motion.button>
         )}
 
-        {/* Course en cours */}
+        {/* {t('passenger.activeRide')} */}
         {activeRide && !activeRequest && (
           <motion.button
             initial={{ opacity: 0, y: -10 }}
@@ -394,7 +396,7 @@ export default function HomePage() {
               {activeRide.vehicle_type === 'moto' ? '🏍️' : '🚗'}
             </div>
             <div className="flex-1 text-left">
-              <p className="font-bold text-sm">Course en cours</p>
+              <p className="font-bold text-sm">{t('passenger.activeRide')}</p>
               <p className="text-white/80 text-xs truncate">
                 {activeRide.dropoff_address} · {activeRide.agreed_price} F
               </p>
@@ -415,8 +417,8 @@ export default function HomePage() {
               <Search size={18} className="text-brand-500" />
             </div>
             <div>
-              <p className="font-medium text-gray-800">Où allez-vous ?</p>
-              <p className="text-xs text-gray-400">Touchez pour choisir</p>
+              <p className="font-medium text-gray-800">{t('passenger.whereAreYouGoing')}</p>
+              <p className="text-xs text-gray-400">{t('passenger.touchToChoose')}</p>
             </div>
           </motion.button>
           <motion.button
@@ -428,11 +430,11 @@ export default function HomePage() {
           </motion.button>
         </div>
 
-        {/* Raccourcis Maison / Travail */}
+        {/* Raccourcis {t('passenger.home')} / {t('passenger.work')} */}
         <div className="flex gap-2 mb-4">
           {[
-            { key: 'home', icon: Home, label: 'Maison', color: 'text-blue-500', bg: 'bg-blue-50' },
-            { key: 'work', icon: Briefcase, label: 'Travail', color: 'text-purple-500', bg: 'bg-purple-50' },
+            { key: 'home', icon: Home, label: '{t('passenger.home')}', color: 'text-blue-500', bg: 'bg-blue-50' },
+            { key: 'work', icon: Briefcase, label: '{t('passenger.work')}', color: 'text-purple-500', bg: 'bg-purple-50' },
           ].map(place => {
             const saved = savedPlaces[place.key];
             const isEditing = editingPlace === place.key;
@@ -492,7 +494,7 @@ export default function HomePage() {
         {/* Destinations récentes */}
         {recents.length > 0 && (
           <div className="mb-4">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Récents</p>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">{t('passenger.recent')}</p>
             <div className="space-y-1">
               {recents.slice(0, 3).map((r, i) => (
                 <motion.button
@@ -521,8 +523,8 @@ export default function HomePage() {
         {/* Sélection véhicule */}
         <div className="flex gap-3">
           {[
-            { type: 'moto', icon: '🏍️', label: 'Moto-taxi', desc: 'Rapide & économique' },
-            { type: 'car', icon: '🚗', label: 'Voiture', desc: 'Confort & espace' },
+            { type: 'moto', icon: '🏍️', label: '{t('passenger.motoTaxi')}', desc: '{t('passenger.motoDesc')}' },
+            { type: 'car', icon: '🚗', label: '{t('passenger.car')}', desc: '{t('passenger.carDesc')}' },
           ].map(v => (
             <motion.button
               key={v.type}
@@ -595,8 +597,8 @@ export default function HomePage() {
 
               <nav className="p-3 space-y-1">
                 {[
-                  { icon: History, label: 'Historique', to: '/history' },
-                  { icon: User, label: 'Mon profil', to: '/profile' },
+                  { icon: History, label: '{t('common.history')}', to: '/history' },
+                  { icon: User, label: '{t('common.profile')}', to: '/profile' },
                 ].map(item => (
                   <button
                     key={item.to}
@@ -615,7 +617,7 @@ export default function HomePage() {
                   className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-500 hover:bg-red-50 transition"
                 >
                   <LogOut size={20} />
-                  <span className="font-medium">Déconnexion</span>
+                  <span className="font-medium">{t('common.logout')}</span>
                 </button>
               </nav>
             </motion.div>

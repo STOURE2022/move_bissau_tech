@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Phone, Lock, Eye, EyeOff, ChevronRight, ArrowLeft, AlertCircle, Shield } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useCountryConfig } from '../../hooks/useCountryConfig';
+import { useTranslation } from '../../i18n/useTranslation';
 import Button from '../../components/ui/Button';
 
 export default function LoginPage() {
@@ -15,6 +16,7 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const { login } = useAuth();
   const country = useCountryConfig();
+  const { t } = useTranslation();
 
   // Détecter si le numéro est saisi avec le préfixe complet (+XXX...)
   const hasFullPrefix = phone.startsWith('+');
@@ -48,7 +50,7 @@ export default function LoginPage() {
         navigate(result.user.role === 'driver' ? '/driver' : '/');
       }
     } catch (e) {
-      setError(e.message || 'Identifiants incorrects');
+      setError(e.message || t('auth.incorrectCredentials'));
     }
     setLoading(false);
   };
@@ -76,9 +78,9 @@ export default function LoginPage() {
         >
           <span className="text-3xl font-black text-brand-500">MB</span>
         </motion.div>
-        <h1 className="text-white text-2xl font-bold">Connexion</h1>
+        <h1 className="text-white text-2xl font-bold">{t('auth.loginTitle')}</h1>
         <p className="text-brand-200 mt-1 text-center text-sm">
-          Entrez vos identifiants pour continuer
+          {t('auth.loginSubtitle')}
         </p>
       </motion.div>
 
@@ -92,7 +94,7 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Téléphone */}
           <div>
-            <label className="text-sm font-medium text-gray-600 pl-1 block mb-1.5">Numéro de téléphone</label>
+            <label className="text-sm font-medium text-gray-600 pl-1 block mb-1.5">{t('auth.phone')}</label>
             <div className="flex items-center gap-2">
               {!hasFullPrefix && (
                 <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-xl px-3 py-3.5 flex-shrink-0">
@@ -135,26 +137,26 @@ export default function LoginPage() {
             </div>
             {rawPhone.length > 0 && !isPhoneValid && (
               <p className="text-xs text-red-500 mt-1 pl-1">
-                {hasFullPrefix ? 'Format : +245XXXXXXXXX' : 'Entrez 7 à 9 chiffres'}
+                {hasFullPrefix ? 'Format : +245XXXXXXXXX' : t('auth.phoneDigits')}
               </p>
             )}
             {rawPhone.length === 0 && (
               <p className="text-xs text-gray-400 mt-1 pl-1">
-                Tapez <span className="font-semibold">+</span> pour entrer un numéro international complet
+                {t('auth.phoneInternational')}
               </p>
             )}
           </div>
 
           {/* Mot de passe */}
           <div>
-            <label className="text-sm font-medium text-gray-600 pl-1 block mb-1.5">Mot de passe</label>
+            <label className="text-sm font-medium text-gray-600 pl-1 block mb-1.5">{t('auth.password')}</label>
             <div className="relative">
               <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                placeholder="Votre mot de passe"
+                placeholder={t('auth.passwordPlaceholder')}
                 className={`w-full bg-gray-50 border rounded-xl pl-10 pr-12 py-3.5 text-sm
                   focus:outline-none focus:ring-2 transition-all
                   ${password.length > 0 && password.length < 6
@@ -171,7 +173,7 @@ export default function LoginPage() {
               </button>
             </div>
             {password.length > 0 && password.length < 6 && (
-              <p className="text-xs text-red-500 mt-1 pl-1">Minimum 6 caractères</p>
+              <p className="text-xs text-red-500 mt-1 pl-1">{t('auth.passwordMin')}</p>
             )}
           </div>
 
@@ -188,7 +190,7 @@ export default function LoginPage() {
           )}
 
           <Button type="submit" loading={loading} disabled={!isFormValid}>
-            Se connecter
+            {t('auth.signIn')}
             <ChevronRight size={18} />
           </Button>
         </form>
@@ -199,19 +201,19 @@ export default function LoginPage() {
             onClick={() => navigate('/forgot-password')}
             className="text-sm text-gray-400 hover:text-brand-500 transition"
           >
-            Mot de passe oublié ?
+            {t('auth.passwordForgot')}
           </button>
         </div>
 
         {/* Lien inscription */}
         <div className="text-center mt-4">
           <p className="text-sm text-gray-500">
-            Pas encore de compte ?{' '}
+            {t('auth.noAccount')}{' '}
             <button
               onClick={() => navigate('/register')}
               className="text-brand-500 font-semibold hover:underline"
             >
-              S'inscrire
+              {t('auth.signUp')}
             </button>
           </p>
         </div>
@@ -225,7 +227,7 @@ export default function LoginPage() {
                        hover:from-gray-700 hover:to-gray-800 transition-all"
           >
             <Shield size={16} />
-            Espace Administrateur
+            {t('auth.adminSpace')}
           </a>
         </div>
       </motion.div>

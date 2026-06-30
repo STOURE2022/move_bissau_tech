@@ -6,9 +6,11 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useCountryConfig } from '../../hooks/useCountryConfig';
+import { useTranslation } from '../../i18n/useTranslation';
 import Button from '../../components/ui/Button';
 
 export default function RegisterPage() {
+  const { t } = useTranslation();
   const [form, setForm] = useState({
     phone: '',
     firstName: '',
@@ -30,7 +32,6 @@ export default function RegisterPage() {
 
   const hasFullPrefix = form.phone.startsWith('+');
 
-  // Formater le numéro
   const formatPhone = (value) => {
     if (value.startsWith('+')) return value;
     const digits = value.replace(/\D/g, '').slice(0, 9);
@@ -48,19 +49,18 @@ export default function RegisterPage() {
   const isPasswordMatch = form.password === form.passwordConfirm && form.passwordConfirm.length > 0;
   const isFormValid = isPhoneValid && isNameValid && isPasswordValid && isPasswordMatch;
 
-  // Force du mot de passe
   const getPasswordStrength = () => {
     const p = form.password;
     if (p.length === 0) return { level: 0, label: '', color: '' };
-    if (p.length < 6) return { level: 1, label: 'Trop court', color: 'bg-red-500' };
+    if (p.length < 6) return { level: 1, label: t('auth.passwordStrength.tooShort'), color: 'bg-red-500' };
     let score = 0;
     if (p.length >= 8) score++;
     if (/[A-Z]/.test(p)) score++;
     if (/[0-9]/.test(p)) score++;
     if (/[^a-zA-Z0-9]/.test(p)) score++;
-    if (score <= 1) return { level: 2, label: 'Faible', color: 'bg-orange-500' };
-    if (score <= 2) return { level: 3, label: 'Moyen', color: 'bg-yellow-500' };
-    return { level: 4, label: 'Fort', color: 'bg-green-500' };
+    if (score <= 1) return { level: 2, label: t('auth.passwordStrength.weak'), color: 'bg-orange-500' };
+    if (score <= 2) return { level: 3, label: t('auth.passwordStrength.medium'), color: 'bg-yellow-500' };
+    return { level: 4, label: t('auth.passwordStrength.strong'), color: 'bg-green-500' };
   };
 
   const strength = getPasswordStrength();
@@ -87,7 +87,7 @@ export default function RegisterPage() {
         navigate(form.role === 'driver' ? '/driver/setup' : '/');
       }
     } catch (e) {
-      setError(e.message || 'Erreur lors de l\'inscription');
+      setError(e.message || t('auth.registerError'));
     }
     setLoading(false);
   };
@@ -99,43 +99,43 @@ export default function RegisterPage() {
         <button onClick={() => navigate('/login')} className="p-2 -ml-2 rounded-xl hover:bg-white/10 mb-2">
           <ArrowLeft size={22} className="text-white" />
         </button>
-        <h1 className="text-white text-2xl font-bold">Créer un compte</h1>
-        <p className="text-brand-200 text-sm mt-1">Rejoignez MoveBissau en quelques secondes</p>
+        <h1 className="text-white text-2xl font-bold">{t('auth.createAccountTitle')}</h1>
+        <p className="text-brand-200 text-sm mt-1">{t('auth.createAccountSubtitle')}</p>
       </div>
 
       <div className="px-6 -mt-3 pb-10">
         <form onSubmit={handleSubmit} className="space-y-4 bg-white rounded-2xl">
 
-          {/* Prénom + Nom */}
+          {/* Prenom + Nom */}
           <div className="grid grid-cols-2 gap-3 pt-5">
             <div>
-              <label className="text-xs font-medium text-gray-500 pl-1 block mb-1">Prénom</label>
+              <label className="text-xs font-medium text-gray-500 pl-1 block mb-1">{t('auth.firstName')}</label>
               <div className="relative">
                 <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
                   value={form.firstName}
                   onChange={e => set('firstName', e.target.value)}
-                  placeholder="Prénom"
+                  placeholder={t('auth.firstName')}
                   className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-9 pr-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                 />
               </div>
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-500 pl-1 block mb-1">Nom</label>
+              <label className="text-xs font-medium text-gray-500 pl-1 block mb-1">{t('auth.lastName')}</label>
               <input
                 type="text"
                 value={form.lastName}
                 onChange={e => set('lastName', e.target.value)}
-                placeholder="Nom"
+                placeholder={t('auth.lastName')}
                 className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
               />
             </div>
           </div>
 
-          {/* Téléphone */}
+          {/* Telephone */}
           <div>
-            <label className="text-xs font-medium text-gray-500 pl-1 block mb-1">Numéro de téléphone</label>
+            <label className="text-xs font-medium text-gray-500 pl-1 block mb-1">{t('auth.phone')}</label>
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-3 flex-shrink-0">
                 <span>{country.country_flag}</span>
@@ -170,20 +170,20 @@ export default function RegisterPage() {
               </div>
             </div>
             {rawPhone.length > 0 && !isPhoneValid && (
-              <p className="text-[11px] text-red-500 mt-1 pl-1">7 à 9 chiffres uniquement, pas de lettres</p>
+              <p className="text-[11px] text-red-500 mt-1 pl-1">{t('auth.phoneHint')}</p>
             )}
           </div>
 
           {/* Mot de passe */}
           <div>
-            <label className="text-xs font-medium text-gray-500 pl-1 block mb-1">Mot de passe</label>
+            <label className="text-xs font-medium text-gray-500 pl-1 block mb-1">{t('auth.password')}</label>
             <div className="relative">
               <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type={showPassword ? 'text' : 'password'}
                 value={form.password}
                 onChange={e => set('password', e.target.value)}
-                placeholder="Min. 6 caractères"
+                placeholder={t('auth.passwordPlaceholder')}
                 className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-9 pr-12 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
               />
               <button type="button" onClick={() => setShowPassword(!showPassword)}
@@ -191,7 +191,7 @@ export default function RegisterPage() {
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
-            {/* Barre de force */}
+            {/* Strength bar */}
             {form.password.length > 0 && (
               <div className="flex items-center gap-2 mt-1.5 pl-1">
                 <div className="flex gap-1 flex-1">
@@ -206,14 +206,14 @@ export default function RegisterPage() {
 
           {/* Confirmer mot de passe */}
           <div>
-            <label className="text-xs font-medium text-gray-500 pl-1 block mb-1">Confirmer le mot de passe</label>
+            <label className="text-xs font-medium text-gray-500 pl-1 block mb-1">{t('auth.passwordConfirm')}</label>
             <div className="relative">
               <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type={showPassword ? 'text' : 'password'}
                 value={form.passwordConfirm}
                 onChange={e => set('passwordConfirm', e.target.value)}
-                placeholder="Retapez le mot de passe"
+                placeholder={t('auth.passwordConfirmPlaceholder')}
                 className={`w-full bg-gray-50 border rounded-xl pl-9 pr-10 py-3 text-sm
                   focus:outline-none focus:ring-2 transition-all
                   ${form.passwordConfirm.length > 0
@@ -231,17 +231,17 @@ export default function RegisterPage() {
               )}
             </div>
             {form.passwordConfirm.length > 0 && !isPasswordMatch && (
-              <p className="text-[11px] text-red-500 mt-1 pl-1">Les mots de passe ne correspondent pas</p>
+              <p className="text-[11px] text-red-500 mt-1 pl-1">{t('auth.passwordMismatch')}</p>
             )}
           </div>
 
-          {/* Rôle */}
+          {/* Role */}
           <div>
-            <label className="text-xs font-medium text-gray-500 pl-1 block mb-2">Je suis...</label>
+            <label className="text-xs font-medium text-gray-500 pl-1 block mb-2">{t('auth.iAm')}</label>
             <div className="grid grid-cols-2 gap-3">
               {[
-                { value: 'passenger', label: 'Passager', emoji: '🧑', desc: 'Commander des courses' },
-                { value: 'driver', label: 'Chauffeur', emoji: '🏍️', desc: 'Proposer mes services' },
+                { value: 'passenger', label: t('auth.passenger'), emoji: '🧑', desc: t('auth.passengerDesc') },
+                { value: 'driver', label: t('auth.driver'), emoji: '🏍️', desc: t('auth.driverDesc') },
               ].map(opt => (
                 <button
                   key={opt.value}
@@ -272,7 +272,7 @@ export default function RegisterPage() {
 
           {/* Langue */}
           <div>
-            <label className="text-xs font-medium text-gray-500 pl-1 block mb-2">Langue</label>
+            <label className="text-xs font-medium text-gray-500 pl-1 block mb-2">{t('auth.language')}</label>
             <div className="flex gap-2">
               {[
                 { code: 'fr', label: 'Français', flag: '🇫🇷' },
@@ -289,7 +289,7 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          {/* Erreur */}
+          {/* Error */}
           {error && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
               className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
@@ -298,9 +298,9 @@ export default function RegisterPage() {
             </motion.div>
           )}
 
-          {/* Code parrain */}
+          {/* Referral code */}
           <div>
-            <label className="text-sm font-medium text-gray-600 pl-1 block mb-1.5">Code parrain (optionnel)</label>
+            <label className="text-sm font-medium text-gray-600 pl-1 block mb-1.5">{t('auth.referralCode')}</label>
             <div className="relative">
               <input
                 type="text"
@@ -312,12 +312,12 @@ export default function RegisterPage() {
                            focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
               />
             </div>
-            <p className="text-[10px] text-gray-400 mt-1 pl-1">Gagnez 500 F CFA si un ami vous a parrainé</p>
+            <p className="text-[10px] text-gray-400 mt-1 pl-1">{t('auth.referralHint')}</p>
           </div>
 
           <div className="pt-2">
             <Button type="submit" loading={loading} disabled={!isFormValid}>
-              Créer mon compte
+              {t('auth.createAccount')}
               <ChevronRight size={18} />
             </Button>
           </div>
@@ -325,9 +325,9 @@ export default function RegisterPage() {
 
         <div className="text-center mt-5">
           <p className="text-sm text-gray-500">
-            Déjà un compte ?{' '}
+            {t('auth.alreadyHaveAccount')}{' '}
             <button onClick={() => navigate('/login')} className="text-brand-500 font-semibold hover:underline">
-              Se connecter
+              {t('auth.login')}
             </button>
           </p>
         </div>

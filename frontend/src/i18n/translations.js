@@ -78,6 +78,15 @@ const translations = {
     referralCode: { fr: 'Code parrain (optionnel)', pt: 'Código de indicação (opcional)' },
     referralHint: { fr: 'Gagnez 500 F CFA si un ami vous a parrainé', pt: 'Ganhe 500 F CFA se um amigo lhe indicou' },
     adminSpace: { fr: 'Espace Administrateur', pt: 'Espaço Administrador' },
+    phoneDigits: { fr: 'Entrez 7 à 9 chiffres', pt: 'Insira 7 a 9 dígitos' },
+    phoneHint: { fr: 'Format incorrect', pt: 'Formato incorreto' },
+    createAccountTitle: { fr: 'Créer un compte', pt: 'Criar conta' },
+    createAccountSubtitle: { fr: 'Rejoignez MoveBissau en quelques secondes', pt: 'Junte-se ao MoveBissau em segundos' },
+    registerError: { fr: "Erreur lors de l'inscription", pt: 'Erro ao cadastrar' },
+    chooseRole: { fr: 'Je suis', pt: 'Eu sou' },
+    passengerDesc: { fr: 'Je cherche un transport', pt: 'Procuro transporte' },
+    driverDesc: { fr: 'Je transporte des passagers', pt: 'Transporto passageiros' },
+    chooseLang: { fr: 'Langue préférée', pt: 'Idioma preferido' },
   },
 
   // === WELCOME ===
