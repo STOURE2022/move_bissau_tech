@@ -185,9 +185,9 @@ export default function DriverRidePage() {
     : [ride.pickup_lat || 11.8636, ride.pickup_lng || -15.5977];
 
   return (
-    <div className="h-[100dvh] flex flex-col bg-white">
+    <div className="h-[100dvh] flex flex-col bg-white overflow-hidden">
       {/* Carte */}
-      <div className="flex-1 relative">
+      <div className="h-[45vh] relative flex-shrink-0">
         <button
           onClick={() => navigate('/driver')}
           className="absolute top-4 left-4 z-10 w-10 h-10 bg-white rounded-2xl shadow-card flex items-center justify-center"
@@ -234,7 +234,7 @@ export default function DriverRidePage() {
       <motion.div
         initial={{ y: 100 }}
         animate={{ y: 0 }}
-        className="bg-white bottom-sheet px-5 pt-5 pb-8"
+        className="bg-white flex-1 overflow-y-auto px-5 pt-5 pb-8 rounded-t-[1.5rem] shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
       >
         {/* Statut */}
         <motion.div
