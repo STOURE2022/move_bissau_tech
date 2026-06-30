@@ -33,8 +33,8 @@ export default function DriverHistoryPage() {
 
   // Calcul des stats
   const paidRides = rides.filter(r => r.status === 'paid');
-  const totalEarnings = paidRides.reduce((sum, r) => sum + r.agreed_price, 0);
-  const totalCommission = paidRides.reduce((sum, r) => sum + (r.commission_amount || 0), 0);
+  const totalEarnings = paidRides.reduce((sum, r) => sum + Number(r.agreed_price || 0), 0);
+  const totalCommission = paidRides.reduce((sum, r) => sum + Number(r.commission_amount || 0), 0);
 
   return (
     <div className="min-h-[100dvh] bg-gray-50 pb-20">
