@@ -95,19 +95,21 @@ function AnimatedCounter({ end, suffix = '', duration = 2000 }) {
 // FEATURES et STEPS sont générés dynamiquement dans le composant pour la traduction
 
 function LanguageSwitcher() {
-  const [lang, setLangState] = useState(getLang());
+  const [lang, setLangState] = useState(() => localStorage.getItem('mb_lang') || getLang());
 
   const switchLang = (newLang) => {
     setLangState(newLang);
-    // Sauver dans localStorage pour que useTranslation le détecte
+    // Sauver la langue sans toucher à mb_user (éviter faux login)
+    localStorage.setItem('mb_lang', newLang);
+    // Mettre à jour mb_user seulement s'il existe déjà
     try {
-      const user = JSON.parse(localStorage.getItem('mb_user') || '{}');
-      user.preferred_lang = newLang;
-      localStorage.setItem('mb_user', JSON.stringify(user));
-    } catch {
-      localStorage.setItem('mb_user', JSON.stringify({ preferred_lang: newLang }));
-    }
-    // Recharger la page pour appliquer
+      const existing = localStorage.getItem('mb_user');
+      if (existing) {
+        const user = JSON.parse(existing);
+        user.preferred_lang = newLang;
+        localStorage.setItem('mb_user', JSON.stringify(user));
+      }
+    } catch {}
     window.location.reload();
   };
 

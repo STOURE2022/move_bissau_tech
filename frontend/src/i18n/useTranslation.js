@@ -41,14 +41,20 @@ export function useTranslation() {
  */
 export function getLang() {
   try {
-    // 1. Depuis le profil utilisateur stocké
+    // 1. Depuis le choix explicite (switcher langue)
+    const savedLang = localStorage.getItem('mb_lang');
+    if (savedLang === 'pt' || savedLang === 'fr') return savedLang;
+  } catch {}
+
+  try {
+    // 2. Depuis le profil utilisateur stocké
     const user = JSON.parse(localStorage.getItem('mb_user') || '{}');
     if (user.preferred_lang === 'pt') return 'pt';
     if (user.preferred_lang === 'fr') return 'fr';
   } catch {}
 
   try {
-    // 2. Depuis la langue du navigateur
+    // 3. Depuis la langue du navigateur
     const browserLang = navigator.language?.slice(0, 2);
     if (browserLang === 'pt') return 'pt';
   } catch {}
