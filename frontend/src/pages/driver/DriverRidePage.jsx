@@ -60,6 +60,10 @@ export default function DriverRidePage() {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const toast = useToast();
 
+  // Type réel du véhicule du chauffeur
+  const myVehicleType = ride?.driver_vehicle?.type || ride?.vehicle_type;
+  const myVehicleEmoji = myVehicleType === 'car' ? '🚗' : '🏍️';
+
   // Étapes de la course avec bouton d'action
   const STATUS_STEPS = [
     { from: 'driver_assigned', to: 'driver_en_route', label: t('driver.btnEnRoute'), emoji: '🚀', color: 'bg-blue-500 hover:bg-blue-600' },
@@ -70,9 +74,9 @@ export default function DriverRidePage() {
 
   const STATUS_INFO = {
     driver_assigned: { emoji: '🚀', text: t('driver.rideAssigned'), sub: t('driver.rideAssignedSub') },
-    driver_en_route: { emoji: '🏍️', text: t('driver.enRoute'), sub: t('driver.enRouteSub') },
+    driver_en_route: { emoji: myVehicleEmoji, text: t('driver.enRoute'), sub: t('driver.enRouteSub') },
     driver_arrived: { emoji: '📍', text: t('driver.arrivedStatus'), sub: t('driver.arrivedSub') },
-    passenger_onboard: { emoji: '🛣️', text: t('driver.onboard'), sub: t('driver.onboardSub') },
+    passenger_onboard: { emoji: myVehicleEmoji, text: t('driver.onboard'), sub: t('driver.onboardSub') },
     completed: { emoji: '🎉', text: t('driver.rideCompleted'), sub: t('driver.waitingPayment') },
     paid: { emoji: '✅', text: t('driver.ridePaid'), sub: t('driver.ridePaidSub') },
     cancelled: { emoji: '❌', text: t('driver.cancelRide'), sub: '' },
