@@ -10,8 +10,9 @@ requêtes API.
 """
 import json
 import logging
-import os
 import threading
+
+from decouple import config
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +34,7 @@ def _ensure_initialized() -> bool:
             import firebase_admin
             from firebase_admin import credentials
 
-            raw = os.environ.get('FIREBASE_CREDENTIALS', '').strip()
+            raw = config('FIREBASE_CREDENTIALS', default='').strip()
             if not raw:
                 logger.info("FIREBASE_CREDENTIALS non défini : push désactivé")
                 _initialized = True

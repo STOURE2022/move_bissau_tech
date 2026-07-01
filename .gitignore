@@ -56,3 +56,4 @@ mobile/.flutter-plugins-dependencies
 
 # Claude
 .claude/
+backend/firebase-credentials.json
