@@ -11,7 +11,7 @@ import { useTranslation } from '../../i18n/useTranslation';
 
 export default function DriverHistoryPage() {
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
   const [rides, setRides] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
@@ -157,7 +157,7 @@ export default function DriverHistoryPage() {
 
                 <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-50">
                   <p className="text-[10px] text-gray-400">
-                    {new Date(ride.created_at).toLocaleDateString('fr', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    {new Date(ride.created_at).toLocaleDateString(lang, { day: 'numeric', month: 'short', year: 'numeric' })}
                   </p>
                   <div className="flex items-center gap-3">
                     {ride.commission_amount > 0 && (

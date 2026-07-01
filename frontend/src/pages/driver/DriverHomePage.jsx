@@ -815,10 +815,10 @@ export default function DriverHomePage() {
               {country.sos_numbers && (
                 <div className="space-y-2 mb-5">
                   {[
-                    { key: 'police', icon: '🚔', label: 'Police' },
-                    { key: 'pompiers', icon: '🚒', label: 'Pompiers' },
-                    { key: 'gendarmerie', icon: '🛡️', label: 'Gendarmerie' },
-                    { key: 'samu', icon: '🚑', label: 'SAMU' },
+                    { key: 'police', icon: '🚔', label: t('sos.police') },
+                    { key: 'pompiers', icon: '🚒', label: t('sos.pompiers') },
+                    { key: 'gendarmerie', icon: '🛡️', label: t('sos.gendarmerie') },
+                    { key: 'samu', icon: '🚑', label: t('sos.samu') },
                   ].filter(s => country.sos_numbers[s.key]).map(s => (
                     <a
                       key={s.key}

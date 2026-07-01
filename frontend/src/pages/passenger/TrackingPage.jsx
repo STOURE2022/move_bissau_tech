@@ -132,10 +132,10 @@ export default function TrackingPage() {
     try {
       const data = await api.post(`/rides/${rideId}/share`);
       if (navigator.share) {
-        navigator.share({ title: 'Mon trajet MoveBissau', url: data.share_url });
+        navigator.share({ title: t('common.shareRideTitle'), url: data.share_url });
       } else {
         navigator.clipboard.writeText(data.share_url);
-        toast.show('Lien copié !', 'success');
+        toast.show(t('common.linkCopied'), 'success');
       }
     } catch {}
   };
@@ -351,10 +351,10 @@ export default function TrackingPage() {
               {country.sos_numbers && (
                 <div className="space-y-2 mb-5">
                   {[
-                    { key: 'police', icon: '🚔', label: 'Police' },
-                    { key: 'pompiers', icon: '🚒', label: 'Pompiers' },
-                    { key: 'gendarmerie', icon: '🛡️', label: 'Gendarmerie' },
-                    { key: 'samu', icon: '🚑', label: 'SAMU' },
+                    { key: 'police', icon: '🚔', label: t('sos.police') },
+                    { key: 'pompiers', icon: '🚒', label: t('sos.pompiers') },
+                    { key: 'gendarmerie', icon: '🛡️', label: t('sos.gendarmerie') },
+                    { key: 'samu', icon: '🚑', label: t('sos.samu') },
                   ].filter(s => country.sos_numbers[s.key]).map(s => (
                     <a
                       key={s.key}

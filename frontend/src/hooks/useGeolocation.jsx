@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useTranslation } from '../i18n/useTranslation';
 
 /**
  * Hook de géolocalisation réutilisable.
@@ -10,6 +11,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
  * @returns {{ position, accuracy, heading, speed, loading, error, locate, isTracking }}
  */
 export function useGeolocation({ watch = false, defaultLat = 0, defaultLng = 0 } = {}) {
+  const { t } = useTranslation();
   const [position, setPosition] = useState([defaultLat, defaultLng]);
   const [accuracy, setAccuracy] = useState(null);
   const [heading, setHeading] = useState(null);
@@ -32,11 +34,11 @@ export function useGeolocation({ watch = false, defaultLat = 0, defaultLng = 0 }
   const handleError = useCallback((err) => {
     setLoading(false);
     setIsTracking(false);
-    if (err.code === 1) setError('Accès à la position refusé');
-    else if (err.code === 2) setError('Position indisponible');
-    else if (err.code === 3) setError('Délai dépassé');
-    else setError('Erreur de géolocalisation');
-  }, []);
+    if (err.code === 1) setError(t('geo.denied'));
+    else if (err.code === 2) setError(t('geo.unavailable'));
+    else if (err.code === 3) setError(t('geo.timeout'));
+    else setError(t('geo.error'));
+  }, [t]);
 
   const geoOptions = {
     enableHighAccuracy: true,
@@ -47,7 +49,7 @@ export function useGeolocation({ watch = false, defaultLat = 0, defaultLng = 0 }
   // Localisation initiale
   useEffect(() => {
     if (!navigator.geolocation) {
-      setError('Géolocalisation non supportée');
+      setError(t('geo.unsupported'));
       setLoading(false);
       return;
     }

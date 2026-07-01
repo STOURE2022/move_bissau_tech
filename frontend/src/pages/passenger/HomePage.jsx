@@ -349,7 +349,7 @@ export default function HomePage() {
         <div className="mb-4">
           <p className="text-gray-500 text-sm">{getGreeting()}</p>
           <h2 className="text-xl font-bold text-gray-800">
-            {user?.first_name || 'Passager'} 👋
+            {user?.first_name || t('auth.passenger')} 👋
           </h2>
         </div>
 
@@ -384,7 +384,7 @@ export default function HomePage() {
             <div className="flex-1 text-left">
               <p className="font-bold text-sm">{t('passenger.pendingRequest')}</p>
               <p className="text-white/80 text-xs truncate">
-                {activeRequest.dropoff_address || 'En attente de chauffeurs'} · {activeRequest.proposed_price} F
+                {activeRequest.dropoff_address || t('offers.waitingForOffers')} · {activeRequest.proposed_price} F
               </p>
             </div>
             <ChevronRight size={20} className="text-white/70" />
@@ -456,7 +456,7 @@ export default function HomePage() {
                       type="text"
                       value={editValue}
                       onChange={e => setEditValue(e.target.value)}
-                      placeholder={`Adresse ${place.label.toLowerCase()}`}
+                      placeholder={`${t('common.addressOf')} ${place.label.toLowerCase()}`}
                       className="flex-1 text-xs outline-none min-w-0"
                       onKeyDown={e => e.key === 'Enter' && savePlace(place.key)}
                     />
@@ -565,7 +565,7 @@ export default function HomePage() {
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
             </span>
             <p className="text-xs text-gray-500">
-              <span className="font-semibold text-brand-600">{nearbyDrivers.filter(d => d.vehicle_type === vehicleType).length}</span> {vehicleType === 'moto' ? 'moto' : 'voiture'}{nearbyDrivers.filter(d => d.vehicle_type === vehicleType).length > 1 ? 's' : ''} à proximité
+              <span className="font-semibold text-brand-600">{nearbyDrivers.filter(d => d.vehicle_type === vehicleType).length}</span> {vehicleType === 'moto' ? t('passenger.motosNearby') : t('passenger.carsNearby')}
             </p>
           </motion.div>
         )}
@@ -650,10 +650,10 @@ export default function HomePage() {
               {country.sos_numbers && (
                 <div className="space-y-2 mb-5">
                   {[
-                    { key: 'police', icon: '🚔', label: 'Police' },
-                    { key: 'pompiers', icon: '🚒', label: 'Pompiers' },
-                    { key: 'gendarmerie', icon: '🛡️', label: 'Gendarmerie' },
-                    { key: 'samu', icon: '🚑', label: 'SAMU' },
+                    { key: 'police', icon: '🚔', label: t('sos.police') },
+                    { key: 'pompiers', icon: '🚒', label: t('sos.pompiers') },
+                    { key: 'gendarmerie', icon: '🛡️', label: t('sos.gendarmerie') },
+                    { key: 'samu', icon: '🚑', label: t('sos.samu') },
                   ].filter(s => country.sos_numbers[s.key]).map(s => (
                     <a
                       key={s.key}

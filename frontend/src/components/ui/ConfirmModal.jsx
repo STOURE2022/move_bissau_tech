@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, CheckCircle, Info, AlertCircle } from 'lucide-react';
+import { useTranslation } from '../../i18n/useTranslation';
 
 const defaultIcons = {
   danger: AlertTriangle,
@@ -12,8 +13,8 @@ export default function ConfirmModal({
   open,
   title,
   message,
-  confirmLabel = 'Confirmer',
-  cancelLabel = 'Annuler',
+  confirmLabel,
+  cancelLabel,
   variant = 'danger',
   icon: CustomIcon,
   loading = false,
@@ -26,8 +27,11 @@ export default function ConfirmModal({
     info: { iconBg: 'bg-brand-50', iconColor: 'text-brand-500', btnColor: 'bg-brand-500 hover:bg-brand-600' },
     success: { iconBg: 'bg-green-50', iconColor: 'text-green-500', btnColor: 'bg-green-500 hover:bg-green-600' },
   };
+  const { t } = useTranslation();
   const v = variants[variant] || variants.danger;
   const Icon = CustomIcon || defaultIcons[variant] || AlertTriangle;
+  const finalConfirmLabel = confirmLabel || t('common.confirm');
+  const finalCancelLabel = cancelLabel || t('common.cancel');
 
   return (
     <AnimatePresence>
@@ -63,7 +67,7 @@ export default function ConfirmModal({
                 disabled={loading}
                 className="flex-1 py-3.5 rounded-2xl border-2 border-gray-200 font-semibold text-gray-600 hover:bg-gray-50 transition disabled:opacity-50"
               >
-                {cancelLabel}
+                {finalCancelLabel}
               </button>
               <button
                 onClick={onConfirm}
@@ -72,7 +76,7 @@ export default function ConfirmModal({
               >
                 {loading ? (
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto" />
-                ) : confirmLabel}
+                ) : finalConfirmLabel}
               </button>
             </div>
           </motion.div>

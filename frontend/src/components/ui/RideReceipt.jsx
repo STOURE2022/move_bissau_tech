@@ -9,7 +9,7 @@ import { useTranslation } from '../../i18n/useTranslation';
  * Design inspiré des reçus Uber/InDrive.
  */
 export default function RideReceipt({ ride, onClose, showActions = true }) {
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
   const receiptRef = useRef(null);
   const [downloading, setDownloading] = useState(false);
 
@@ -22,7 +22,7 @@ export default function RideReceipt({ ride, onClose, showActions = true }) {
         pixelRatio: 2,
       });
       const link = document.createElement('a');
-      link.download = `MoveBissau-Recu-${String(ride.id).slice(0, 8).toUpperCase()}.png`;
+      link.download = `MoveBissau-${lang === 'pt' ? 'Recibo' : 'Recu'}-${String(ride.id).slice(0, 8).toUpperCase()}.png`;
       link.href = dataUrl;
       link.click();
     } catch {
@@ -35,8 +35,8 @@ export default function RideReceipt({ ride, onClose, showActions = true }) {
   if (!ride) return null;
 
   const date = new Date(ride.created_at);
-  const dateStr = date.toLocaleDateString('fr', { day: 'numeric', month: 'long', year: 'numeric' });
-  const timeStr = date.toLocaleTimeString('fr', { hour: '2-digit', minute: '2-digit' });
+  const dateStr = date.toLocaleDateString(lang, { day: 'numeric', month: 'long', year: 'numeric' });
+  const timeStr = date.toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit' });
 
   const commission = ride.commission_amount || 0;
   const driverAmount = ride.agreed_price - commission;
@@ -90,7 +90,7 @@ export default function RideReceipt({ ride, onClose, showActions = true }) {
           <div className="flex-1 space-y-3">
             <div>
               <p className="text-xs text-gray-400">{t('receipt.departure', 'Départ')}</p>
-              <p className="text-sm font-medium text-gray-800 line-clamp-1">{ride.pickup_address || 'Position GPS'}</p>
+              <p className="text-sm font-medium text-gray-800 line-clamp-1">{ride.pickup_address || 'GPS'}</p>
             </div>
             <div>
               <p className="text-xs text-gray-400">{t('receipt.arrival', 'Arrivée')}</p>

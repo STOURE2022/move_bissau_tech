@@ -13,7 +13,7 @@ import { useTranslation } from '../../i18n/useTranslation';
 export default function DriverProfilePage() {
   const { user, logout, refreshUser } = useAuth();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
   const [profile, setProfile] = useState(null);
   const [credit, setCredit] = useState(null);
   const [ratings, setRatings] = useState([]);
@@ -399,7 +399,7 @@ export default function DriverProfilePage() {
                     </div>
                     {r.comment && <p className="text-sm text-gray-600">{r.comment}</p>}
                     <p className="text-[10px] text-gray-400 mt-2">
-                      {new Date(r.created_at).toLocaleDateString('fr', { day: 'numeric', month: 'long' })}
+                      {new Date(r.created_at).toLocaleDateString(lang, { day: 'numeric', month: 'long' })}
                     </p>
                   </motion.div>
                 ))

@@ -11,7 +11,7 @@ import { useTranslation } from '../../i18n/useTranslation';
 
 export default function CreditPage() {
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
   const [credit, setCredit] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [showTopup, setShowTopup] = useState(false);
@@ -171,7 +171,7 @@ export default function CreditPage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-800 truncate">{tx.description}</p>
                     <p className="text-xs text-gray-400">
-                      {new Date(tx.created_at).toLocaleDateString('fr')} · {new Date(tx.created_at).toLocaleTimeString('fr', { hour: '2-digit', minute: '2-digit' })}
+                      {new Date(tx.created_at).toLocaleDateString(lang)} · {new Date(tx.created_at).toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>
                   <p className={`font-bold text-sm ${tx.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -208,7 +208,7 @@ export default function CreditPage() {
                       {w.reference} → {w.phone}
                     </p>
                     <p className="text-xs text-gray-400">
-                      {sc.label} · {new Date(w.created_at).toLocaleDateString('fr')}
+                      {sc.label} · {new Date(w.created_at).toLocaleDateString(lang)}
                     </p>
                     {w.admin_note && w.status === 'rejected' && (
                       <p className="text-xs text-red-500 mt-0.5">{w.admin_note}</p>

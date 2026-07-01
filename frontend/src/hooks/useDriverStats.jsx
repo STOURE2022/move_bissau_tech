@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '../api/client';
+import { getLang } from '../i18n/useTranslation';
 
 /**
  * Hook centralisé pour les statistiques chauffeur.
@@ -85,12 +86,15 @@ export function useDriverStats(isOnline = false) {
 
   // === Résumé semaine ===
   const getWeeklyData = () => {
+    const lang = getLang();
+    const locale = lang === 'pt' ? 'pt' : 'fr';
+    const todayLabel = lang === 'pt' ? 'Hoje' : 'Auj.';
     const days = [];
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
       const dateStr = d.toISOString().slice(0, 10);
-      const dayLabel = d.toLocaleDateString('fr', { weekday: 'short' }).slice(0, 3);
+      const dayLabel = d.toLocaleDateString(locale, { weekday: 'short' }).slice(0, 3);
 
       const dayRides = rides.filter(r => {
         const rideDate = r.created_at?.slice(0, 10);
@@ -101,7 +105,7 @@ export function useDriverStats(isOnline = false) {
 
       days.push({
         date: dateStr,
-        label: i === 0 ? "Auj." : dayLabel,
+        label: i === 0 ? todayLabel : dayLabel,
         earnings,
         rides: dayRides.length,
         isToday: i === 0,
