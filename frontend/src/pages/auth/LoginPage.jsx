@@ -6,6 +6,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useCountryConfig } from '../../hooks/useCountryConfig';
 import { useTranslation } from '../../i18n/useTranslation';
 import Button from '../../components/ui/Button';
+import FlagStripe from '../../components/ui/FlagStripe';
 
 export default function LoginPage() {
   const [phone, setPhone] = useState('');
@@ -23,7 +24,6 @@ export default function LoginPage() {
 
   // Formater le numéro : uniquement des chiffres, formaté XX XXX XXXX
   const formatPhone = (value) => {
-    // Si l'utilisateur tape +, laisser le format libre (numéro complet)
     if (value.startsWith('+')) return value;
     const digits = value.replace(/\D/g, '').slice(0, 9);
     if (digits.length <= 2) return digits;
@@ -43,7 +43,6 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
     try {
-      // Si le numéro commence par +, l'utiliser tel quel, sinon ajouter le préfixe pays
       const fullPhone = hasFullPrefix ? rawPhone : `${country.phone_prefix}${rawPhone}`;
       const result = await login(fullPhone, password);
       if (result) {
@@ -56,40 +55,37 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-[100dvh] flex flex-col bg-gradient-to-b from-brand-500 via-brand-600 to-brand-700">
-      {/* Bouton retour */}
-      <div className="px-4 pt-4 relative z-10">
-        <button onClick={() => navigate('/welcome')} className="p-2 rounded-xl hover:bg-white/10">
-          <ArrowLeft size={22} className="text-white" />
+    <div className="min-h-[100dvh] bg-white flex flex-col">
+      {/* Bandeau tricolore signature */}
+      <FlagStripe className="rounded-none h-1.5" />
+
+      {/* En-tête */}
+      <div className="px-5 pt-4">
+        <button onClick={() => navigate('/welcome')} className="p-2 -ml-2 rounded-xl hover:bg-gray-100">
+          <ArrowLeft size={22} className="text-gray-700" />
         </button>
       </div>
 
-      {/* Header */}
       <motion.div
-        initial={{ opacity: 0, y: -20 }}
+        initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col items-center justify-center px-8 pt-4 pb-6"
+        className="px-6 pt-2 pb-7"
       >
-        <motion.div
-          initial={{ scale: 0, rotate: -10 }}
-          animate={{ scale: 1, rotate: 0 }}
-          transition={{ type: 'spring', damping: 12, delay: 0.1 }}
-          className="w-20 h-20 bg-white rounded-3xl shadow-elevated flex items-center justify-center mb-4"
-        >
-          <span className="text-3xl font-black text-brand-500">MB</span>
-        </motion.div>
-        <h1 className="text-white text-2xl font-bold">{t('auth.loginTitle')}</h1>
-        <p className="text-brand-200 mt-1 text-center text-sm">
-          {t('auth.loginSubtitle')}
-        </p>
+        <div className="w-14 h-14 bg-brand-500 rounded-2xl shadow-card flex items-center justify-center mb-5">
+          <span className="text-xl font-black text-white">MB</span>
+        </div>
+        <h1 className="text-gray-900 text-[1.7rem] font-extrabold leading-tight">
+          {t('auth.welcomeBack')} 👋
+        </h1>
+        <p className="text-gray-500 mt-1 text-sm">{t('auth.loginSubtitle')}</p>
       </motion.div>
 
       {/* Formulaire */}
       <motion.div
-        initial={{ y: 60, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.2, type: 'spring', damping: 20 }}
-        className="flex-1 bg-white rounded-t-[2rem] px-6 pt-8 pb-10 shadow-elevated"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="flex-1 px-6 pb-10"
       >
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Téléphone */}
@@ -149,7 +145,16 @@ export default function LoginPage() {
 
           {/* Mot de passe */}
           <div>
-            <label className="text-sm font-medium text-gray-600 pl-1 block mb-1.5">{t('auth.password')}</label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-sm font-medium text-gray-600 pl-1">{t('auth.password')}</label>
+              <button
+                type="button"
+                onClick={() => navigate('/forgot-password')}
+                className="text-xs text-brand-600 font-medium hover:underline"
+              >
+                {t('auth.passwordForgot')}
+              </button>
+            </div>
             <div className="relative">
               <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
@@ -195,38 +200,24 @@ export default function LoginPage() {
           </Button>
         </form>
 
-        {/* Mot de passe oublié */}
-        <div className="text-center mt-4">
+        {/* Inscription — bien visible */}
+        <div className="mt-5">
           <button
-            onClick={() => navigate('/forgot-password')}
-            className="text-sm text-gray-400 hover:text-brand-500 transition"
+            onClick={() => navigate('/register')}
+            className="w-full py-3.5 rounded-2xl border-2 border-brand-500 text-brand-600 font-bold text-sm
+                       hover:bg-brand-50 transition"
           >
-            {t('auth.passwordForgot')}
+            {t('auth.noAccount')} {t('auth.signUp')}
           </button>
         </div>
 
-        {/* Lien inscription */}
-        <div className="text-center mt-4">
-          <p className="text-sm text-gray-500">
-            {t('auth.noAccount')}{' '}
-            <button
-              onClick={() => navigate('/register')}
-              className="text-brand-500 font-semibold hover:underline"
-            >
-              {t('auth.signUp')}
-            </button>
-          </p>
-        </div>
-
-        {/* Accès admin */}
-        <div className="mt-6 pt-5 border-t border-gray-100">
+        {/* Accès admin — discret */}
+        <div className="text-center mt-8">
           <a
             href="/admin/"
-            className="flex items-center justify-center gap-2.5 w-full bg-gradient-to-r from-gray-800 to-gray-900
-                       text-white font-semibold text-sm py-3.5 rounded-2xl shadow-md hover:shadow-lg
-                       hover:from-gray-700 hover:to-gray-800 transition-all"
+            className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition"
           >
-            <Shield size={16} />
+            <Shield size={12} />
             {t('auth.adminSpace')}
           </a>
         </div>
