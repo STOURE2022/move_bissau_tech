@@ -365,6 +365,23 @@ const translations = {
     cancelConfirm: { fr: 'Annuler la course', pt: 'Cancelar corrida' },
   },
 
+  // === CHAT COURSE ===
+  chat: {
+    title: { fr: 'Messages', pt: 'Mensagens' },
+    withDriver: { fr: 'Chauffeur', pt: 'Motorista' },
+    withPassenger: { fr: 'Passager', pt: 'Passageiro' },
+    placeholder: { fr: 'Écrire un message…', pt: 'Escrever mensagem…' },
+    empty: { fr: 'Envoyez un message rapide ci-dessous', pt: 'Envie uma mensagem rápida abaixo' },
+    chat_where_are_you: { fr: 'Où êtes-vous ?', pt: 'Onde está?' },
+    chat_im_coming: { fr: "J'arrive", pt: 'Estou a chegar' },
+    chat_im_here: { fr: 'Je suis là', pt: 'Cheguei' },
+    chat_at_pickup: { fr: 'Je suis au point de départ', pt: 'Estou no ponto de partida' },
+    chat_wait_2min: { fr: 'Attendez-moi 2 minutes', pt: 'Espere 2 minutos' },
+    chat_traffic: { fr: 'Il y a des embouteillages', pt: 'Há trânsito' },
+    chat_call_me: { fr: "Appelez-moi s'il vous plaît", pt: 'Ligue-me por favor' },
+    chat_ok: { fr: 'OK 👍', pt: 'OK 👍' },
+  },
+
   // === PAIEMENT ===
   payment: {
     title: { fr: 'Paiement', pt: 'Pagamento' },

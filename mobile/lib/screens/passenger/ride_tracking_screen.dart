@@ -12,6 +12,7 @@ import '../../config/app_config.dart';
 import '../../core/providers/ride_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../i18n/app_localizations.dart';
+import '../../widgets/ride_chat.dart';
 
 class RideTrackingScreen extends StatefulWidget {
   final String rideId;
@@ -194,7 +195,16 @@ class _RideTrackingScreenState extends State<RideTrackingScreen> {
                         child: OutlinedButton.icon(
                           onPressed: () => _callDriver(ride.driverPhoneMasked),
                           icon: const Icon(Icons.phone),
-                          label: const Text('Appeler'),
+                          label: Text(l.get('call')),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+
+                      // Chat avec le chauffeur
+                      Expanded(
+                        child: RideChatButton(
+                          rideId: widget.rideId,
+                          role: 'passenger',
                         ),
                       ),
                       const SizedBox(width: 8),

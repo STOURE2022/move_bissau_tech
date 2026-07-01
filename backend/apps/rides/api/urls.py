@@ -31,6 +31,7 @@ urlpatterns = [
     path('<uuid:ride_id>/status', views.RideStatusUpdateView.as_view(), name='ride-status-update'),
     path('<uuid:ride_id>/cancel', views.RideCancelView.as_view(), name='ride-cancel'),
     path('<uuid:ride_id>/apply-promo', views.RideApplyPromoView.as_view(), name='ride-apply-promo'),
+    path('<uuid:ride_id>/messages', views.RideMessagesView.as_view(), name='ride-messages'),
     path('<uuid:ride_id>/share', views.RideShareView.as_view(), name='ride-share'),
     path('<uuid:ride_id>/track/<str:token>', views.RideTrackPublicView.as_view(), name='ride-track'),
     path('<uuid:ride_id>/sos', views.RideSOSView.as_view(), name='ride-sos'),

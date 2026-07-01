@@ -8,6 +8,7 @@ import Button from '../../components/ui/Button';
 import ConfirmModal from '../../components/ui/ConfirmModal';
 import { useToast } from '../../components/ui/Toast';
 import StatusPill from '../../components/ui/StatusPill';
+import RideChat from '../../components/ui/RideChat';
 import AnimatedDriverMarker from '../../components/map/AnimatedDriverMarker';
 import L from 'leaflet';
 import { useTranslation } from '../../i18n/useTranslation';
@@ -319,6 +320,13 @@ export default function TrackingPage() {
               <AlertTriangle size={20} className="text-red-500" />
               <span className="text-xs text-red-600 font-semibold">{t('tracking.sos')}</span>
             </motion.button>
+          </div>
+        )}
+
+        {/* Chat avec le chauffeur */}
+        {ride.status !== 'paid' && (
+          <div className="mt-3">
+            <RideChat rideId={rideId} role="passenger" />
           </div>
         )}
 

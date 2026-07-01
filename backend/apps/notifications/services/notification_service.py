@@ -218,3 +218,22 @@ def notify_users_async(
 def notify_user_async(user, message_key: str, **kwargs):
     """Variante mono-utilisateur de notify_users_async."""
     notify_users_async([user], message_key, **kwargs)
+
+
+def push_only_async(user, title: str, body: str, data: dict = None):
+    """
+    Envoie uniquement une push (sans notification in-app), dans un thread
+    d'arrière-plan. Utilisé pour les messages de chat : l'historique est
+    déjà dans la conversation, inutile de dupliquer en base.
+    """
+    def _run():
+        try:
+            from apps.notifications.services.push_service import send_push_to_user
+            send_push_to_user(user, title, body, data=data)
+        except Exception as e:
+            logger.warning(f"push_only_async échoué (non bloquant) : {e}")
+        finally:
+            from django.db import connection
+            connection.close()
+
+    threading.Thread(target=_run, daemon=True).start()

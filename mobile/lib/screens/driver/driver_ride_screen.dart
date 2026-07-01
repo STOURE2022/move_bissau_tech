@@ -13,6 +13,7 @@ import '../../core/providers/driver_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../i18n/app_localizations.dart';
 import '../../models/ride.dart';
+import '../../widgets/ride_chat.dart';
 
 class DriverRideScreen extends StatefulWidget {
   final String rideId;
@@ -271,7 +272,11 @@ class _DriverRideScreenState extends State<DriverRideScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 12),
+
+        // Chat avec le passager
+        RideChatButton(rideId: widget.rideId, role: 'driver'),
+        const SizedBox(height: 8),
 
         // Action principale selon le statut
         _actionButton(ride, l),

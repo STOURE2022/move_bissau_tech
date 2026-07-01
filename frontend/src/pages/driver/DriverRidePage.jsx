@@ -9,6 +9,7 @@ import {
 import api from '../../api/client';
 import Button from '../../components/ui/Button';
 import ConfirmModal from '../../components/ui/ConfirmModal';
+import RideChat from '../../components/ui/RideChat';
 import { useToast } from '../../components/ui/Toast';
 import L from 'leaflet';
 import { useTranslation } from '../../i18n/useTranslation';
@@ -317,6 +318,13 @@ export default function DriverRidePage() {
               <MessageCircle size={16} className="text-blue-600" />
               <span className="text-xs font-semibold text-blue-700">{t('driver.sms')}</span>
             </motion.button>
+          </div>
+        )}
+
+        {/* Chat in-app avec le passager */}
+        {ride.status !== 'paid' && (
+          <div className="mb-3">
+            <RideChat rideId={rideId} role="driver" />
           </div>
         )}
 

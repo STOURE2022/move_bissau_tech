@@ -140,6 +140,36 @@ class RideOffer {
   double get distanceKm => (driverDistanceM ?? 0) / 1000;
 }
 
+class RideMessage {
+  final String id;
+  final String text;
+  final String messageKey; // Clé prédéfinie ('' = texte libre)
+  final String senderRole; // 'passenger' ou 'driver'
+  final String senderName;
+  final DateTime createdAt;
+
+  RideMessage({
+    required this.id,
+    required this.text,
+    this.messageKey = '',
+    required this.senderRole,
+    this.senderName = '',
+    required this.createdAt,
+  });
+
+  factory RideMessage.fromJson(Map<String, dynamic> json) {
+    return RideMessage(
+      id: json['id'],
+      text: json['text'] ?? '',
+      messageKey: json['message_key'] ?? '',
+      senderRole: json['sender_role'] ?? '',
+      senderName: json['sender_name'] ?? '',
+      createdAt: DateTime.parse(json['created_at']),
+    );
+  }
+}
+
+
 class Ride {
   final String id;
   final String pickupAddress;

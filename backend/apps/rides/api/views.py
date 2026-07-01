@@ -8,7 +8,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.rides.models import Ride, RideOffer, RideRequest
+from apps.rides.models import Ride, RideMessage, RideOffer, RideRequest
 from apps.rides.services.matching_service import find_eligible_drivers
 from apps.rides.services.pricing_service import (
     calculate_distance_geodesic,
@@ -31,6 +31,7 @@ from .serializers import (
     CancelRideSerializer,
     PriceEstimateSerializer,
     RideHistorySerializer,
+    RideMessageSerializer,
     RideOfferCreateSerializer,
     RideOfferResponseSerializer,
     RideRequestCreateSerializer,
@@ -785,6 +786,108 @@ class RideCancelView(APIView):
             )
 
         return Response(RideSerializer(ride).data)
+
+
+class RideMessagesView(APIView):
+    """
+    GET  /api/rides/<id>/messages?since=<ISO> — Messages du chat de la course.
+    POST /api/rides/<id>/messages — Envoyer un message (clé prédéfinie ou texte).
+
+    Réservé au passager et au chauffeur de la course. Les messages
+    prédéfinis portent une clé : chaque client les affiche dans sa langue.
+    """
+    permission_classes = [IsAuthenticated]
+
+    CHAT_STATUSES = [
+        'driver_assigned', 'driver_en_route', 'driver_arrived',
+        'passenger_onboard', 'completed',
+    ]
+
+    def _get_ride_for(self, request, ride_id):
+        try:
+            ride = Ride.objects.select_related('driver', 'driver__user', 'passenger').get(id=ride_id)
+        except Ride.DoesNotExist:
+            return None
+        if request.user != ride.passenger and request.user != ride.driver.user:
+            return None
+        return ride
+
+    def get(self, request, ride_id):
+        ride = self._get_ride_for(request, ride_id)
+        if ride is None:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        qs = ride.messages.select_related('sender', 'ride__driver')
+
+        since = request.query_params.get('since')
+        if since:
+            from django.utils.dateparse import parse_datetime
+            since_dt = parse_datetime(since)
+            if since_dt:
+                qs = qs.filter(created_at__gt=since_dt)
+
+        return Response(RideMessageSerializer(qs[:100], many=True).data)
+
+    def post(self, request, ride_id):
+        ride = self._get_ride_for(request, ride_id)
+        if ride is None:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        if ride.status not in self.CHAT_STATUSES:
+            return Response(
+                {'error': 'Le chat n\'est plus disponible pour cette course.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        from apps.rides.chat_messages import CHAT_MESSAGES, render_chat_message
+
+        message_key = (request.data.get('message_key') or '').strip()
+        text = (request.data.get('text') or '').strip()
+        sender_lang = getattr(request.user, 'preferred_lang', 'fr') or 'fr'
+
+        if message_key:
+            if message_key not in CHAT_MESSAGES:
+                return Response(
+                    {'error': 'Message prédéfini inconnu.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            text = render_chat_message(message_key, sender_lang)
+        if not text:
+            return Response({'error': 'Message vide.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        message = RideMessage.objects.create(
+            ride=ride,
+            sender=request.user,
+            text=text[:500],
+            message_key=message_key,
+        )
+        data = RideMessageSerializer(message).data
+
+        # Diffusion temps réel sur le canal de suivi (non bloquant)
+        try:
+            from asgiref.sync import async_to_sync
+            from channels.layers import get_channel_layer
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                f'ride_tracking_{ride.id}',
+                {'type': 'ride_message', 'message': data},
+            )
+        except Exception as e:
+            logger.warning(f"Diffusion WS message chat échouée (non bloquant): {e}")
+
+        # Push au destinataire, dans SA langue pour les messages prédéfinis
+        other = ride.driver.user if request.user == ride.passenger else ride.passenger
+        other_lang = getattr(other, 'preferred_lang', 'fr') or 'fr'
+        preview = render_chat_message(message_key, other_lang, text) if message_key else text
+        from apps.notifications.services.notification_service import push_only_async
+        push_only_async(
+            other,
+            f"💬 {request.user.first_name}",
+            preview,
+            data={'type': 'chat', 'ride_id': str(ride.id)},
+        )
+
+        return Response(data, status=status.HTTP_201_CREATED)
 
 
 class RideApplyPromoView(APIView):

@@ -241,3 +241,10 @@ class RideTrackingConsumer(AsyncJsonWebsocketConsumer):
             'status': event['status'],
             'ride': event.get('ride'),
         })
+
+    async def ride_message(self, event):
+        """Nouveau message de chat entre passager et chauffeur."""
+        await self.send_json({
+            'type': 'ride_message',
+            'message': event['message'],
+        })

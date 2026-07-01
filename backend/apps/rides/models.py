@@ -288,6 +288,38 @@ class Ride(BaseModel):
     def __str__(self):
         return f"Course #{str(self.id)[:8]} - {self.agreed_price} XOF ({self.status})"
 
+
+class RideMessage(BaseModel):
+    """
+    Message de chat entre passager et chauffeur pendant une course.
+    Les messages prédéfinis portent une clé (message_key) : chaque client
+    les affiche dans SA langue. Le texte est le rendu dans la langue de
+    l'expéditeur (secours si la clé est inconnue du client).
+    """
+    ride = models.ForeignKey(
+        Ride, on_delete=models.CASCADE, related_name='messages'
+    )
+    sender = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name='ride_messages'
+    )
+    text = models.CharField(max_length=500)
+    message_key = models.CharField(
+        max_length=40, blank=True,
+        help_text="Clé du message prédéfini (vide = texte libre)"
+    )
+
+    class Meta:
+        db_table = 'ride_messages'
+        verbose_name = 'Message de course'
+        ordering = ['created_at']
+        indexes = [
+            models.Index(fields=['ride', 'created_at']),
+        ]
+
+    def __str__(self):
+        return f"{self.sender} : {self.text[:40]}"
+
     def generate_share_token(self):
         """Génère un token unique pour le partage de trajet."""
         self.share_token = secrets.token_urlsafe(48)

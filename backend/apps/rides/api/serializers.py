@@ -1,7 +1,7 @@
 """Serializers pour les courses."""
 from rest_framework import serializers
 
-from apps.rides.models import Ride, RideOffer, RideRequest
+from apps.rides.models import Ride, RideMessage, RideOffer, RideRequest
 
 
 class PriceEstimateSerializer(serializers.Serializer):
@@ -208,6 +208,25 @@ class RideSerializer(serializers.ModelSerializer):
         if obj.status in active_statuses:
             return obj.passenger.phone
         return None
+
+
+class RideMessageSerializer(serializers.ModelSerializer):
+    """Message de chat d'une course."""
+    sender_role = serializers.SerializerMethodField()
+    sender_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = RideMessage
+        fields = [
+            'id', 'text', 'message_key',
+            'sender_role', 'sender_name', 'created_at',
+        ]
+
+    def get_sender_role(self, obj):
+        return 'driver' if obj.sender_id == obj.ride.driver.user_id else 'passenger'
+
+    def get_sender_name(self, obj):
+        return obj.sender.first_name
 
 
 class RideHistorySerializer(serializers.ModelSerializer):
