@@ -1,6 +1,13 @@
 /// Modèles pour les courses, demandes et offres.
 import 'package:latlong2/latlong.dart';
 
+/// DRF sérialise les DecimalField en chaînes ("4.50") : parser dans tous les cas.
+double? _toDouble(dynamic v) {
+  if (v == null) return null;
+  if (v is num) return v.toDouble();
+  return double.tryParse(v.toString());
+}
+
 class PriceEstimate {
   final int distanceM;
   final double distanceKm;
@@ -82,8 +89,11 @@ class RideOffer {
   final int? estimatedArrivalS;
   final double? driverRating;
   final String driverName;
+  final String driverAvatar;
   final String driverVehicleType;
   final String driverVehicleInfo;
+  final String driverVehiclePhoto;
+  final int driverTotalRides;
   final String status;
   final DateTime expiresAt;
 
@@ -95,8 +105,11 @@ class RideOffer {
     this.estimatedArrivalS,
     this.driverRating,
     this.driverName = '',
+    this.driverAvatar = '',
     this.driverVehicleType = '',
     this.driverVehicleInfo = '',
+    this.driverVehiclePhoto = '',
+    this.driverTotalRides = 0,
     required this.status,
     required this.expiresAt,
   });
@@ -108,12 +121,13 @@ class RideOffer {
       isCounterOffer: json['is_counter_offer'] ?? false,
       driverDistanceM: json['driver_distance_m'],
       estimatedArrivalS: json['estimated_arrival_s'],
-      driverRating: json['driver_rating'] != null
-          ? (json['driver_rating'] as num).toDouble()
-          : null,
+      driverRating: _toDouble(json['driver_rating']),
       driverName: json['driver_name'] ?? '',
+      driverAvatar: json['driver_avatar'] ?? '',
       driverVehicleType: json['driver_vehicle_type'] ?? '',
       driverVehicleInfo: json['driver_vehicle_info'] ?? '',
+      driverVehiclePhoto: json['driver_vehicle_photo'] ?? '',
+      driverTotalRides: json['driver_total_rides'] ?? 0,
       status: json['status'],
       expiresAt: DateTime.parse(json['expires_at']),
     );
@@ -130,15 +144,23 @@ class Ride {
   final String id;
   final String pickupAddress;
   final String dropoffAddress;
+  final LatLng? pickupLocation;
+  final LatLng? dropoffLocation;
   final int agreedPrice;
+  final String promoCode;
+  final int discountAmount;
   final int? actualDistanceM;
   final int? commissionAmount;
   final String vehicleType;
   final String status;
   final String driverName;
+  final String driverAvatar;
   final String? driverPhoneMasked;
   final double? driverRating;
   final Map<String, dynamic>? driverVehicle;
+  final String passengerName;
+  final String passengerAvatar;
+  final String? passengerPhone;
   final String? shareToken;
   final DateTime createdAt;
   final DateTime? completedAt;
@@ -150,15 +172,23 @@ class Ride {
     required this.id,
     this.pickupAddress = '',
     this.dropoffAddress = '',
+    this.pickupLocation,
+    this.dropoffLocation,
     required this.agreedPrice,
+    this.promoCode = '',
+    this.discountAmount = 0,
     this.actualDistanceM,
     this.commissionAmount,
     required this.vehicleType,
     required this.status,
     this.driverName = '',
+    this.driverAvatar = '',
     this.driverPhoneMasked,
     this.driverRating,
     this.driverVehicle,
+    this.passengerName = '',
+    this.passengerAvatar = '',
+    this.passengerPhone,
     this.shareToken,
     required this.createdAt,
     this.completedAt,
@@ -167,22 +197,33 @@ class Ride {
     this.cancellationFee = 0,
   });
 
+  static LatLng? _latLng(dynamic lat, dynamic lng) {
+    if (lat == null || lng == null) return null;
+    return LatLng((lat as num).toDouble(), (lng as num).toDouble());
+  }
+
   factory Ride.fromJson(Map<String, dynamic> json) {
     return Ride(
       id: json['id'],
       pickupAddress: json['pickup_address'] ?? '',
       dropoffAddress: json['dropoff_address'] ?? '',
+      pickupLocation: _latLng(json['pickup_lat'], json['pickup_lng']),
+      dropoffLocation: _latLng(json['dropoff_lat'], json['dropoff_lng']),
       agreedPrice: json['agreed_price'],
+      promoCode: json['promo_code'] ?? '',
+      discountAmount: json['discount_amount'] ?? 0,
       actualDistanceM: json['actual_distance_m'],
       commissionAmount: json['commission_amount'],
       vehicleType: json['vehicle_type'],
       status: json['status'],
       driverName: json['driver_name'] ?? '',
+      driverAvatar: json['driver_avatar'] ?? '',
       driverPhoneMasked: json['driver_phone_masked'],
-      driverRating: json['driver_rating'] != null
-          ? (json['driver_rating'] as num).toDouble()
-          : null,
+      driverRating: _toDouble(json['driver_rating']),
       driverVehicle: json['driver_vehicle'],
+      passengerName: json['passenger_name'] ?? '',
+      passengerAvatar: json['passenger_avatar'] ?? '',
+      passengerPhone: json['passenger_phone'],
       shareToken: json['share_token'],
       createdAt: DateTime.parse(json['created_at']),
       completedAt: json['completed_at'] != null
@@ -195,6 +236,10 @@ class Ride {
       cancellationFee: json['cancellation_fee'] ?? 0,
     );
   }
+
+  /// Montant que le passager paie réellement (prix convenu - promo)
+  int get amountDue =>
+      (agreedPrice - discountAmount) > 0 ? agreedPrice - discountAmount : 0;
 
   bool get isActive => [
         'driver_assigned',

@@ -1,4 +1,5 @@
-/// Écran de demande de course — sélection destination + proposition de prix.
+/// Écran de demande de course — sélection départ/destination par recherche
+/// d'adresse ou carte (avec géocodage inverse) + proposition de prix.
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
@@ -8,9 +9,11 @@ import 'package:provider/provider.dart';
 
 import '../../config/app_config.dart';
 import '../../core/providers/ride_provider.dart';
+import '../../core/services/geocoding_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../i18n/app_localizations.dart';
 import '../../models/ride.dart';
+import 'address_search_screen.dart';
 
 class RideRequestScreen extends StatefulWidget {
   const RideRequestScreen({super.key});
@@ -20,16 +23,18 @@ class RideRequestScreen extends StatefulWidget {
 }
 
 class _RideRequestScreenState extends State<RideRequestScreen> {
-  final _pickupCtrl = TextEditingController();
-  final _dropoffCtrl = TextEditingController();
   final _priceCtrl = TextEditingController();
   final _mapController = MapController();
+  final _geocoding = GeocodingService();
+  final _recentsStore = RecentPlacesStore();
 
   LatLng? _pickupLocation;
   LatLng? _dropoffLocation;
+  String _pickupAddress = '';
+  String _dropoffAddress = '';
+  bool _resolvingDropoff = false;
   String _vehicleType = 'moto';
   PriceEstimate? _estimate;
-  bool _selectingDropoff = false;
 
   @override
   void initState() {
@@ -37,15 +42,80 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
     _setCurrentLocationAsPickup();
   }
 
-  Future<void> _setCurrentLocationAsPickup() async {
+  String get _lang => AppLocalizations.of(context).languageCode;
+
+  /// Déplacer la carte sans planter si elle n'est pas encore montée.
+  void _moveMap(LatLng point) {
     try {
-      final position = await Geolocator.getCurrentPosition();
-      setState(() {
-        _pickupLocation = LatLng(position.latitude, position.longitude);
-        _pickupCtrl.text = 'Ma position actuelle';
-      });
+      _mapController.move(point, 15);
+    } catch (_) {}
+  }
+
+  Future<void> _setCurrentLocationAsPickup() async {
+    LatLng position;
+    try {
+      final gps = await Geolocator.getCurrentPosition();
+      position = LatLng(gps.latitude, gps.longitude);
     } catch (_) {
-      _pickupLocation = LatLng(AppConfig.defaultLat, AppConfig.defaultLng);
+      position = LatLng(AppConfig.defaultLat, AppConfig.defaultLng);
+    }
+    if (!mounted) return;
+
+    setState(() {
+      _pickupLocation = position;
+      _pickupAddress = AppLocalizations.of(context).get('my_position');
+    });
+    _moveMap(position);
+
+    // Remplacer « Ma position » par l'adresse réelle dès qu'elle est connue
+    final address = await _geocoding.reverseGeocode(position, lang: _lang);
+    if (mounted && _pickupLocation == position) {
+      setState(() => _pickupAddress = address);
+    }
+  }
+
+  Future<void> _openSearch({required bool isPickup}) async {
+    final pick = await Navigator.of(context).push<AddressPick>(
+      MaterialPageRoute(
+        builder: (_) => AddressSearchScreen(isPickup: isPickup),
+      ),
+    );
+    if (pick == null || !mounted) return;
+
+    if (pick.currentPosition) {
+      await _setCurrentLocationAsPickup();
+      if (_dropoffLocation != null) _getEstimate();
+      return;
+    }
+
+    final place = pick.place!;
+    setState(() {
+      if (isPickup) {
+        _pickupLocation = place.location;
+        _pickupAddress = place.fullAddress;
+      } else {
+        _dropoffLocation = place.location;
+        _dropoffAddress = place.fullAddress;
+      }
+    });
+    _moveMap(place.location);
+    if (_pickupLocation != null && _dropoffLocation != null) _getEstimate();
+  }
+
+  Future<void> _onMapTap(LatLng point) async {
+    setState(() {
+      _dropoffLocation = point;
+      _resolvingDropoff = true;
+      _dropoffAddress = _geocoding.coordsLabel(point);
+    });
+    _getEstimate();
+
+    final address = await _geocoding.reverseGeocode(point, lang: _lang);
+    if (mounted && _dropoffLocation == point) {
+      setState(() {
+        _dropoffAddress = address;
+        _resolvingDropoff = false;
+      });
     }
   }
 
@@ -64,28 +134,26 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                // Départ
-                TextField(
-                  controller: _pickupCtrl,
-                  decoration: InputDecoration(
-                    labelText: l.get('pickup'),
-                    prefixIcon: const Icon(Icons.radio_button_on, color: AppColors.primary, size: 18),
-                    filled: true,
-                  ),
-                  readOnly: true,
+                // Départ (ouvre la recherche)
+                _addressField(
+                  icon: Icons.radio_button_on,
+                  iconColor: AppColors.primary,
+                  label: l.get('pickup'),
+                  value: _pickupAddress,
+                  hint: l.get('locating'),
+                  onTap: () => _openSearch(isPickup: true),
                 ),
                 const SizedBox(height: 12),
 
-                // Destination
-                TextField(
-                  controller: _dropoffCtrl,
-                  decoration: InputDecoration(
-                    labelText: l.get('destination'),
-                    prefixIcon: const Icon(Icons.location_on, color: AppColors.error, size: 18),
-                    hintText: 'Touchez la carte pour choisir',
-                    filled: true,
-                  ),
-                  readOnly: true,
+                // Destination (ouvre la recherche)
+                _addressField(
+                  icon: Icons.location_on,
+                  iconColor: AppColors.error,
+                  label: l.get('destination'),
+                  value: _dropoffAddress,
+                  hint: l.get('search_or_tap_map'),
+                  loading: _resolvingDropoff,
+                  onTap: () => _openSearch(isPickup: false),
                 ),
                 const SizedBox(height: 12),
 
@@ -103,37 +171,69 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
 
           // Carte
           Expanded(
-            child: FlutterMap(
-              mapController: _mapController,
-              options: MapOptions(
-                initialCenter: _pickupLocation ?? LatLng(AppConfig.defaultLat, AppConfig.defaultLng),
-                initialZoom: 15,
-                onTap: (_, point) {
-                  setState(() {
-                    _dropoffLocation = point;
-                    _dropoffCtrl.text = '${point.latitude.toStringAsFixed(4)}, ${point.longitude.toStringAsFixed(4)}';
-                  });
-                  _getEstimate();
-                },
-              ),
+            child: Stack(
               children: [
-                TileLayer(urlTemplate: AppConfig.osmTileUrl, userAgentPackageName: 'com.movebissau.app'),
-                MarkerLayer(
-                  markers: [
-                    if (_pickupLocation != null)
-                      Marker(
-                        point: _pickupLocation!,
-                        width: 36, height: 36,
-                        child: const Icon(Icons.radio_button_on, color: AppColors.primary, size: 24),
-                      ),
-                    if (_dropoffLocation != null)
-                      Marker(
-                        point: _dropoffLocation!,
-                        width: 36, height: 36,
-                        child: const Icon(Icons.location_on, color: AppColors.error, size: 32),
-                      ),
+                FlutterMap(
+                  mapController: _mapController,
+                  options: MapOptions(
+                    initialCenter: _pickupLocation ??
+                        LatLng(AppConfig.defaultLat, AppConfig.defaultLng),
+                    initialZoom: 15,
+                    onTap: (_, point) => _onMapTap(point),
+                  ),
+                  children: [
+                    TileLayer(
+                        urlTemplate: AppConfig.osmTileUrl,
+                        userAgentPackageName: 'com.movebissau.app'),
+                    MarkerLayer(
+                      markers: [
+                        if (_pickupLocation != null)
+                          Marker(
+                            point: _pickupLocation!,
+                            width: 36, height: 36,
+                            child: const Icon(Icons.radio_button_on,
+                                color: AppColors.primary, size: 24),
+                          ),
+                        if (_dropoffLocation != null)
+                          Marker(
+                            point: _dropoffLocation!,
+                            width: 36, height: 36,
+                            child: const Icon(Icons.location_on,
+                                color: AppColors.error, size: 32),
+                          ),
+                      ],
+                    ),
                   ],
                 ),
+
+                // Aide : toucher la carte
+                if (_dropoffLocation == null)
+                  Positioned(
+                    top: 12, left: 0, right: 0,
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.95),
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: const [
+                            BoxShadow(color: Colors.black12, blurRadius: 6)
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.location_on,
+                                size: 14, color: AppColors.error),
+                            const SizedBox(width: 6),
+                            Text(l.get('tap_map_to_choose'),
+                                style: const TextStyle(fontSize: 13)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -197,6 +297,46 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
     );
   }
 
+  Widget _addressField({
+    required IconData icon,
+    required Color iconColor,
+    required String label,
+    required String value,
+    required String hint,
+    bool loading = false,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: Icon(icon, color: iconColor, size: 18),
+          suffixIcon: loading
+              ? const Padding(
+                  padding: EdgeInsets.all(12),
+                  child: SizedBox(
+                    width: 16, height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                )
+              : const Icon(Icons.search, size: 18),
+          filled: true,
+        ),
+        child: Text(
+          value.isNotEmpty ? value : hint,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 15,
+            color: value.isNotEmpty ? AppColors.textPrimary : AppColors.textHint,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _vehicleChip(String type, IconData icon, String label) {
     final selected = _vehicleType == type;
     return GestureDetector(
@@ -245,7 +385,7 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
       vehicleType: _vehicleType,
     );
 
-    if (estimate != null) {
+    if (estimate != null && mounted) {
       setState(() {
         _estimate = estimate;
         _priceCtrl.text = estimate.suggestedPrice.toString();
@@ -262,21 +402,25 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
     final request = await context.read<RideProvider>().createRequest(
       pickup: _pickupLocation!,
       dropoff: _dropoffLocation!,
-      pickupAddress: _pickupCtrl.text,
-      dropoffAddress: _dropoffCtrl.text,
+      pickupAddress: _pickupAddress,
+      dropoffAddress: _dropoffAddress,
       proposedPrice: price,
       vehicleType: _vehicleType,
     );
 
     if (request != null && mounted) {
+      // Mémoriser la destination pour les prochaines courses
+      _recentsStore.add(GeoPlace(
+        name: _dropoffAddress.split(',').first.trim(),
+        fullAddress: _dropoffAddress,
+        location: _dropoffLocation!,
+      ));
       context.push('/passenger/offers/${request.id}');
     }
   }
 
   @override
   void dispose() {
-    _pickupCtrl.dispose();
-    _dropoffCtrl.dispose();
     _priceCtrl.dispose();
     super.dispose();
   }

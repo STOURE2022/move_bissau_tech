@@ -124,6 +124,27 @@ class DriverRequestsConsumer(AsyncJsonWebsocketConsumer):
             'ride_request': event['ride_request'],
         })
 
+    async def offer_accepted(self, event):
+        """Le passager a accepté l'offre de ce chauffeur : la course démarre."""
+        await self.send_json({
+            'type': 'offer_accepted',
+            'ride': event['ride'],
+        })
+
+    async def offer_rejected(self, event):
+        """L'offre de ce chauffeur a été rejetée (autre offre choisie ou refus)."""
+        await self.send_json({
+            'type': 'offer_rejected',
+            'ride_request_id': event['ride_request_id'],
+        })
+
+    async def request_cancelled(self, event):
+        """La demande sur laquelle ce chauffeur avait une offre a été annulée."""
+        await self.send_json({
+            'type': 'request_cancelled',
+            'ride_request_id': event['ride_request_id'],
+        })
+
     @database_sync_to_async
     def _get_driver_id(self, user):
         try:

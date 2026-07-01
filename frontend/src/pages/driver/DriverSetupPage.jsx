@@ -44,6 +44,9 @@ export default function DriverSetupPage() {
     brand: '', model: '', color: '', plate_number: '', year: '',
   });
   const [licenseNumber, setLicenseNumber] = useState('');
+  const [vehiclePhotoPreview, setVehiclePhotoPreview] = useState('');
+  const [vehiclePhotoFile, setVehiclePhotoFile] = useState(null);
+  const vehiclePhotoRef = useRef(null);
 
   // Documents
   const [documents, setDocuments] = useState({});
@@ -63,6 +66,7 @@ export default function DriverSetupPage() {
       if (profile.vehicles?.length > 0) {
         const v = profile.vehicles[0];
         setVehicleForm({ brand: v.brand || '', model: v.model || '', color: v.color || '', plate_number: v.plate_number || '', year: v.year?.toString() || '' });
+        if (v.photo_url) setVehiclePhotoPreview(v.photo_url);
       }
       // Charger documents existants
       const docs = await api.get('/drivers/documents');
@@ -102,11 +106,38 @@ export default function DriverSetupPage() {
   };
 
   // === VÉHICULE ===
+  const handleVehiclePhotoChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setVehiclePhotoFile(file);
+    const reader = new FileReader();
+    reader.onload = (ev) => setVehiclePhotoPreview(ev.target.result);
+    reader.readAsDataURL(file);
+  };
+
+  const uploadVehiclePhoto = async () => {
+    if (!vehiclePhotoFile) return;
+    const formData = new FormData();
+    formData.append('photo', vehiclePhotoFile);
+    const res = await fetch('/api/drivers/vehicle/photo', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('mb_access')}` },
+      body: formData,
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setVehiclePhotoPreview(data.photo_url);
+      setVehiclePhotoFile(null);
+    }
+  };
+
   const saveVehicle = async () => {
     setLoading(true); setError('');
     try {
       await api.post('/drivers/vehicle', { vehicle_type: vehicleType, ...vehicleForm, year: vehicleForm.year ? parseInt(vehicleForm.year) : null });
       await api.patch('/drivers/me', { vehicle_type: vehicleType, license_number: licenseNumber });
+      // La photo ne peut être liée qu'à un véhicule existant : upload après création
+      try { await uploadVehiclePhoto(); } catch {}
       setStep(2);
     } catch (e) { setError(e.message); }
     setLoading(false);
@@ -282,6 +313,38 @@ export default function DriverSetupPage() {
 
               <Input label={t('driver.licenseNumber', 'Numéro de permis')} placeholder="Ex: GW-12345678" value={licenseNumber}
                 onChange={e => setLicenseNumber(e.target.value)} />
+
+              {/* Photo du véhicule — aide le passager à vous reconnaître */}
+              <div>
+                <label className="text-sm font-medium text-gray-600 pl-1 block mb-2">
+                  {t('driver.vehiclePhoto', 'Photo du véhicule')}
+                </label>
+                <button
+                  type="button"
+                  onClick={() => vehiclePhotoRef.current?.click()}
+                  className="w-full border-2 border-dashed border-gray-200 rounded-2xl p-3 flex items-center gap-3
+                             hover:border-brand-400 hover:bg-brand-50/40 transition text-left"
+                >
+                  {vehiclePhotoPreview ? (
+                    <img src={vehiclePhotoPreview} alt="" className="w-20 h-14 rounded-xl object-cover flex-shrink-0" />
+                  ) : (
+                    <div className="w-20 h-14 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
+                      <Car size={20} className="text-gray-400" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-700">
+                      {vehiclePhotoPreview
+                        ? t('driver.vehiclePhotoChange', 'Changer la photo')
+                        : t('driver.vehiclePhotoAdd', 'Ajouter une photo')}
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      {t('driver.vehiclePhotoHint', 'Les passagers vous identifient plus facilement')}
+                    </p>
+                  </div>
+                </button>
+                <input ref={vehiclePhotoRef} type="file" accept="image/*" className="hidden" onChange={handleVehiclePhotoChange} />
+              </div>
 
               {error && <p className="text-red-500 text-sm text-center">{error}</p>}
 

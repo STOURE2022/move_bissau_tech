@@ -375,7 +375,7 @@ export default function DriverRidePage() {
             ) : (
               <>
                 <Banknote size={22} />
-                {t('driver.confirmPayment')} — {ride.agreed_price} F
+                {t('driver.confirmPayment')} — {ride.amount_due ?? ride.agreed_price} F
               </>
             )}
           </motion.button>
@@ -456,8 +456,12 @@ export default function DriverRidePage() {
       <ConfirmModal
         open={showPaymentModal}
         title={t('driver.confirmPaymentTitle')}
-        message={`${t('driver.confirmPaymentMsg')} ${ride?.agreed_price} F CFA ${t('driver.confirmPaymentMsgEnd')}`}
-        confirmLabel={confirmingPayment ? '...' : `${t('driver.yesReceived')} ${ride?.agreed_price} F`}
+        message={`${t('driver.confirmPaymentMsg')} ${ride?.amount_due ?? ride?.agreed_price} F CFA ${t('driver.confirmPaymentMsgEnd')}${
+          ride?.discount_amount > 0
+            ? ` (${t('driver.promoCompensation', 'Promo appliquée : la réduction de')} ${ride.discount_amount} F ${t('driver.promoCompensationEnd', 'vous est recréditée sur votre crédit commission.')})`
+            : ''
+        }`}
+        confirmLabel={confirmingPayment ? '...' : `${t('driver.yesReceived')} ${ride?.amount_due ?? ride?.agreed_price} F`}
         variant="success"
         loading={confirmingPayment}
         onConfirm={confirmCashPayment}

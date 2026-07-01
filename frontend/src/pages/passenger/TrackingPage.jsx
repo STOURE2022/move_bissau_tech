@@ -280,7 +280,7 @@ export default function TrackingPage() {
         {ride.status === 'completed' ? (
           <div className="space-y-2">
             <Button onClick={() => navigate(`/payment/${rideId}`)}>
-              {t('tracking.pay')} {ride.agreed_price} {t('common.fcfa')}
+              {t('tracking.pay')} {ride.amount_due ?? ride.agreed_price} {t('common.fcfa')}
             </Button>
             <p className="text-xs text-gray-400 text-center">{t('tracking.driverWaiting')}</p>
           </div>

@@ -55,7 +55,7 @@ class _RideRequestDetailScreenState extends State<RideRequestDetailScreen> {
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   children: [
-                    Text('Prix proposé par le passager',
+                    Text(l.get('passenger_proposed_price'),
                       style: TextStyle(color: AppColors.textSecondary)),
                     const SizedBox(height: 8),
                     Text('$proposedPrice F CFA',
@@ -78,7 +78,7 @@ class _RideRequestDetailScreenState extends State<RideRequestDetailScreen> {
                         const Icon(Icons.radio_button_on, size: 16, color: AppColors.primary),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: Text(request['pickup_address'] ?? 'Départ',
+                          child: Text(request['pickup_address'] ?? l.get('pickup_point'),
                             style: const TextStyle(fontWeight: FontWeight.w600)),
                         ),
                       ],
@@ -94,7 +94,7 @@ class _RideRequestDetailScreenState extends State<RideRequestDetailScreen> {
                         const Icon(Icons.location_on, size: 16, color: AppColors.error),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: Text(request['dropoff_address'] ?? 'Arrivée',
+                          child: Text(request['dropoff_address'] ?? l.get('dropoff_point'),
                             style: const TextStyle(fontWeight: FontWeight.w600)),
                         ),
                       ],
@@ -109,8 +109,8 @@ class _RideRequestDetailScreenState extends State<RideRequestDetailScreen> {
                         _infoItem(
                           request['vehicle_type'] == 'moto' ? Icons.motorcycle : Icons.directions_car,
                           request['vehicle_type'] == 'moto' ? l.moto : l.car,
-                          'Véhicule'),
-                        _infoItem(Icons.person, request['passenger_name'] ?? '', 'Passager'),
+                          l.get('vehicle')),
+                        _infoItem(Icons.person, request['passenger_name'] ?? '', l.passenger),
                       ],
                     ),
                   ],
@@ -172,7 +172,7 @@ class _RideRequestDetailScreenState extends State<RideRequestDetailScreen> {
                 context.read<DriverProvider>().dismissRequest(widget.requestId);
                 context.pop();
               },
-              child: const Text('Ignorer cette demande'),
+              child: Text(l.get('ignore_request')),
             ),
           ],
         ),
@@ -228,14 +228,18 @@ class _RideRequestDetailScreenState extends State<RideRequestDetailScreen> {
 
     if (mounted) {
       setState(() => _isSubmitting = false);
+      final l = AppLocalizations.of(context);
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Offre envoyée ! En attente de réponse...')),
+          SnackBar(
+            content: Text('${l.get("offer_sent")} — ${l.get("waiting_passenger")}'),
+            backgroundColor: AppColors.success,
+          ),
         );
         context.pop();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Erreur lors de l\'envoi'), backgroundColor: AppColors.error),
+          SnackBar(content: Text(l.get('error')), backgroundColor: AppColors.error),
         );
       }
     }

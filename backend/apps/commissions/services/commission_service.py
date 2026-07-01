@@ -130,6 +130,33 @@ def deduct_commission(driver, ride, payment=None) -> CreditTransaction:
             f"-{commission_amount} XOF, solde {credit.balance} XOF"
         )
 
+        # Compensation promo : la réduction est financée par la plateforme,
+        # pas par le chauffeur. Il a encaissé (prix - réduction), on lui
+        # recrédite la réduction pour qu'il reste entier.
+        discount = getattr(ride, 'discount_amount', 0) or 0
+        if discount > 0:
+            balance_before = credit.balance
+            credit.balance += discount
+            credit.save(update_fields=['balance', 'updated_at'])
+
+            CreditTransaction.objects.create(
+                driver=driver,
+                tx_type='adjustment',
+                amount=discount,
+                balance_before=balance_before,
+                balance_after=credit.balance,
+                ride=ride,
+                payment=payment,
+                description=(
+                    f"Compensation promo '{ride.promo_code}' "
+                    f"sur course #{str(ride.id)[:8]} (+{discount} XOF)"
+                ),
+            )
+            logger.info(
+                f"Compensation promo : chauffeur {driver.id}, "
+                f"+{discount} XOF, solde {credit.balance} XOF"
+            )
+
         # Alerte si crédit bas
         low_threshold = get_config_int('low_balance_threshold', 500)
         if credit.balance < low_threshold:

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/user.dart';
 import '../api/api_client.dart';
+import '../services/push_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   final ApiClient _api;
@@ -30,6 +31,7 @@ class AuthProvider extends ChangeNotifier {
       final response = await _api.get('/auth/users/me');
       _user = User.fromJson(response.data);
       notifyListeners();
+      PushService().register(_api);
     } catch (_) {
       await _api.clearTokens();
     }
@@ -61,6 +63,7 @@ class AuthProvider extends ChangeNotifier {
       await _api.saveTokens(data['access'], data['refresh']);
       _user = User.fromJson(data['user']);
       _setLoading(false);
+      PushService().register(_api);
       return true;
     } catch (e) {
       _setError(_extractError(e));
@@ -112,6 +115,8 @@ class AuthProvider extends ChangeNotifier {
 
   /// Déconnexion
   Future<void> logout() async {
+    // Désactiver le token push tant que l'authentification est valide
+    await PushService().unregister(_api);
     await _api.clearTokens();
     _user = null;
     notifyListeners();

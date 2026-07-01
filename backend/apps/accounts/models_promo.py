@@ -18,6 +18,14 @@ class PromoCode(BaseModel):
 
     code = models.CharField(max_length=20, unique=True, db_index=True)
     description = models.TextField(blank=True)
+    # Si défini, seul cet utilisateur peut utiliser le code
+    # (codes personnels : bonus de parrainage, gestes commerciaux…)
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        null=True, blank=True,
+        related_name='personal_promo_codes',
+    )
     discount_type = models.CharField(max_length=10, choices=DISCOUNT_TYPE_CHOICES)
     discount_value = models.PositiveIntegerField(help_text="Valeur (% ou XOF)")
     max_discount = models.PositiveIntegerField(

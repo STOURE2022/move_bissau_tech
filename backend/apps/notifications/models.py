@@ -41,3 +41,33 @@ class Notification(BaseModel):
 
     def __str__(self):
         return f"{self.title} → {self.user}"
+
+
+class DeviceToken(BaseModel):
+    """Token FCM d'un appareil, pour l'envoi de notifications push."""
+    PLATFORM_CHOICES = [
+        ('android', 'Android'),
+        ('ios', 'iOS'),
+        ('web', 'Web'),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='device_tokens'
+    )
+    token = models.CharField(max_length=512, unique=True)
+    platform = models.CharField(
+        max_length=10, choices=PLATFORM_CHOICES, default='android'
+    )
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = 'device_tokens'
+        verbose_name = "Token d'appareil"
+        indexes = [
+            models.Index(fields=['user', 'is_active']),
+        ]
+
+    def __str__(self):
+        return f"{self.platform} → {self.user}"

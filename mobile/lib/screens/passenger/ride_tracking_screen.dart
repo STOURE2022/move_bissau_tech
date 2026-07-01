@@ -1,4 +1,5 @@
 /// Écran de suivi de course en temps réel — GPS chauffeur + statuts + SOS.
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:go_router/go_router.dart';
@@ -128,13 +129,21 @@ class _RideTrackingScreenState extends State<RideTrackingScreen> {
                   // Info chauffeur
                   Row(
                     children: [
+                      // Photo du chauffeur (pour le reconnaître à l'arrivée)
                       CircleAvatar(
                         backgroundColor: AppColors.primary.withOpacity(0.1),
                         radius: 24,
-                        child: Icon(
-                          ride.vehicleType == 'moto' ? Icons.motorcycle : Icons.directions_car,
-                          color: AppColors.primary,
-                        ),
+                        backgroundImage: ride.driverAvatar.isNotEmpty
+                            ? CachedNetworkImageProvider(ride.driverAvatar)
+                            : null,
+                        child: ride.driverAvatar.isEmpty
+                            ? Icon(
+                                ride.vehicleType == 'moto'
+                                    ? Icons.motorcycle
+                                    : Icons.directions_car,
+                                color: AppColors.primary,
+                              )
+                            : null,
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -145,12 +154,32 @@ class _RideTrackingScreenState extends State<RideTrackingScreen> {
                               style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
                             if (ride.driverVehicle != null)
                               Text(
-                                '${ride.driverVehicle!['brand']} ${ride.driverVehicle!['model']} - ${ride.driverVehicle!['color']}',
+                                '${ride.driverVehicle!['brand']} ${ride.driverVehicle!['model']} - ${ride.driverVehicle!['color']}'
+                                '${(ride.driverVehicle!['plate'] ?? '').toString().isNotEmpty ? ' · ${ride.driverVehicle!['plate']}' : ''}',
                                 style: TextStyle(color: AppColors.textSecondary),
                               ),
                           ],
                         ),
                       ),
+                      // Photo du véhicule (identification visuelle)
+                      if (ride.driverVehicle != null &&
+                          (ride.driverVehicle!['photo_url'] ?? '')
+                              .toString()
+                              .isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: CachedNetworkImage(
+                              imageUrl: ride.driverVehicle!['photo_url'],
+                              width: 52,
+                              height: 38,
+                              fit: BoxFit.cover,
+                              errorWidget: (_, __, ___) =>
+                                  const SizedBox.shrink(),
+                            ),
+                          ),
+                        ),
                       Text('${ride.agreedPrice} F',
                         style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                     ],
@@ -263,17 +292,21 @@ class _RideTrackingScreenState extends State<RideTrackingScreen> {
   }
 
   Future<void> _triggerSos(BuildContext context) async {
+    final l = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('SOS Urgence'),
-        content: const Text('Confirmer l\'appel d\'urgence ? Les services seront alertés.'),
+        title: Text(l.sos),
+        content: Text(l.get('sos_confirm_msg')),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Non')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l.cancel),
+          ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('OUI, SOS'),
+            child: const Text('SOS'),
           ),
         ],
       ),
@@ -283,7 +316,7 @@ class _RideTrackingScreenState extends State<RideTrackingScreen> {
       await context.read<RideProvider>().triggerSos(widget.rideId);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('SOS envoyé ! Les services ont été alertés.'),
+          SnackBar(content: Text(l.get('sos_sent_msg')),
             backgroundColor: AppColors.error),
         );
       }

@@ -1,4 +1,5 @@
-/// Écran principal chauffeur — en ligne/hors ligne, demandes entrantes.
+/// Écran principal chauffeur — en ligne/hors ligne, demandes entrantes,
+/// offres en attente et reprise de course active.
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -22,6 +23,43 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
     final driver = context.read<DriverProvider>();
     driver.loadProfile();
     driver.loadCredit();
+    driver.checkActiveRide();
+  }
+
+  /// Réagit aux changements d'état après chaque frame : notification à
+  /// afficher, ou course active vers laquelle naviguer.
+  void _handleStateChanges(DriverProvider driver, AppLocalizations l) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      // Notification (offre acceptée / rejetée / demande annulée)
+      final notice = driver.notice;
+      if (notice != null) {
+        driver.clearNotice();
+        final isPositive = notice == 'offer_accepted_title';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l.get(notice)),
+            backgroundColor: isPositive ? AppColors.success : AppColors.warning,
+          ),
+        );
+      }
+
+      final ride = driver.activeRide;
+
+      // Course annulée pendant qu'on est sur l'accueil : nettoyer l'état
+      if (ride != null && ride.isCancelled) {
+        driver.clearActiveRide();
+        return;
+      }
+
+      // Offre qui vient d'être acceptée : ouvrir l'écran de course (une fois)
+      final rideToOpen = driver.rideToOpen;
+      if (rideToOpen != null) {
+        driver.consumeRideToOpen();
+        context.go('/driver/ride/$rideToOpen');
+      }
+    });
   }
 
   @override
@@ -29,6 +67,8 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
     final driver = context.watch<DriverProvider>();
     final auth = context.watch<AuthProvider>();
     final l = AppLocalizations.of(context);
+
+    _handleStateChanges(driver, l);
 
     return Scaffold(
       appBar: AppBar(
@@ -97,7 +137,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          driver.isOnline ? l.online : l.offline,
+                          driver.isOnline ? l.get('online') : l.get('offline'),
                           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                         ),
                       ],
@@ -107,8 +147,8 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
                 const SizedBox(height: 12),
                 Text(
                   driver.isOnline
-                      ? 'Vous recevez des demandes de course'
-                      : 'Appuyez pour vous mettre en ligne',
+                      ? l.get('receiving_requests')
+                      : l.get('tap_to_go_online'),
                   style: TextStyle(color: AppColors.textSecondary),
                 ),
 
@@ -121,15 +161,19 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
             ),
           ),
 
+          // Bannière course active (reprise manuelle si besoin)
+          if (driver.activeRide != null && !driver.activeRide!.isCancelled)
+            _activeRideBanner(driver, l),
+
           // Stats rapides
           if (driver.profile != null)
             Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
-                  _statCard(Icons.star, '${driver.profile!.averageRating}', 'Note'),
+                  _statCard(Icons.star, '${driver.profile!.averageRating}', l.get('rating')),
                   const SizedBox(width: 8),
-                  _statCard(Icons.directions_car, '${driver.profile!.totalRides}', 'Courses'),
+                  _statCard(Icons.directions_car, '${driver.profile!.totalRides}', l.get('rides')),
                   const SizedBox(width: 8),
                   _statCard(Icons.account_balance_wallet, '${driver.credit?.balance ?? 0} F', l.creditBalance),
                 ],
@@ -159,6 +203,22 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
               ),
             ),
 
+          // Offres en attente de réponse
+          if (driver.pendingOffers.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  '${l.get("my_pending_offers")} (${driver.pendingOffers.length})',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
+            ...driver.pendingOffers.map((o) => _buildPendingOfferCard(o, driver, l)),
+          ],
+
           // Demandes entrantes
           const SizedBox(height: 8),
           if (driver.incomingRequests.isNotEmpty)
@@ -175,7 +235,9 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
             child: driver.incomingRequests.isEmpty
                 ? Center(
                     child: Text(
-                      driver.isOnline ? 'En attente de demandes...' : '',
+                      driver.isOnline && driver.pendingOffers.isEmpty
+                          ? l.get('waiting_requests')
+                          : '',
                       style: TextStyle(color: AppColors.textSecondary),
                     ),
                   )
@@ -186,6 +248,82 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
                   ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _activeRideBanner(DriverProvider driver, AppLocalizations l) {
+    final ride = driver.activeRide!;
+    return GestureDetector(
+      onTap: () => context.go('/driver/ride/${ride.id}'),
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.primary,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.navigation, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(l.get('ride_in_progress'),
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  Text('${ride.agreedPrice} F CFA — ${ride.passengerName}',
+                    style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 13)),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(l.get('resume_ride'),
+                style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 12)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPendingOfferCard(
+      Map<String, dynamic> offer, DriverProvider driver, AppLocalizations l) {
+    return Card(
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            const SizedBox(
+              width: 20, height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('${offer['offered_price']} F CFA',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  Text(l.get('waiting_passenger'),
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                ],
+              ),
+            ),
+            TextButton(
+              onPressed: () => driver.withdrawOffer(offer['id'] as String),
+              style: TextButton.styleFrom(foregroundColor: AppColors.error),
+              child: Text(l.get('withdraw_offer')),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -237,7 +375,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
               children: [
                 const Icon(Icons.radio_button_on, size: 14, color: AppColors.primary),
                 const SizedBox(width: 8),
-                Expanded(child: Text(request['pickup_address'] ?? 'Départ', overflow: TextOverflow.ellipsis)),
+                Expanded(child: Text(request['pickup_address'] ?? l.get('pickup_point'), overflow: TextOverflow.ellipsis)),
               ],
             ),
             const SizedBox(height: 4),
@@ -245,7 +383,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
               children: [
                 const Icon(Icons.location_on, size: 14, color: AppColors.error),
                 const SizedBox(width: 8),
-                Expanded(child: Text(request['dropoff_address'] ?? 'Arrivée', overflow: TextOverflow.ellipsis)),
+                Expanded(child: Text(request['dropoff_address'] ?? l.get('dropoff_point'), overflow: TextOverflow.ellipsis)),
               ],
             ),
             const SizedBox(height: 12),

@@ -25,10 +25,12 @@ urlpatterns = [
     path('offers/<uuid:offer_id>', views.RideOfferWithdrawView.as_view(), name='ride-offer-withdraw'),
 
     # Courses
+    path('active', views.ActiveRideView.as_view(), name='active-ride'),
     path('history', views.RideHistoryView.as_view(), name='ride-history'),
     path('<uuid:ride_id>', views.RideDetailView.as_view(), name='ride-detail'),
     path('<uuid:ride_id>/status', views.RideStatusUpdateView.as_view(), name='ride-status-update'),
     path('<uuid:ride_id>/cancel', views.RideCancelView.as_view(), name='ride-cancel'),
+    path('<uuid:ride_id>/apply-promo', views.RideApplyPromoView.as_view(), name='ride-apply-promo'),
     path('<uuid:ride_id>/share', views.RideShareView.as_view(), name='ride-share'),
     path('<uuid:ride_id>/track/<str:token>', views.RideTrackPublicView.as_view(), name='ride-track'),
     path('<uuid:ride_id>/sos', views.RideSOSView.as_view(), name='ride-sos'),

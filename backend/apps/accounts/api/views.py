@@ -370,28 +370,15 @@ class ValidatePromoCodeView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        from apps.accounts.models_promo import PromoCode, PromoUsage
+        from apps.accounts.services.promo_service import PromoError, validate_promo_for_user
 
         code = request.data.get('code', '').strip().upper()
-        ride_price = request.data.get('ride_price', 0)
-
-        if not code:
-            return Response({'error': 'Code requis.'}, status=status.HTTP_400_BAD_REQUEST)
+        ride_price = request.data.get('ride_price', 0) or 0
 
         try:
-            promo = PromoCode.objects.get(code=code)
-        except PromoCode.DoesNotExist:
-            return Response({'error': 'Code promo invalide.'}, status=status.HTTP_404_NOT_FOUND)
-
-        if not promo.is_valid:
-            return Response({'error': 'Ce code promo a expiré ou n\'est plus disponible.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Vérifier usage par utilisateur
-        user_uses = PromoUsage.objects.filter(promo_code=promo, user=request.user).count()
-        if user_uses >= promo.max_uses_per_user:
-            return Response({'error': 'Vous avez déjà utilisé ce code promo.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        discount = promo.calculate_discount(ride_price) if ride_price else 0
+            promo, discount = validate_promo_for_user(code, request.user, ride_price)
+        except PromoError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response({
             'valid': True,

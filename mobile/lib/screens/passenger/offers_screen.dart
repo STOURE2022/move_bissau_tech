@@ -1,4 +1,5 @@
 /// Écran des offres reçues — le passager voit les propositions des chauffeurs.
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -108,14 +109,21 @@ class OffersScreen extends StatelessWidget {
           children: [
             Row(
               children: [
-                // Avatar chauffeur
+                // Photo du chauffeur (icône véhicule en secours)
                 CircleAvatar(
                   backgroundColor: AppColors.primary.withOpacity(0.1),
                   radius: 24,
-                  child: Icon(
-                    offer.driverVehicleType == 'moto' ? Icons.motorcycle : Icons.directions_car,
-                    color: AppColors.primary,
-                  ),
+                  backgroundImage: offer.driverAvatar.isNotEmpty
+                      ? CachedNetworkImageProvider(offer.driverAvatar)
+                      : null,
+                  child: offer.driverAvatar.isEmpty
+                      ? Icon(
+                          offer.driverVehicleType == 'moto'
+                              ? Icons.motorcycle
+                              : Icons.directions_car,
+                          color: AppColors.primary,
+                        )
+                      : null,
                 ),
                 const SizedBox(width: 12),
 
@@ -144,11 +152,43 @@ class OffersScreen extends StatelessWidget {
                             style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
                         ],
                       ),
+                      if (offer.driverTotalRides > 0)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Text(
+                            '${offer.driverTotalRides} ${l.get("rides").toLowerCase()}',
+                            style: TextStyle(
+                                color: AppColors.textSecondary, fontSize: 12),
+                          ),
+                        ),
                       if (offer.driverVehicleInfo.isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.only(top: 4),
-                          child: Text(offer.driverVehicleInfo,
-                            style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                          child: Row(
+                            children: [
+                              if (offer.driverVehiclePhoto.isNotEmpty) ...[
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(6),
+                                  child: CachedNetworkImage(
+                                    imageUrl: offer.driverVehiclePhoto,
+                                    width: 40,
+                                    height: 30,
+                                    fit: BoxFit.cover,
+                                    errorWidget: (_, __, ___) =>
+                                        const SizedBox.shrink(),
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                              ],
+                              Expanded(
+                                child: Text(offer.driverVehicleInfo,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                      color: AppColors.textSecondary,
+                                      fontSize: 12)),
+                              ),
+                            ],
+                          ),
                         ),
                     ],
                   ),

@@ -7,11 +7,16 @@ import 'core/api/api_client.dart';
 import 'core/providers/auth_provider.dart';
 import 'core/providers/driver_provider.dart';
 import 'core/providers/ride_provider.dart';
+import 'core/services/push_service.dart';
 import 'core/theme/app_theme.dart';
 import 'i18n/app_localizations.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Notifications push — no-op si Firebase n'est pas configuré
+  await PushService().init();
+
   final apiClient = ApiClient();
 
   runApp(

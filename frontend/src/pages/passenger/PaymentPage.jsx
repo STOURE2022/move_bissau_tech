@@ -150,8 +150,14 @@ export default function PaymentPage() {
         >
           <p className="text-sm text-brand-600">{t('payment.amountToPay')}</p>
           <p className="text-4xl font-extrabold text-brand-700 mt-1">
-            {ride?.agreed_price || '—'} <span className="text-lg">{t('common.fcfa')}</span>
+            {ride?.amount_due ?? ride?.agreed_price ?? '—'} <span className="text-lg">{t('common.fcfa')}</span>
           </p>
+          {ride?.discount_amount > 0 && (
+            <p className="text-xs text-emerald-600 font-medium mt-1">
+              <span className="line-through text-gray-400">{ride.agreed_price} F</span>
+              {' '}· −{ride.discount_amount} F ({ride.promo_code})
+            </p>
+          )}
           <p className="text-xs text-brand-500 mt-1">
             {ride?.pickup_address} → {ride?.dropoff_address}
           </p>
@@ -171,15 +177,20 @@ export default function PaymentPage() {
             />
             <motion.button
               whileTap={{ scale: 0.95 }}
-              disabled={promoLoading || !promoCode.trim()}
+              disabled={promoLoading || !promoCode.trim() || ride?.discount_amount > 0}
               onClick={async () => {
                 setPromoLoading(true); setPromoError('');
                 try {
-                  const res = await api.post('/auth/promo/validate', {
+                  // Applique réellement la réduction à la course
+                  const updated = await api.post(`/rides/${rideId}/apply-promo`, {
                     code: promoCode.trim(),
-                    ride_price: ride?.agreed_price || 0,
                   });
-                  setPromoResult(res);
+                  setRide(updated);
+                  setPromoResult({
+                    valid: true,
+                    discount_amount: updated.discount_amount,
+                    new_price: updated.amount_due,
+                  });
                 } catch (e) {
                   setPromoError(e.message || t('payment.promoInvalid'));
                   setPromoResult(null);
@@ -262,7 +273,7 @@ export default function PaymentPage() {
           disabled={method !== 'cash' && phone.length < 8}
         >
           {method === 'cash'
-            ? `${t('payment.payCash')} — ${ride?.agreed_price || 0} F`
+            ? `${t('payment.payCash')} — ${ride?.amount_due ?? ride?.agreed_price ?? 0} F`
             : `${t('payment.payVia')} ${methods.find(m => m.id === method)?.label}`
           }
         </Button>

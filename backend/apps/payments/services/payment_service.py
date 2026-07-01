@@ -69,14 +69,17 @@ def confirm_cash_payment(ride: Ride) -> Payment:
     """
     from apps.commissions.services.commission_service import calculate_commission
     commission_rate, commission_amount = calculate_commission(ride.agreed_price)
-    driver_amount = ride.agreed_price  # Le chauffeur garde tout le cash
+    # Le passager paie le montant réduit (promo) ; le chauffeur garde ce cash
+    # et sera compensé de la réduction sur son crédit (deduct_commission)
+    amount_paid = ride.amount_due
+    driver_amount = amount_paid
 
     with transaction.atomic():
         payment = Payment.objects.create(
             ride=ride,
             passenger=ride.passenger,
             driver=ride.driver,
-            amount=ride.agreed_price,
+            amount=amount_paid,
             commission_amount=commission_amount,
             driver_amount=driver_amount,
             payment_method='cash',
@@ -108,16 +111,18 @@ def initiate_mobile_payment(ride: Ride, payment_method: str, phone: str) -> Paym
 
     from apps.commissions.services.commission_service import calculate_commission
     commission_rate, commission_amount = calculate_commission(ride.agreed_price)
-    # Pour mobile money, le chauffeur reçoit le montant total
-    # La commission est déduite du crédit prépayé via deduct_commission() au callback
-    driver_amount = ride.agreed_price
+    # Le passager paie le montant réduit (promo). La commission est déduite
+    # du crédit prépayé via deduct_commission() au callback (avec
+    # compensation de la réduction pour le chauffeur).
+    amount_paid = ride.amount_due
+    driver_amount = amount_paid
 
     with transaction.atomic():
         payment = Payment.objects.create(
             ride=ride,
             passenger=ride.passenger,
             driver=ride.driver,
-            amount=ride.agreed_price,
+            amount=amount_paid,
             commission_amount=commission_amount,
             driver_amount=driver_amount,
             payment_method=payment_method,
@@ -126,7 +131,7 @@ def initiate_mobile_payment(ride: Ride, payment_method: str, phone: str) -> Paym
         )
 
         result = provider.initiate_payment(
-            amount=ride.agreed_price,
+            amount=amount_paid,
             phone=phone,
             reference=str(payment.id),
             description=f"Course MoveBissau #{str(ride.id)[:8]}",

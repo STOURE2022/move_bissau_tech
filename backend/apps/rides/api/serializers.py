@@ -25,6 +25,7 @@ class RideRequestCreateSerializer(serializers.Serializer):
     vehicle_type = serializers.ChoiceField(choices=['moto', 'car'])
     luggage_type = serializers.ChoiceField(choices=['none', 'small', 'suitcase', 'large'], default='none', required=False)
     preferred_driver_id = serializers.UUIDField(required=False, allow_null=True)
+    promo_code = serializers.CharField(max_length=20, required=False, allow_blank=True, default='')
 
 
 class RideOfferCreateSerializer(serializers.Serializer):
@@ -57,6 +58,7 @@ class RideOfferResponseSerializer(serializers.ModelSerializer):
     driver_avatar = serializers.SerializerMethodField()
     driver_vehicle_type = serializers.SerializerMethodField()
     driver_vehicle_info = serializers.SerializerMethodField()
+    driver_vehicle_photo = serializers.SerializerMethodField()
     driver_total_rides = serializers.IntegerField(source='driver.total_rides', read_only=True)
 
     class Meta:
@@ -65,6 +67,7 @@ class RideOfferResponseSerializer(serializers.ModelSerializer):
             'id', 'offered_price', 'is_counter_offer',
             'driver_distance_m', 'estimated_arrival_s', 'driver_rating',
             'driver_name', 'driver_avatar', 'driver_vehicle_type', 'driver_vehicle_info',
+            'driver_vehicle_photo',
             'driver_total_rides',
             'status', 'expires_at', 'created_at',
         ]
@@ -83,6 +86,10 @@ class RideOfferResponseSerializer(serializers.ModelSerializer):
         if vehicle:
             return f"{vehicle.brand} {vehicle.model} - {vehicle.color}"
         return ""
+
+    def get_driver_vehicle_photo(self, obj):
+        vehicle = obj.driver.vehicles.filter(is_active=True).first()
+        return vehicle.photo_url if vehicle else ""
 
 
 class RideRequestSerializer(serializers.ModelSerializer):
@@ -122,6 +129,7 @@ class RideSerializer(serializers.ModelSerializer):
     dropoff_lng = serializers.SerializerMethodField()
     driver_lat = serializers.SerializerMethodField()
     driver_lng = serializers.SerializerMethodField()
+    amount_due = serializers.ReadOnlyField()
 
     class Meta:
         model = Ride
@@ -129,6 +137,7 @@ class RideSerializer(serializers.ModelSerializer):
             'id', 'pickup_address', 'dropoff_address',
             'pickup_lat', 'pickup_lng', 'dropoff_lat', 'dropoff_lng',
             'agreed_price', 'actual_distance_m',
+            'promo_code', 'discount_amount', 'amount_due',
             'commission_amount', 'commission_rate',
             'vehicle_type', 'status',
             'driver_name', 'driver_avatar', 'driver_phone_masked', 'driver_rating', 'driver_vehicle',
@@ -186,6 +195,7 @@ class RideSerializer(serializers.ModelSerializer):
                 'model': vehicle.model,
                 'color': vehicle.color,
                 'plate': vehicle.plate_number,
+                'photo_url': vehicle.photo_url,
             }
         return None
 

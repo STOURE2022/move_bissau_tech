@@ -416,7 +416,22 @@ export default function OffersPage() {
                             )}
                           </div>
                           {offer.driver_vehicle_info && (
-                            <p className="text-xs text-gray-400 mt-0.5">{offer.driver_vehicle_info}</p>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              {offer.driver_vehicle_photo && (
+                                <img
+                                  src={offer.driver_vehicle_photo}
+                                  alt=""
+                                  className="w-9 h-7 rounded-md object-cover flex-shrink-0"
+                                  onError={e => { e.target.style.display = 'none'; }}
+                                />
+                              )}
+                              <p className="text-xs text-gray-400 truncate">{offer.driver_vehicle_info}</p>
+                            </div>
+                          )}
+                          {offer.driver_total_rides > 0 && (
+                            <p className="text-[11px] text-gray-400 mt-0.5">
+                              {offer.driver_total_rides} {t('offers.ridesCount', 'courses')}
+                            </p>
                           )}
                         </div>
                         <div className="text-right">

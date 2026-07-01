@@ -117,6 +117,41 @@ class DriverAvatarUploadView(APIView):
         return Response({'avatar_url': url})
 
 
+class VehiclePhotoUploadView(APIView):
+    """POST /api/drivers/vehicle/photo — Upload photo du véhicule actif."""
+    permission_classes = [IsAuthenticated, IsDriver]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request):
+        import os
+        file = request.FILES.get('photo')
+        if not file:
+            return Response({'error': 'Aucun fichier fourni.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        vehicle = request.user.driver_profile.vehicles.filter(is_active=True).first()
+        if not vehicle:
+            return Response(
+                {'error': "Aucun véhicule actif. Enregistrez votre véhicule d'abord."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        ext = file.name.split('.')[-1] if '.' in file.name else 'jpg'
+        filename = f"vehicles/{uuid.uuid4().hex}.{ext}"
+
+        upload_dir = os.path.join(settings.MEDIA_ROOT, 'vehicles')
+        os.makedirs(upload_dir, exist_ok=True)
+        filepath = os.path.join(settings.MEDIA_ROOT, filename)
+        with open(filepath, 'wb') as f:
+            for chunk in file.chunks():
+                f.write(chunk)
+        url = f"/media/{filename}"
+
+        vehicle.photo_url = url
+        vehicle.save(update_fields=['photo_url'])
+
+        return Response({'photo_url': url})
+
+
 class DriverDocumentUploadView(APIView):
     """POST /api/drivers/documents — Upload d'un document."""
     permission_classes = [IsAuthenticated, IsDriver]

@@ -33,6 +33,12 @@ def accept_offer(ride_request: RideRequest, offer: RideOffer) -> Ride:
     if offer.ride_request_id != ride_request.id:
         raise RideLifecycleError("Cette offre ne correspond pas à cette demande.")
 
+    # Le chauffeur ne doit pas déjà être sur une course active
+    # (il peut avoir des offres en attente sur plusieurs demandes)
+    active_statuses = ('driver_assigned', 'driver_en_route', 'driver_arrived', 'passenger_onboard')
+    if Ride.objects.filter(driver=offer.driver, status__in=active_statuses).exists():
+        raise RideLifecycleError("Ce chauffeur n'est plus disponible.")
+
     with transaction.atomic():
         # Mettre à jour le statut de la demande
         ride_request.status = 'accepted'
@@ -70,10 +76,26 @@ def accept_offer(ride_request: RideRequest, offer: RideOffer) -> Ride:
             status='driver_assigned',
         )
 
+        # Retirer les offres en attente de ce chauffeur sur d'autres demandes
+        # (il est maintenant occupé)
+        RideOffer.objects.filter(
+            driver=offer.driver, status='pending'
+        ).exclude(
+            ride_request=ride_request
+        ).update(status='withdrawn', updated_at=timezone.now())
+
         logger.info(
             f"Course #{str(ride.id)[:8]} créée : "
             f"{ride.agreed_price} XOF, commission {commission_amount} XOF"
         )
+
+    # Appliquer le code promo de la demande (réduction financée par la
+    # plateforme — le chauffeur sera compensé à la déduction de commission)
+    try:
+        from apps.accounts.services.promo_service import apply_promo_to_ride
+        apply_promo_to_ride(ride)
+    except Exception as e:
+        logger.warning(f"Application promo échouée (non bloquant) : {e}")
 
     return ride
 
@@ -108,6 +130,11 @@ def update_ride_status(ride: Ride, new_status: str, user=None) -> Ride:
         ride.save()
 
         logger.info(f"Course #{str(ride.id)[:8]} : statut → {new_status}")
+
+    # Première course payée d'un filleul → créditer les bonus de parrainage
+    if new_status == 'paid':
+        from apps.accounts.services.promo_service import credit_referral_bonuses
+        credit_referral_bonuses(ride)
 
     return ride
 

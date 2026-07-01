@@ -60,6 +60,7 @@ urlpatterns = [
     path('api/commissions/', include('apps.commissions.api.urls')),
     path('api/ratings/', include('apps.ratings.api.urls')),
     path('api/incidents/', include('apps.incidents.api.urls')),
+    path('api/notifications/', include('apps.notifications.api.urls')),
 
     # API admin dashboard
     path('api/admin/', include('apps.admin_dashboard.api.urls')),

@@ -196,6 +196,15 @@ class RideRequestCreateView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        # Valider le code promo s'il est fourni (erreur explicite au passager)
+        promo_code = (data.get('promo_code') or '').strip().upper()
+        if promo_code:
+            from apps.accounts.services.promo_service import PromoError, validate_promo_for_user
+            try:
+                validate_promo_for_user(promo_code, user, data['proposed_price'])
+            except PromoError as e:
+                return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
         # Créer la demande
         search_radius = get_config_int('default_search_radius_m', 3000)
         max_drivers = get_config_int('max_drivers_notified', 10)
@@ -212,6 +221,7 @@ class RideRequestCreateView(APIView):
             proposed_price=data['proposed_price'],
             vehicle_type=data['vehicle_type'],
             luggage_type=data.get('luggage_type', 'none'),
+            promo_code=promo_code,
             search_radius_m=search_radius,
             max_drivers_notified=max_drivers,
             expires_at=timezone.now() + timezone.timedelta(seconds=ttl),
@@ -248,6 +258,21 @@ class RideRequestCreateView(APIView):
                     )
                 except Exception as e:
                     logger.warning(f"Notification Celery échouée (non bloquant): {e}")
+
+                # Push + notification in-app aux chauffeurs (thread
+                # d'arrière-plan : fonctionne sans Celery, sans latence API)
+                from apps.notifications.services.notification_service import notify_users_async
+                pickup_label = data.get('pickup_address', '') or 'Bissau'
+                notify_users_async(
+                    [d['driver'].user for d in eligible],
+                    'new_request',
+                    params={
+                        'price': data['proposed_price'],
+                        'pickup': pickup_label,
+                    },
+                    notification_type='ride_request',
+                    data={'ride_request_id': str(ride_request.id)},
+                )
 
             logger.info(
                 f"Demande #{str(ride_request.id)[:8]} créée : "
@@ -296,10 +321,22 @@ class RideRequestCancelView(APIView):
         ride_request.cancelled_at = timezone.now()
         ride_request.save(update_fields=['status', 'cancelled_at', 'updated_at'])
 
-        # Rejeter toutes les offres
-        RideOffer.objects.filter(
+        # Rejeter toutes les offres (capturer les chauffeurs concernés avant)
+        pending_offers = RideOffer.objects.filter(
             ride_request=ride_request, status='pending'
-        ).update(status='expired')
+        )
+        offering_driver_ids = list(pending_offers.values_list('driver_id', flat=True))
+        pending_offers.update(status='expired')
+
+        # Notifier les chauffeurs qui avaient une offre en cours (non bloquant)
+        try:
+            from apps.rides.tasks import notify_request_cancelled
+            notify_request_cancelled.delay(
+                str(ride_request.id),
+                [str(d) for d in offering_driver_ids],
+            )
+        except Exception:
+            pass
 
         return Response({'status': 'cancelled'})
 
@@ -345,6 +382,14 @@ class AcceptOfferView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
+        # Capturer les chauffeurs perdants AVANT l'acceptation (leurs offres
+        # passeront à 'rejected' dans accept_offer)
+        losing_driver_ids = list(
+            RideOffer.objects.filter(
+                ride_request=ride_request, status='pending'
+            ).exclude(id=offer.id).values_list('driver_id', flat=True)
+        )
+
         try:
             ride = accept_offer(ride_request, offer)
         except RideLifecycleError as e:
@@ -352,6 +397,26 @@ class AcceptOfferView(APIView):
                 {'error': str(e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+        # Notifier le chauffeur gagnant et les perdants (non bloquant)
+        try:
+            from apps.rides.tasks import notify_offer_accepted
+            notify_offer_accepted.delay(
+                str(ride.id),
+                [str(d) for d in losing_driver_ids],
+            )
+        except Exception as e:
+            logger.warning(f"Notification acceptation échouée (non bloquant): {e}")
+
+        # Push + in-app au chauffeur gagnant (thread d'arrière-plan)
+        from apps.notifications.services.notification_service import notify_user_async
+        notify_user_async(
+            ride.driver.user,
+            'offer_accepted',
+            params={'price': ride.agreed_price},
+            notification_type='ride_status',
+            data={'ride_id': str(ride.id)},
+        )
 
         return Response(RideSerializer(ride).data, status=status.HTTP_201_CREATED)
 
@@ -379,6 +444,13 @@ class RejectOfferView(APIView):
         offer.save(update_fields=['status', 'updated_at'])
 
         logger.info(f"Offre {offer_id} rejetée par le passager")
+
+        # Notifier le chauffeur (non bloquant)
+        try:
+            from apps.rides.tasks import notify_offer_rejected
+            notify_offer_rejected.delay(str(offer.driver_id), str(request_id))
+        except Exception:
+            pass
 
         return Response({'status': 'rejected'})
 
@@ -477,6 +549,22 @@ class RideOfferCreateView(APIView):
         except Exception:
             pass
 
+        # Push + in-app au passager (thread d'arrière-plan)
+        from apps.notifications.services.notification_service import notify_user_async
+        notify_user_async(
+            ride_request.passenger,
+            'new_offer',
+            params={
+                'driver': driver.user.first_name,
+                'price': offer.offered_price,
+            },
+            notification_type='ride_offer',
+            data={
+                'ride_request_id': str(ride_request.id),
+                'offer_id': str(offer.id),
+            },
+        )
+
         return Response(
             RideOfferResponseSerializer(offer).data,
             status=status.HTTP_201_CREATED
@@ -533,6 +621,42 @@ class RideOfferWithdrawView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+class ActiveRideView(APIView):
+    """GET /api/rides/active — Course en cours de l'utilisateur (passager ou chauffeur).
+
+    Permet à l'app de reprendre une course après un redémarrage ou une
+    coupure réseau. Inclut les courses terminées mais pas encore payées
+    (le chauffeur doit encore encaisser).
+    """
+    permission_classes = [IsAuthenticated, IsPassengerOrDriver]
+
+    ACTIVE_STATUSES = [
+        'driver_assigned', 'driver_en_route', 'driver_arrived',
+        'passenger_onboard', 'completed',
+    ]
+
+    def get(self, request):
+        qs = Ride.objects.select_related(
+            'driver', 'driver__user', 'passenger'
+        ).filter(status__in=self.ACTIVE_STATUSES)
+
+        try:
+            driver = request.user.driver_profile
+        except Exception:
+            driver = None
+
+        if driver is not None:
+            qs = qs.filter(driver=driver)
+        else:
+            qs = qs.filter(passenger=request.user)
+
+        ride = qs.order_by('-created_at').first()
+        if not ride:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        return Response(RideSerializer(ride).data)
+
+
 class RideDetailView(APIView):
     """GET /api/rides/<id> — Détails d'une course."""
     permission_classes = [IsAuthenticated]
@@ -581,6 +705,26 @@ class RideStatusUpdateView(APIView):
         except Exception as e:
             logger.warning(f"Notification statut échouée (non bloquant): {e}")
 
+        # Push + in-app au passager pour les étapes clés (thread d'arrière-plan)
+        status_message_keys = {
+            'driver_en_route': 'driver_en_route',
+            'driver_arrived': 'driver_arrived',
+            'completed': 'ride_completed',
+        }
+        message_key = status_message_keys.get(ride.status)
+        if message_key:
+            from apps.notifications.services.notification_service import notify_user_async
+            notify_user_async(
+                ride.passenger,
+                message_key,
+                params={
+                    'driver': ride.driver.user.first_name,
+                    'price': ride.agreed_price,
+                },
+                notification_type='ride_status',
+                data={'ride_id': str(ride.id), 'status': ride.status},
+            )
+
         return Response(RideSerializer(ride).data)
 
 
@@ -615,6 +759,66 @@ class RideCancelView(APIView):
                 {'error': str(e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+        # Notifier l'autre partie via le canal de suivi (non bloquant)
+        try:
+            from apps.rides.tasks import notify_ride_status_change
+            notify_ride_status_change.delay(str(ride.id))
+        except Exception as e:
+            logger.warning(f"Notification annulation échouée (non bloquant): {e}")
+
+        # Push + in-app à l'autre partie (thread d'arrière-plan)
+        from apps.notifications.services.notification_service import notify_user_async
+        if cancelled_by == 'passenger':
+            notify_user_async(
+                ride.driver.user,
+                'cancelled_by_passenger',
+                notification_type='ride_status',
+                data={'ride_id': str(ride.id)},
+            )
+        else:
+            notify_user_async(
+                ride.passenger,
+                'cancelled_by_driver',
+                notification_type='ride_status',
+                data={'ride_id': str(ride.id)},
+            )
+
+        return Response(RideSerializer(ride).data)
+
+
+class RideApplyPromoView(APIView):
+    """POST /api/rides/<id>/apply-promo — Appliquer un code promo à une course.
+
+    Utilisé au moment du paiement : la réduction est financée par la
+    plateforme (le chauffeur est compensé sur son crédit commission).
+    """
+    permission_classes = [IsAuthenticated, IsPassenger]
+
+    APPLICABLE_STATUSES = [
+        'driver_assigned', 'driver_en_route', 'driver_arrived',
+        'passenger_onboard', 'completed',
+    ]
+
+    def post(self, request, ride_id):
+        code = (request.data.get('code') or '').strip().upper()
+
+        try:
+            ride = Ride.objects.get(id=ride_id, passenger=request.user)
+        except Ride.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        if ride.status not in self.APPLICABLE_STATUSES:
+            return Response(
+                {'error': 'Cette course ne peut plus recevoir de code promo.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        from apps.accounts.services.promo_service import PromoError, apply_promo_code_to_ride
+        try:
+            apply_promo_code_to_ride(ride, code)
+        except PromoError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(RideSerializer(ride).data)
 
@@ -691,8 +895,32 @@ class RideSOSView(APIView):
 
         logger.warning(f"SOS déclenché ! Course #{str(ride.id)[:8]}, incident #{str(incident.id)[:8]}")
 
+        # Alerter immédiatement l'équipe MoveBissau (in-app + push)
+        try:
+            from apps.accounts.models import User
+            from apps.notifications.services.notification_service import notify_users_async
+            admins = list(User.objects.filter(role='admin', is_active=True))
+            notify_users_async(
+                admins,
+                'sos_alert',
+                params={
+                    'ride': str(ride.id)[:8],
+                    'by': request.user.role,
+                },
+                notification_type='incident',
+                data={
+                    'ride_id': str(ride.id),
+                    'incident_id': str(incident.id),
+                },
+            )
+        except Exception as e:
+            logger.error(f"Alerte SOS aux admins échouée : {e}")
+
+        # Message honnête : c'est l'équipe MoveBissau qui est alertée,
+        # pas les services d'urgence publics.
         return Response({
-            'message': 'SOS envoyé. Les services d\'urgence ont été alertés.',
+            'message': "Alerte envoyée à l'équipe MoveBissau. "
+                       "En cas de danger immédiat, appelez directement la police.",
             'incident_id': str(incident.id),
         })
 

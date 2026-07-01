@@ -22,7 +22,9 @@ class WsClient {
   /// Se connecte à un canal WebSocket
   Future<void> connect(String path, String token) async {
     _token = token;
-    _url = '${AppConfig.wsUrl}/$path?token=$token';
+    // Le routing Django Channels exige un slash final sur chaque route WS
+    final normalized = path.endsWith('/') ? path : '$path/';
+    _url = '${AppConfig.wsUrl}/$normalized?token=$token';
     _shouldReconnect = true;
     _messageController = StreamController<Map<String, dynamic>>.broadcast();
 

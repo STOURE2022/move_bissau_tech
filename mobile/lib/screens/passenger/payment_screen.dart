@@ -1,4 +1,5 @@
-/// Écran de paiement — choix cash ou mobile money.
+/// Écran de paiement — code promo + choix cash ou mobile money.
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -19,7 +20,10 @@ class PaymentScreen extends StatefulWidget {
 class _PaymentScreenState extends State<PaymentScreen> {
   String _method = 'cash';
   final _phoneCtrl = TextEditingController();
+  final _promoCtrl = TextEditingController();
   bool _isProcessing = false;
+  bool _promoChecking = false;
+  String? _promoError;
 
   @override
   void initState() {
@@ -56,10 +60,30 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(l.get('price'), style: TextStyle(color: AppColors.textSecondary)),
-                        Text('${ride.agreedPrice} F CFA',
+                        Text('${ride.amountDue} F CFA',
                           style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
                       ],
                     ),
+                    if (ride.discountAmount > 0)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('${l.get("discount")} (${ride.promoCode})',
+                              style: const TextStyle(
+                                  fontSize: 13, color: AppColors.success)),
+                            Text(
+                              '${ride.agreedPrice} F  −${ride.discountAmount} F',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: AppColors.textSecondary,
+                                decoration: TextDecoration.lineThrough,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     const Divider(height: 24),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -73,7 +97,39 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
+
+            // Code promo
+            if (ride.discountAmount == 0) ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _promoCtrl,
+                      textCapitalization: TextCapitalization.characters,
+                      decoration: InputDecoration(
+                        labelText: l.get('promo_code_label'),
+                        prefixIcon: const Icon(Icons.local_offer, size: 18),
+                        errorText: _promoError,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: 110,
+                    child: ElevatedButton(
+                      onPressed: _promoChecking ? null : _applyPromo,
+                      child: _promoChecking
+                          ? const SizedBox(height: 16, width: 16,
+                              child: CircularProgressIndicator(
+                                  color: Colors.white, strokeWidth: 2))
+                          : Text(l.get('apply')),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+            ],
 
             // Choix mode de paiement
             Text(l.get('payment_method'),
@@ -133,7 +189,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
               child: _isProcessing
                   ? const SizedBox(height: 20, width: 20,
                       child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : Text('${l.pay} ${ride.agreedPrice} F CFA',
+                  : Text('${l.pay} ${ride.amountDue} F CFA',
                       style: const TextStyle(fontSize: 18)),
             ),
           ],
@@ -175,6 +231,46 @@ class _PaymentScreenState extends State<PaymentScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _applyPromo() async {
+    final code = _promoCtrl.text.trim().toUpperCase();
+    if (code.isEmpty) return;
+
+    setState(() {
+      _promoChecking = true;
+      _promoError = null;
+    });
+
+    final l = AppLocalizations.of(context);
+    try {
+      await context.read<ApiClient>().post(
+        '/rides/${widget.rideId}/apply-promo',
+        data: {'code': code},
+      );
+      if (!mounted) return;
+      // Recharger la course : montants mis à jour via le provider
+      await context.read<RideProvider>().getRide(widget.rideId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l.get('promo_applied_msg')),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    } catch (e) {
+      String message = l.get('promo_invalid');
+      if (e is DioException) {
+        final data = e.response?.data;
+        if (data is Map && data['error'] != null) {
+          message = data['error'].toString();
+        }
+      }
+      if (mounted) setState(() => _promoError = message);
+    }
+
+    if (mounted) setState(() => _promoChecking = false);
   }
 
   Future<void> _pay() async {
@@ -227,6 +323,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   @override
   void dispose() {
     _phoneCtrl.dispose();
+    _promoCtrl.dispose();
     super.dispose();
   }
 }

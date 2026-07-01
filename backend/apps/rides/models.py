@@ -63,6 +63,9 @@ class RideRequest(BaseModel):
     ]
     luggage_type = models.CharField(max_length=10, choices=LUGGAGE_CHOICES, default='none')
 
+    # Code promo (validé à la création, appliqué à l'acceptation d'une offre)
+    promo_code = models.CharField(max_length=20, blank=True)
+
     # Matching
     search_radius_m = models.PositiveIntegerField(
         verbose_name="Rayon de recherche (m)"
@@ -226,6 +229,13 @@ class Ride(BaseModel):
         verbose_name="Taux de commission (%)"
     )
 
+    # Promo : réduction financée par la plateforme (le chauffeur est
+    # compensé sur son crédit commission, le passager paie amount_due)
+    promo_code = models.CharField(max_length=20, blank=True)
+    discount_amount = models.PositiveIntegerField(
+        default=0, verbose_name="Réduction promo (XOF)"
+    )
+
     vehicle_type = models.CharField(max_length=10, choices=VEHICLE_TYPE_CHOICES)
 
     # Statut
@@ -269,6 +279,11 @@ class Ride(BaseModel):
             models.Index(fields=['driver']),
             models.Index(fields=['status']),
         ]
+
+    @property
+    def amount_due(self) -> int:
+        """Montant que le passager paie réellement (prix convenu - promo)."""
+        return max(0, self.agreed_price - self.discount_amount)
 
     def __str__(self):
         return f"Course #{str(self.id)[:8]} - {self.agreed_price} XOF ({self.status})"

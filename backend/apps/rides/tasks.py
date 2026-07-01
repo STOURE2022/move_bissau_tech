@@ -85,6 +85,85 @@ def notify_passenger_of_offer(ride_request_id: str, offer_id: str):
 
 
 @shared_task
+def notify_offer_accepted(ride_id: str, losing_driver_ids: list):
+    """
+    Notifie les chauffeurs du résultat de l'acceptation d'une offre.
+    - Le chauffeur gagnant reçoit la course complète (offer_accepted).
+    - Les chauffeurs perdants sont informés que leur offre est rejetée.
+    """
+    from apps.rides.models import Ride
+    try:
+        ride = Ride.objects.select_related(
+            'driver', 'driver__user', 'passenger', 'ride_request'
+        ).get(id=ride_id)
+    except Ride.DoesNotExist:
+        logger.error(f"Course {ride_id} introuvable pour notification d'acceptation")
+        return
+
+    channel_layer = get_channel_layer()
+
+    from apps.rides.api.serializers import RideSerializer
+    ride_data = RideSerializer(ride).data
+
+    # Chauffeur gagnant
+    async_to_sync(channel_layer.group_send)(
+        f'driver_requests_{ride.driver_id}',
+        {
+            'type': 'offer_accepted',
+            'ride': ride_data,
+        }
+    )
+
+    # Chauffeurs perdants
+    request_id = str(ride.ride_request_id)
+    for driver_id in losing_driver_ids:
+        async_to_sync(channel_layer.group_send)(
+            f'driver_requests_{driver_id}',
+            {
+                'type': 'offer_rejected',
+                'ride_request_id': request_id,
+            }
+        )
+
+    logger.info(
+        f"Course #{ride_id[:8]} : chauffeur {ride.driver_id} notifié de l'acceptation, "
+        f"{len(losing_driver_ids)} perdant(s) notifié(s)"
+    )
+
+
+@shared_task
+def notify_offer_rejected(driver_id: str, ride_request_id: str):
+    """Notifie un chauffeur que son offre a été rejetée par le passager."""
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        f'driver_requests_{driver_id}',
+        {
+            'type': 'offer_rejected',
+            'ride_request_id': ride_request_id,
+        }
+    )
+
+
+@shared_task
+def notify_request_cancelled(ride_request_id: str, driver_ids: list):
+    """Notifie les chauffeurs ayant une offre en cours que la demande est annulée."""
+    channel_layer = get_channel_layer()
+    for driver_id in driver_ids:
+        async_to_sync(channel_layer.group_send)(
+            f'driver_requests_{driver_id}',
+            {
+                'type': 'request_cancelled',
+                'ride_request_id': ride_request_id,
+            }
+        )
+
+    if driver_ids:
+        logger.info(
+            f"Demande #{ride_request_id[:8]} annulée : {len(driver_ids)} chauffeur(s) notifié(s)"
+        )
+
+
+@shared_task
 def notify_ride_status_change(ride_id: str):
     """Notifie du changement de statut d'une course via WebSocket."""
     from apps.rides.models import Ride
