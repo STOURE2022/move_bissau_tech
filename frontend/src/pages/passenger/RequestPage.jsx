@@ -90,7 +90,18 @@ export default function RequestPage() {
   const toast = useToast();
   const country = useCountryConfig();
   const { t } = useTranslation();
-  const { vehicleType: initialType = 'moto', userPos: stateUserPos, presetDropoff, presetDropoffAddress, preferredDriver } = location.state || {};
+  const {
+    vehicleType: initialType = 'moto',
+    userPos: stateUserPos,
+    presetDropoff: rawPresetDropoff,
+    presetDropoffAddress,
+    preferredDriver,
+  } = location.state || {};
+  // Ne jamais accepter des coordonnées invalides (vieux récents corrompus)
+  const presetDropoff = Array.isArray(rawPresetDropoff)
+    && Number.isFinite(rawPresetDropoff[0])
+    && Number.isFinite(rawPresetDropoff[1])
+    ? rawPresetDropoff : null;
   const geo = useGeolocation({ watch: true, defaultLat: country.default_lat, defaultLng: country.default_lng });
 
   // Demande en cours (bloquante)
@@ -347,8 +358,13 @@ export default function RequestPage() {
                     <button
                       key={i}
                       onClick={() => {
-                        if (r.coords) { setDropoff(r.coords); setDropoffAddress(r.address); }
-                        setSearchMode(null); setSearchQuery('');
+                        if (Array.isArray(r.coords) && Number.isFinite(r.coords[0]) && Number.isFinite(r.coords[1])) {
+                          setDropoff(r.coords); setDropoffAddress(r.address);
+                          setSearchMode(null); setSearchQuery('');
+                        } else {
+                          // Pas de coordonnées : relancer une recherche sur l'adresse
+                          setSearchQuery(r.address);
+                        }
                       }}
                       className="w-full flex items-center gap-3 py-2.5 text-left hover:bg-gray-50 rounded-xl px-2 transition"
                     >

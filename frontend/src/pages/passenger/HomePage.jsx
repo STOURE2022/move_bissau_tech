@@ -80,14 +80,31 @@ function getSavedPlaces() {
 function setSavedPlaces(places) {
   localStorage.setItem('mb_saved_places', JSON.stringify(places));
 }
+// Coordonnées [lat, lng] valides ?
+export function isValidCoords(coords) {
+  return Array.isArray(coords)
+    && Number.isFinite(coords[0])
+    && Number.isFinite(coords[1]);
+}
+
 function getRecentDestinations() {
-  try { return JSON.parse(localStorage.getItem('mb_recent_destinations')) || []; } catch { return []; }
+  try {
+    const recents = JSON.parse(localStorage.getItem('mb_recent_destinations')) || [];
+    // Assainir les entrées historiques enregistrées avec des coords invalides
+    return recents
+      .filter(r => r && r.address)
+      .map(r => ({ ...r, coords: isValidCoords(r.coords) ? r.coords : null }));
+  } catch { return []; }
 }
 export function addRecentDestination(dest) {
+  if (!dest?.address) return;
   const recents = getRecentDestinations();
   // Dédupliquer par adresse
   const filtered = recents.filter(r => r.address !== dest.address);
-  const updated = [dest, ...filtered].slice(0, 5);
+  const updated = [{
+    address: dest.address,
+    coords: isValidCoords(dest.coords) ? dest.coords : null,
+  }, ...filtered].slice(0, 5);
   localStorage.setItem('mb_recent_destinations', JSON.stringify(updated));
 }
 
@@ -512,7 +529,7 @@ export default function HomePage() {
                   transition={{ delay: i * 0.05 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => goToRequest({
-                    presetDropoff: r.coords || null,
+                    presetDropoff: isValidCoords(r.coords) ? r.coords : null,
                     presetDropoffAddress: r.address,
                   })}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 transition text-left"

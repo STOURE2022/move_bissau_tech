@@ -96,11 +96,16 @@ class RideRequestSerializer(serializers.ModelSerializer):
     """Détails d'une demande de course."""
     offers = RideOfferResponseSerializer(many=True, read_only=True)
     offers_count = serializers.SerializerMethodField()
+    pickup_lat = serializers.SerializerMethodField()
+    pickup_lng = serializers.SerializerMethodField()
+    dropoff_lat = serializers.SerializerMethodField()
+    dropoff_lng = serializers.SerializerMethodField()
 
     class Meta:
         model = RideRequest
         fields = [
             'id', 'pickup_address', 'dropoff_address',
+            'pickup_lat', 'pickup_lng', 'dropoff_lat', 'dropoff_lng',
             'estimated_distance_m', 'suggested_price', 'proposed_price',
             'vehicle_type', 'luggage_type', 'status', 'notified_count',
             'offers_count', 'offers',
@@ -109,6 +114,18 @@ class RideRequestSerializer(serializers.ModelSerializer):
 
     def get_offers_count(self, obj):
         return obj.offers.filter(status='pending').count()
+
+    def get_pickup_lat(self, obj):
+        return obj.pickup_location.y if obj.pickup_location else None
+
+    def get_pickup_lng(self, obj):
+        return obj.pickup_location.x if obj.pickup_location else None
+
+    def get_dropoff_lat(self, obj):
+        return obj.dropoff_location.y if obj.dropoff_location else None
+
+    def get_dropoff_lng(self, obj):
+        return obj.dropoff_location.x if obj.dropoff_location else None
 
 
 class RideSerializer(serializers.ModelSerializer):

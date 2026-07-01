@@ -72,11 +72,12 @@ export default function OffersPage() {
     navigator.vibrate?.(15);
     try {
       const ride = await api.post(`/rides/requests/${requestId}/accept-offer`, { offer_id: offerId });
-      // Sauvegarder comme destination récente
-      if (request) {
+      // Sauvegarder comme destination récente (coords seulement si valides)
+      if (request?.dropoff_address) {
+        const hasCoords = Number.isFinite(request.dropoff_lat) && Number.isFinite(request.dropoff_lng);
         addRecentDestination({
-          address: request.dropoff_address || request.dropoff_address,
-          coords: [request.dropoff_lat, request.dropoff_lng],
+          address: request.dropoff_address,
+          coords: hasCoords ? [request.dropoff_lat, request.dropoff_lng] : null,
         });
       }
       navigate(`/tracking/${ride.id}`);

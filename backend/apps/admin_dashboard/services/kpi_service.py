@@ -6,6 +6,7 @@ import logging
 from datetime import timedelta
 
 from django.db.models import Avg, Count, Sum, Q
+from django.db.models.functions import TruncDate
 from django.utils import timezone
 
 from apps.commissions.models import CommissionCredit, CreditTransaction
@@ -63,6 +64,30 @@ def get_dashboard_kpi(days: int = 30) -> dict:
         count=Count('id'),
     )
 
+    # Série journalière (courses payées + revenus) pour le graphique d'activité
+    daily_raw = (
+        rides_period.filter(status='paid')
+        .annotate(day=TruncDate('created_at'))
+        .values('day')
+        .annotate(
+            rides=Count('id'),
+            revenue=Sum('agreed_price'),
+            commission=Sum('commission_amount'),
+        )
+        .order_by('day')
+    )
+    daily_map = {d['day']: d for d in daily_raw}
+    daily = []
+    for i in range(days):
+        day = (now - timedelta(days=days - 1 - i)).date()
+        entry = daily_map.get(day)
+        daily.append({
+            'date': day.isoformat(),
+            'rides': entry['rides'] if entry else 0,
+            'revenue': (entry['revenue'] or 0) if entry else 0,
+            'commission': (entry['commission'] or 0) if entry else 0,
+        })
+
     # Demandes sans offre (taux d'abandon)
     expired_requests = RideRequest.objects.filter(
         status='expired',
@@ -100,4 +125,5 @@ def get_dashboard_kpi(days: int = 30) -> dict:
             'topups_count': topups['count'] or 0,
             'topups_total_xof': topups['total'] or 0,
         },
+        'daily': daily,
     }
