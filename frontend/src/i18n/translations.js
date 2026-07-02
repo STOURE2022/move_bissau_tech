@@ -374,7 +374,8 @@ const translations = {
     sosSent: { fr: "Alerte envoyée à l'équipe MoveBissau. Restez en sécurité.", pt: 'Alerta enviado à equipa MoveBissau. Fique em segurança.' },
     cancelTitle: { fr: 'Annuler la course ?', pt: 'Cancelar corrida?' },
     cancelMessage: { fr: "Des frais de 500 F CFA peuvent s'appliquer si le chauffeur est déjà en route.", pt: 'Uma taxa de 500 F CFA pode ser aplicada se o motorista já estiver a caminho.' },
-    cancelConfirm: { fr: 'Annuler la course', pt: 'Cancelar corrida' },
+    cancelConfirm: { fr: 'Oui, annuler', pt: 'Sim, cancelar' },
+    cancelKeep: { fr: 'Non, continuer', pt: 'Não, continuar' },
   },
 
   // === CHAT COURSE ===
@@ -498,6 +499,8 @@ const translations = {
     cancelRide: { fr: 'Annuler la course', pt: 'Cancelar corrida' },
     cancelRideTitle: { fr: 'Annuler la course ?', pt: 'Cancelar corrida?' },
     cancelRideMsg: { fr: 'Des frais de 500 F CFA seront déduits de votre crédit commission.', pt: 'Uma taxa de 500 F CFA será deduzida do seu crédito de comissão.' },
+    cancelRideConfirm: { fr: 'Oui, annuler', pt: 'Sim, cancelar' },
+    cancelRideKeep: { fr: 'Non, continuer', pt: 'Não, continuar' },
     paidCommission: { fr: 'Course payée — commission déduite', pt: 'Corrida paga — comissão deduzida' },
     backHome: { fr: "Retour à l'accueil", pt: 'Voltar ao início' },
     navigatePickup: { fr: 'Naviguer pickup', pt: 'Navegar embarque' },

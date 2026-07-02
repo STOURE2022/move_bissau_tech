@@ -396,6 +396,7 @@ export default function TrackingPage() {
         title={t('tracking.cancelTitle')}
         message={t('tracking.cancelMessage')}
         confirmLabel={t('tracking.cancelConfirm')}
+        cancelLabel={t('tracking.cancelKeep')}
         variant="warning"
         loading={cancelLoading}
         onConfirm={cancelRide}

@@ -481,7 +481,8 @@ export default function DriverRidePage() {
         open={showCancelModal}
         title={t('driver.cancelRideTitle')}
         message={t('driver.cancelRideMsg')}
-        confirmLabel={cancelling ? '...' : t('driver.cancelRide')}
+        confirmLabel={cancelling ? '...' : t('driver.cancelRideConfirm')}
+        cancelLabel={t('driver.cancelRideKeep')}
         variant="danger"
         loading={cancelling}
         onConfirm={cancelRide}
