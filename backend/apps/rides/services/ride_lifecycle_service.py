@@ -2,12 +2,16 @@
 Service de cycle de vie des courses.
 Gère toutes les transitions de statut et les annulations.
 """
+
 import logging
 
 from django.db import transaction
 from django.utils import timezone
 
-from apps.commissions.services.commission_service import deduct_commission, deduct_cancellation_fee
+from apps.commissions.services.commission_service import (
+    deduct_commission,
+    deduct_cancellation_fee,
+)
 from apps.incidents.models import Incident
 from apps.rides.models import Ride, RideOffer, RideRequest
 from core.config_service import get_config_int
@@ -17,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 class RideLifecycleError(Exception):
     """Erreur dans le cycle de vie d'une course."""
+
     pass
 
 
@@ -24,10 +29,10 @@ def accept_offer(ride_request: RideRequest, offer: RideOffer) -> Ride:
     """
     Le passager accepte une offre. Crée la course et rejette les autres offres.
     """
-    if ride_request.status not in ('pending', 'offers_received'):
+    if ride_request.status not in ("pending", "offers_received"):
         raise RideLifecycleError("Cette demande n'est plus active.")
 
-    if offer.status != 'pending':
+    if offer.status != "pending":
         raise RideLifecycleError("Cette offre n'est plus disponible.")
 
     if offer.ride_request_id != ride_request.id:
@@ -35,28 +40,32 @@ def accept_offer(ride_request: RideRequest, offer: RideOffer) -> Ride:
 
     # Le chauffeur ne doit pas déjà être sur une course active
     # (il peut avoir des offres en attente sur plusieurs demandes)
-    active_statuses = ('driver_assigned', 'driver_en_route', 'driver_arrived', 'passenger_onboard')
+    active_statuses = (
+        "driver_assigned",
+        "driver_en_route",
+        "driver_arrived",
+        "passenger_onboard",
+    )
     if Ride.objects.filter(driver=offer.driver, status__in=active_statuses).exists():
         raise RideLifecycleError("Ce chauffeur n'est plus disponible.")
 
     with transaction.atomic():
         # Mettre à jour le statut de la demande
-        ride_request.status = 'accepted'
-        ride_request.save(update_fields=['status', 'updated_at'])
+        ride_request.status = "accepted"
+        ride_request.save(update_fields=["status", "updated_at"])
 
         # Accepter cette offre
-        offer.status = 'accepted'
-        offer.save(update_fields=['status', 'updated_at'])
+        offer.status = "accepted"
+        offer.save(update_fields=["status", "updated_at"])
 
         # Rejeter toutes les autres offres
-        RideOffer.objects.filter(
-            ride_request=ride_request
-        ).exclude(
-            id=offer.id
-        ).update(status='rejected', updated_at=timezone.now())
+        RideOffer.objects.filter(ride_request=ride_request).exclude(id=offer.id).update(
+            status="rejected", updated_at=timezone.now()
+        )
 
         # Calculer la commission (fonction centralisée)
         from apps.commissions.services.commission_service import calculate_commission
+
         commission_rate, commission_amount = calculate_commission(offer.offered_price)
 
         # Créer la course
@@ -73,16 +82,14 @@ def accept_offer(ride_request: RideRequest, offer: RideOffer) -> Ride:
             commission_amount=commission_amount,
             commission_rate=commission_rate,
             vehicle_type=ride_request.vehicle_type,
-            status='driver_assigned',
+            status="driver_assigned",
         )
 
         # Retirer les offres en attente de ce chauffeur sur d'autres demandes
         # (il est maintenant occupé)
-        RideOffer.objects.filter(
-            driver=offer.driver, status='pending'
-        ).exclude(
+        RideOffer.objects.filter(driver=offer.driver, status="pending").exclude(
             ride_request=ride_request
-        ).update(status='withdrawn', updated_at=timezone.now())
+        ).update(status="withdrawn", updated_at=timezone.now())
 
         logger.info(
             f"Course #{str(ride.id)[:8]} créée : "
@@ -93,6 +100,7 @@ def accept_offer(ride_request: RideRequest, offer: RideOffer) -> Ride:
     # plateforme — le chauffeur sera compensé à la déduction de commission)
     try:
         from apps.accounts.services.promo_service import apply_promo_to_ride
+
         apply_promo_to_ride(ride)
     except Exception as e:
         logger.warning(f"Application promo échouée (non bloquant) : {e}")
@@ -100,15 +108,27 @@ def accept_offer(ride_request: RideRequest, offer: RideOffer) -> Ride:
     return ride
 
 
+def can_transition_to(current_status: str, new_status: str) -> bool:
+    """Retourne True si une transition de statut est autorisée."""
+    transition_map = {
+        "driver_assigned": ("driver_en_route", "cancelled"),
+        "driver_en_route": ("driver_arrived", "cancelled"),
+        "driver_arrived": ("passenger_onboard", "cancelled"),
+        "passenger_onboard": ("completed", "cancelled"),
+        "completed": ("paid",),
+        "paid": (),
+        "cancelled": (),
+    }
+    return new_status in transition_map.get(current_status, ())
+
+
 def update_ride_status(ride: Ride, new_status: str, user=None) -> Ride:
     """
     Met à jour le statut d'une course.
     Vérifie que la transition est autorisée.
     """
-    if not ride.can_transition_to(new_status):
-        raise RideLifecycleError(
-            f"Transition interdite : {ride.status} → {new_status}"
-        )
+    if not can_transition_to(ride.status, new_status):
+        raise RideLifecycleError(f"Transition interdite : {ride.status} → {new_status}")
 
     now = timezone.now()
 
@@ -117,11 +137,11 @@ def update_ride_status(ride: Ride, new_status: str, user=None) -> Ride:
 
         # Mettre à jour le timestamp correspondant
         timestamp_map = {
-            'driver_en_route': 'driver_en_route_at',
-            'driver_arrived': 'driver_arrived_at',
-            'passenger_onboard': 'passenger_onboard_at',
-            'completed': 'completed_at',
-            'paid': 'paid_at',
+            "driver_en_route": "driver_en_route_at",
+            "driver_arrived": "driver_arrived_at",
+            "passenger_onboard": "passenger_onboard_at",
+            "completed": "completed_at",
+            "paid": "paid_at",
         }
 
         if new_status in timestamp_map:
@@ -132,51 +152,59 @@ def update_ride_status(ride: Ride, new_status: str, user=None) -> Ride:
         logger.info(f"Course #{str(ride.id)[:8]} : statut → {new_status}")
 
     # Première course payée d'un filleul → créditer les bonus de parrainage
-    if new_status == 'paid':
+    if new_status == "paid":
         from apps.accounts.services.promo_service import credit_referral_bonuses
+
         credit_referral_bonuses(ride)
 
     return ride
 
 
-def cancel_ride(ride: Ride, cancelled_by: str, reason: str = '') -> Ride:
+def cancel_ride(ride: Ride, cancelled_by: str, reason: str = "") -> Ride:
     """
     Annule une course. Applique les frais d'annulation si applicable.
 
     cancelled_by : 'passenger', 'driver', 'system'
     """
-    if not ride.can_transition_to('cancelled'):
+    if not can_transition_to(ride.status, "cancelled"):
         raise RideLifecycleError(
             f"Impossible d'annuler une course au statut '{ride.status}'"
         )
 
-    cancellation_fee = get_config_int('cancellation_fee', 500)
+    cancellation_fee = get_config_int("cancellation_fee", 500)
     now = timezone.now()
 
     with transaction.atomic():
         # Sauvegarder le statut AVANT de le changer (pour appliquer les frais)
         original_status = ride.status
 
-        ride.status = 'cancelled'
+        ride.status = "cancelled"
         ride.cancelled_at = now
         ride.cancelled_by = cancelled_by
         ride.cancellation_reason = reason
 
         # Frais d'annulation si la course avait déjà progressé
-        if original_status in ('driver_assigned', 'driver_en_route', 'driver_arrived', 'passenger_onboard'):
+        if original_status in (
+            "driver_assigned",
+            "driver_en_route",
+            "driver_arrived",
+            "passenger_onboard",
+        ):
             ride.cancellation_fee = cancellation_fee
 
-            if cancelled_by == 'driver':
+            if cancelled_by == "driver":
                 # Déduire les frais du crédit du chauffeur
                 deduct_cancellation_fee(ride.driver, cancellation_fee, ride)
 
                 # Incrémenter le compteur d'annulations du chauffeur
                 driver = ride.driver
                 driver.cancellations_today += 1
-                max_cancellations = get_config_int('driver_max_cancellations_24h', 3)
+                max_cancellations = get_config_int("driver_max_cancellations_24h", 3)
                 if driver.cancellations_today >= max_cancellations:
-                    cooldown = get_config_int('driver_cooldown_minutes', 60)
-                    driver.forced_offline_until = now + timezone.timedelta(minutes=cooldown)
+                    cooldown = get_config_int("driver_cooldown_minutes", 60)
+                    driver.forced_offline_until = now + timezone.timedelta(
+                        minutes=cooldown
+                    )
                     driver.is_online = False
                     logger.warning(
                         f"Chauffeur {driver.id} mis hors ligne pour {cooldown} min "
@@ -184,21 +212,21 @@ def cancel_ride(ride: Ride, cancelled_by: str, reason: str = '') -> Ride:
                     )
                 driver.save()
 
-            elif cancelled_by == 'passenger':
+            elif cancelled_by == "passenger":
                 # Enregistrer la dette d'annulation sur le passager
                 passenger = ride.passenger
                 passenger.cancellation_debt += cancellation_fee
                 if not passenger.cancellation_debt_created_at:
                     passenger.cancellation_debt_created_at = now
-                passenger.save(update_fields=[
-                    'cancellation_debt', 'cancellation_debt_created_at'
-                ])
+                passenger.save(
+                    update_fields=["cancellation_debt", "cancellation_debt_created_at"]
+                )
 
         ride.save()
 
         # Remettre le chauffeur disponible
         driver = ride.driver
-        if cancelled_by != 'driver' or ride.cancellation_fee == 0:
+        if cancelled_by != "driver" or ride.cancellation_fee == 0:
             # Le chauffeur redevient disponible sauf s'il a été mis hors ligne
             pass
 
@@ -207,9 +235,9 @@ def cancel_ride(ride: Ride, cancelled_by: str, reason: str = '') -> Ride:
             Incident.objects.create(
                 ride=ride,
                 reported_by=ride.passenger,
-                incident_type='dispute',
+                incident_type="dispute",
                 description=f"Annulation pendant la course par {cancelled_by}. Raison : {reason}",
-                priority='high',
+                priority="high",
             )
 
         logger.info(
@@ -227,27 +255,27 @@ def handle_noshow(ride: Ride, noshow_by: str) -> Ride:
     noshow_by : 'passenger' (le passager ne se montre pas)
                 'driver' (le chauffeur ne se montre pas)
     """
-    cancellation_fee = get_config_int('cancellation_fee', 500)
+    cancellation_fee = get_config_int("cancellation_fee", 500)
 
-    if noshow_by == 'passenger':
+    if noshow_by == "passenger":
         # Le chauffeur est arrivé, le passager n'est pas là après le timeout
         return cancel_ride(
             ride,
-            cancelled_by='passenger',
-            reason="No-show passager : absence au point de rendez-vous"
+            cancelled_by="passenger",
+            reason="No-show passager : absence au point de rendez-vous",
         )
-    elif noshow_by == 'driver':
+    elif noshow_by == "driver":
         # Le chauffeur ne s'est pas présenté
         ride = cancel_ride(
             ride,
-            cancelled_by='driver',
-            reason="No-show chauffeur : non arrivé au point de rendez-vous"
+            cancelled_by="driver",
+            reason="No-show chauffeur : non arrivé au point de rendez-vous",
         )
         # Le passager ne paie pas dans ce cas
         ride.cancellation_fee = 0
         ride.passenger.cancellation_debt = max(
             0, ride.passenger.cancellation_debt - cancellation_fee
         )
-        ride.passenger.save(update_fields=['cancellation_debt'])
-        ride.save(update_fields=['cancellation_fee'])
+        ride.passenger.save(update_fields=["cancellation_debt"])
+        ride.save(update_fields=["cancellation_fee"])
         return ride
