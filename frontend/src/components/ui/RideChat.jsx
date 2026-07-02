@@ -110,14 +110,14 @@ export default function RideChat({ rideId, role }) {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setOpen(false)}
-              className="fixed inset-0 bg-black/40 z-40"
+              className="fixed inset-0 bg-black/40 z-[2000]"
             />
             <motion.div
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-              className="fixed left-0 right-0 bottom-0 z-50 bg-white rounded-t-3xl shadow-elevated
+              className="fixed left-0 right-0 bottom-0 z-[2001] bg-white rounded-t-3xl shadow-elevated
                          flex flex-col max-h-[75dvh]"
             >
               {/* En-tête */}
