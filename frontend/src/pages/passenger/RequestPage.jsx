@@ -429,7 +429,16 @@ export default function RequestPage() {
           </div>
           <div className="flex flex-col bg-gray-100 rounded-xl p-1 gap-1">
             {['moto', 'car'].map(t_type => (
-              <button key={t_type} onClick={() => setVehicleType(t_type)}
+              <button key={t_type} onClick={() => {
+                  setVehicleType(t_type);
+                  if (t_type === 'moto') {
+                    if (luggageType === 'large') { setLuggageType('none'); setError(''); }
+                    else if (luggageType === 'suitcase') { setError(t('request.luggage.motoWarning')); }
+                    else { setError(''); }
+                  } else {
+                    setError('');
+                  }
+                }}
                 className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                   vehicleType === t_type ? 'bg-white shadow-sm text-brand-600' : 'text-gray-500'
                 }`}>
@@ -579,6 +588,8 @@ export default function RequestPage() {
                       }
                       if (l.id === 'suitcase' && vehicleType === 'moto') {
                         setError(t('request.luggage.motoWarning'));
+                      } else {
+                        setError('');
                       }
                       setLuggageType(l.id);
                     }}
